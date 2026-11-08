@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Flous Job Board</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💼</text></svg>">
+<style>
+:root{
+  --bg:#f6f7f9;--panel:#ffffff;--ink:#14181f;--muted:#5d6675;--line:#e3e6eb;--soft:#f0f2f5;
+  --accent:#2f5bea;--accent-ink:#ffffff;--good:#178a4c;--warn:#b26a00;--bad:#c23b3b;
+  --good-bg:#e6f5ec;--bad-bg:#fbeaea;--warn-bg:#fdf3e2;--accent-bg:#eaf0ff;
+  --shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.08);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1217;--panel:#171b22;--ink:#e8ebf0;--muted:#9aa3b2;--line:#2a303a;--soft:#1e232b;
+  --accent:#7c9dff;--accent-ink:#0f1217;--good:#4cc88a;--warn:#f0b24a;--bad:#f07a7a;
+  --good-bg:#16291f;--bad-bg:#2e1a1a;--warn-bg:#2d2414;--accent-bg:#1b2440;--shadow:none}}
+:root[data-theme="dark"]{
+  --bg:#0f1217;--panel:#171b22;--ink:#e8ebf0;--muted:#9aa3b2;--line:#2a303a;--soft:#1e232b;
+  --accent:#7c9dff;--accent-ink:#0f1217;--good:#4cc88a;--warn:#f0b24a;--bad:#f07a7a;
+  --good-bg:#16291f;--bad-bg:#2e1a1a;--warn-bg:#2d2414;--accent-bg:#1b2440;--shadow:none}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--accent)}
+.wrap{max-width:1080px;margin:0 auto;padding:20px 16px 60px}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:7px 12px;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.btn.small{padding:4px 9px;font-size:13px}
+input[type=text],input[type=password],input[type=search],select,textarea{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-width:0}
+textarea{width:100%;min-height:220px;resize:vertical;line-height:1.5}
+/* lock */
+#lock{min-height:100vh;display:grid;place-items:center;padding:16px}
+#lock form{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:28px;width:100%;max-width:380px;box-shadow:var(--shadow)}
+#lock h1{margin:0 0 4px;font-size:22px}
+#lock p{margin:0 0 18px;color:var(--muted)}
+#lock input[type=password]{width:100%;margin-bottom:10px}
+#lock .err{color:var(--bad);min-height:1.4em;font-size:14px}
+/* header */
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;margin-bottom:16px}
+header h1{margin:0;font-size:24px}
+header .sub{color:var(--muted);font-size:13px}
+.tabs{display:flex;gap:6px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:0 0 16px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.stat b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+.stat span{color:var(--muted);font-size:13px}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+.toolbar input[type=search]{flex:1 1 200px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.chip{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:5px 12px;cursor:pointer;font-size:14px}
+.chip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+/* cards */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow)}
+.card.dim{opacity:.55}
+.top{display:flex;gap:14px;align-items:flex-start}
+.score{flex:0 0 auto;width:54px;height:54px;border-radius:12px;display:grid;place-items:center;font-weight:700;font-size:18px;font-variant-numeric:tabular-nums}
+.s-hi{background:var(--good-bg);color:var(--good)}.s-mid{background:var(--warn-bg);color:var(--warn)}.s-lo{background:var(--soft);color:var(--muted)}
+.main{flex:1;min-width:0}
+.cat{font-size:12px;color:var(--muted);text-transform:none}
+.title{font-weight:650;font-size:16px;margin:1px 0;overflow-wrap:anywhere}
+.meta{color:var(--muted);font-size:13px;overflow-wrap:anywhere}
+.newdot{display:inline-block;background:var(--accent);color:var(--accent-ink);font-size:11px;border-radius:6px;padding:0 6px;margin-left:6px;vertical-align:2px}
+.right{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.status{font-size:13px;padding:5px 8px}
+.st-applied{border-color:var(--accent);background:var(--accent-bg)}
+.st-interview,.st-offer{border-color:var(--good);background:var(--good-bg)}
+.st-rejected,.st-skip{border-color:var(--line);background:var(--soft)}
+.ats{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-top:6px}
+.bar{flex:0 0 120px;height:6px;background:var(--soft);border-radius:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent)}
+.actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.details{border-top:1px solid var(--line);margin-top:12px;padding-top:12px;display:none}
+.card.open .details{display:block}
+.kw{display:flex;flex-wrap:wrap;gap:5px;margin:4px 0 10px}
+.kw span{font-size:12px;border-radius:6px;padding:2px 7px}
+.kw .y{background:var(--good-bg);color:var(--good)}.kw .n{background:var(--bad-bg);color:var(--bad)}
+h3{font-size:14px;margin:14px 0 6px}
+ul{margin:4px 0 8px;padding-left:20px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:760px){.grid2{grid-template-columns:1fr}.top{flex-wrap:wrap}.right{flex-direction:row;align-items:center;width:100%}}
+.note{width:100%;min-height:60px}
+.empty{text-align:center;color:var(--muted);padding:40px 0}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:9px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
+.toast.show{opacity:1}
+/* profile tab */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:14px}
+.prow{display:grid;grid-template-columns:170px 1fr auto;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
+.prow:last-child{border-bottom:0}
+.prow span{color:var(--muted);font-size:13px}
+@media (max-width:560px){.prow{grid-template-columns:1fr auto}.prow span{grid-column:1/-1}}
+.bm{display:inline-block;background:var(--accent);color:var(--accent-ink);padding:10px 16px;border-radius:9px;font-weight:700;text-decoration:none;cursor:grab}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<div id="lock">
+  <form id="lockform" autocomplete="off">
+    <h1>💼 Flous Job Board</h1>
+    <p>Private dashboard. Enter your password to unlock.</p>
+    <input type="password" id="pw" placeholder="Password" autofocus>
+    <label style="display:flex;gap:8px;align-items:center;font-size:14px;color:var(--muted);margin-bottom:14px">
+      <input type="checkbox" id="remember" checked> Remember on this device
+    </label>
+    <button class="btn primary" style="width:100%">Unlock</button>
+    <div class="err" id="err"></div>
+  </form>
+</div>
+
+<div id="app" class="wrap hidden">
+  <header>
+    <div>
+      <h1>💼 Flous Job Board</h1>
+      <div class="sub" id="updated"></div>
+    </div>
+    <div class="tabs">
+      <button class="btn primary" data-tab="board">Listings</button>
+      <button class="btn" data-tab="profile">Autofill &amp; profile</button>
+      <button class="btn" id="lockbtn" title="Forget password on this device">🔒</button>
+    </div>
+  </header>
+
+  <section id="tab-board">
+    <div class="stats" id="stats"></div>
+    <div class="chips" id="cats"></div>
+    <div class="toolbar">
+      <input type="search" id="q" placeholder="Search title, company, keyword…">
+      <select id="fstatus">
+        <option value="active">Active (hide rejected / not interested)</option>
+        <option value="all">All statuses</option>
+        <option value="new">New</option><option value="saved">Saved</option>
+        <option value="applied">Applied</option><option value="interview">Interview</option>
+        <option value="offer">Offer</option><option value="rejected">Rejected</option>
+        <option value="skip">Not interested</option>
+      </select>
+      <select id="sort">
+        <option value="score">Best match first</option>
+        <option value="found">Newest first</option>
+        <option value="ats">Highest ATS first</option>
+      </select>
+    </div>
+    <div id="list"></div>
+  </section>
+
+  <section id="tab-profile" class="hidden">
+    <div class="panel">
+      <h2 style="margin-top:0">⚡ One-click application filler</h2>
+      <ol>
+        <li>Show your bookmarks bar (<b>Ctrl+Shift+B</b>).</li>
+        <li>Drag this button onto the bookmarks bar: <a class="bm" id="bookmarklet" href="#">⚡ Fill application</a></li>
+        <li>On a job, click <b>Apply</b> here. That copies the cover letter and opens the application page.</li>
+        <li>On the application page, click <b>⚡ Fill application</b> in your bookmarks bar. It fills your name, email, phone, LinkedIn, GitHub and location, and pastes the cover letter if the page has a cover letter box.</li>
+        <li>Upload your CV file, check everything, and submit it yourself.</li>
+      </ol>
+      <p class="sub" style="color:var(--muted)">It works on most forms (Lever, Workable, Ashby, SmartRecruiters, many company sites). If a form is shown inside a box from another site, open that box's page directly, or use the copy buttons below.</p>
+    </div>
+    <div class="panel" id="profile"></div>
+    <div class="panel">
+      <h2 style="margin-top:0">Move your tracking to another device</h2>
+      <p style="color:var(--muted)">Your statuses and notes are saved in this browser. To move them to your phone or another computer, export them here and import them there.</p>
+      <div class="actions">
+        <button class="btn" id="export">⬇ Export tracking</button>
+        <label class="btn">⬆ Import tracking<input type="file" id="import" accept=".json" class="hidden"></label>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const BLOB = __PAYLOAD__;
+const STATUSES = {new:"🆕 New",saved:"⭐ Saved",applied:"📨 Applied",interview:"🗣 Interview",offer:"🎉 Offer",rejected:"✖ Rejected",skip:"🙈 Not interested"};
+const MODELS = ["gemini-3.5-flash","gemini-3.5-flash-lite","gemini-flash-latest"];
+let D = null, track = {}, cat = "All", lastSeen = "";
+const openIds = new Set();
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const list = v => Array.isArray(v) ? v.map(x => typeof x === "object" && x ? Object.values(x).join(" — ") : String(x)) : (v ? [String(v)] : []);
+function store(k, v){ try{ if(v===undefined) return JSON.parse(localStorage.getItem(k)); localStorage.setItem(k, JSON.stringify(v)); }catch(e){ return null; } }
+function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),2200); }
+async function copy(text, msg){ try{ await navigator.clipboard.writeText(text); toast(msg||"Copied ✔"); }catch(e){ prompt("Copy this:", text); } }
+
+/* ---------- decrypt ---------- */
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+async function decrypt(pw){
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveKey"]);
+  const aes = await crypto.subtle.deriveKey({name:"PBKDF2", salt:b64(BLOB.salt), iterations:BLOB.iter, hash:"SHA-256"},
+    key, {name:"AES-GCM", length:256}, false, ["decrypt"]);
+  const out = await crypto.subtle.decrypt({name:"AES-GCM", iv:b64(BLOB.iv)}, aes, b64(BLOB.ct));
+  return JSON.parse(new TextDecoder().decode(out));
+}
+async function unlock(pw, remember){
+  try{
+    D = await decrypt(pw);
+    if(remember) store("pw", pw);
+    $("#lock").classList.add("hidden"); $("#app").classList.remove("hidden");
+    track = store("track") || {};
+    init();
+  }catch(e){ $("#err").textContent = "Wrong password."; store("pw", null); }
+}
+$("#lockform").onsubmit = e => { e.preventDefault(); $("#err").textContent="Unlocking…"; unlock($("#pw").value, $("#remember").checked); };
+$("#lockbtn").onclick = () => { try{ localStorage.removeItem("pw"); }catch(e){} location.reload(); };
+const saved = store("pw"); if(saved) unlock(saved, true);
+
+/* ---------- tracking ---------- */
+function st(id){ return (track[id] && track[id].status) || "new"; }
+function setStatus(id, s){
+  track[id] = Object.assign(track[id] || {}, {status:s, [s+"_at"]: new Date().toISOString()});
+  store("track", track); render();
+}
+function setField(id, k, v){ track[id] = Object.assign(track[id] || {}, {[k]:v}); store("track", track); }
+
+/* ---------- UI ---------- */
+function init(){
+  const g = new Date(D.generated);
+  $("#updated").textContent = `${D.listings.length} listings · updated ${g.toLocaleString()}`;
+  document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => {
+    document.querySelectorAll("[data-tab]").forEach(x => x.classList.toggle("primary", x===b));
+    $("#tab-board").classList.toggle("hidden", b.dataset.tab!=="board");
+    $("#tab-profile").classList.toggle("hidden", b.dataset.tab!=="profile");
+  });
+  ["#q","#fstatus","#sort"].forEach(s => $(s).oninput = render);
+  lastSeen = store("lastVisit") || ""; store("lastVisit", D.generated);
+  renderProfile(); render();
+}
+
+function render(){
+  const L = D.listings;
+  const counts = s => L.filter(r => st(r.id)===s).length;
+  $("#stats").innerHTML = [
+    [L.length,"Listings"],[L.filter(r=>r.found>lastSeen).length,"New since last visit"],
+    [counts("saved"),"Saved"],[counts("applied"),"Applied"],[counts("interview")+counts("offer"),"Interviews / offers"]
+  ].map(([n,t]) => `<div class="stat"><b>${n}</b><span>${t}</span></div>`).join("");
+
+  const cats = ["All", ...D.categories];
+  $("#cats").innerHTML = cats.map(c => {
+    const n = c==="All" ? L.length : L.filter(r=>r.category===c).length;
+    return `<button class="chip ${c===cat?"on":""}" data-c="${esc(c)}">${esc(c)} · ${n}</button>`;
+  }).join("");
+  document.querySelectorAll(".chip").forEach(b => b.onclick = () => { cat = b.dataset.c; render(); });
+
+  const q = $("#q").value.toLowerCase().trim(), fs = $("#fstatus").value, sort = $("#sort").value;
+  let rows = L.filter(r => cat==="All" || r.category===cat).filter(r => {
+    const s = st(r.id);
+    if(fs==="active" && (s==="rejected" || s==="skip")) return false;
+    if(fs!=="active" && fs!=="all" && s!==fs) return false;
+    if(!q) return true;
+    return [r.title,r.company,r.location,r.category,(r.matched||[]).join(" "),r.description].join(" ").toLowerCase().includes(q);
+  });
+  rows.sort((a,b) => sort==="found" ? b.found.localeCompare(a.found) : sort==="ats" ? b.ats-a.ats : b.score-a.score);
+  $("#list").innerHTML = rows.length ? rows.map(r => card(r, lastSeen)).join("") : `<div class="empty">Nothing here yet. New matches appear after each run.</div>`;
+  rows.forEach(bind);
+}
+
+function card(r, lastSeen){
+  const s = st(r.id), ai = r.ai || null, t = track[r.id] || {};
+  const sc = r.score>=65?"s-hi":r.score>=45?"s-mid":"s-lo";
+  const posted = r.posted ? new Date(r.posted).toLocaleDateString() : "";
+  const appliedOn = t.applied_at ? ` · applied ${new Date(t.applied_at).toLocaleDateString()}` : "";
+  const est = ai && ai.ats_score_estimate ? ` → ~${esc(ai.ats_score_estimate)}% after tailoring` : "";
+  const tips = ai ? list(ai.boost_tips) : (r.tips||[]);
+  const letter = t.letter ?? (ai ? ai.cover_letter : "");
+  return `<article class="card ${s==="skip"||s==="rejected"?"dim":""} ${openIds.has(r.id)?"open":""}" id="c-${CSS.escape(r.id)}" data-id="${esc(r.id)}">
+  <div class="top">
+    <div class="score ${sc}" title="Match score">${Math.round(r.score)}</div>
+    <div class="main">
+      <div class="cat">${esc(r.category)}${r.found>lastSeen?'<span class="newdot">NEW</span>':""}</div>
+      <div class="title">${esc(r.title)}</div>
+      <div class="meta">${r.company?"🏢 "+esc(r.company)+" · ":""}📍 ${esc(r.location||"n/a")} · ${esc(r.mode)}${r.employment?" · ⏱ "+esc(r.employment):""}${r.salary?" · 💰 "+esc(r.salary):""}${posted?" · 🗓 "+posted:""} · via ${esc(r.source)}${appliedOn}</div>
+      ${r.kind!=="fellowship"||r.ats?`<div class="ats"><span>ATS keywords ${Math.round(r.ats)}%${est}</span><span class="bar"><i style="width:${Math.min(100,r.ats)}%"></i></span></div>`:""}
+    </div>
+    <div class="right">
+      <select class="status st-${s}" data-act="status">${Object.entries(STATUSES).map(([k,v])=>`<option value="${k}" ${k===s?"selected":""}>${v}</option>`).join("")}</select>
+    </div>
+  </div>
+  <div class="actions">
+    <button class="btn primary small" data-act="apply">🚀 Apply</button>
+    <button class="btn small" data-act="toggle">${ai?"✍️ Cover letter & tailored CV":"Details"}</button>
+    ${!ai && D.gemini_key ? `<button class="btn small" data-act="gen">✨ Write cover letter with AI</button>`:""}
+    <button class="btn small" data-act="save">⭐ Save</button>
+  </div>
+  <div class="details">
+    ${ai&&ai.fit_summary?`<p>🧠 ${esc(ai.fit_summary)}</p>`:""}
+    ${(r.matched||[]).length?`<h3>✅ Keywords you have</h3><div class="kw">${r.matched.map(k=>`<span class="y">${esc(k)}</span>`).join("")}</div>`:""}
+    ${(r.missing||[]).length?`<h3>❌ Keywords missing from your CV</h3><div class="kw">${r.missing.map(k=>`<span class="n">${esc(k)}</span>`).join("")}</div>`:""}
+    ${tips.length?`<h3>🚀 Boost this application</h3><ul>${tips.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}
+    <div class="grid2">
+      <div>
+        <h3>✍️ Cover letter <span style="color:var(--muted);font-weight:400">(you can edit; it's saved)</span></h3>
+        <textarea data-act="letter" placeholder="${D.gemini_key?"Click ✨ Write cover letter with AI":"No cover letter yet"}">${esc(letter)}</textarea>
+        <div class="actions">
+          <button class="btn small" data-act="copyletter">📋 Copy</button>
+          <button class="btn small" data-act="dlletter">⬇ Word file</button>
+          ${D.gemini_key?`<button class="btn small" data-act="gen">✨ ${ai?"Rewrite":"Write"} with AI</button>`:""}
+        </div>
+      </div>
+      <div>
+        <h3>📄 Tailored CV for this posting</h3>
+        ${ai ? `<p><b>${esc(ai.tailored_headline||"")}</b></p><p>${esc(ai.tailored_summary||"")}</p>
+          <p style="font-size:13px"><b>Skills order:</b> ${esc(list(ai.tailored_skills).join(" • "))}</p>
+          <ul>${list(ai.tailored_bullets).map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
+          ${list(ai.keywords_to_add).length?`<p style="font-size:13px"><b>Add to CV (if true):</b> ${esc(list(ai.keywords_to_add).join("; "))}</p>`:""}
+          ${list(ai.skill_gaps).length?`<p style="font-size:13px"><b>Gaps to work on:</b> ${esc(list(ai.skill_gaps).join(", "))}</p>`:""}
+          <div class="actions"><button class="btn small" data-act="copycv">📋 Copy</button><button class="btn small" data-act="dlcv">⬇ Word file</button></div>`
+          : `<p style="color:var(--muted)">Generate with AI to get a tailored headline, summary, bullet points and the keywords to add.</p>`}
+      </div>
+    </div>
+    <h3>🗒 Notes</h3>
+    <textarea class="note" data-act="note" placeholder="Contact name, interview date, salary…">${esc(t.note||"")}</textarea>
+    <h3>Job description</h3>
+    <details><summary style="cursor:pointer;color:var(--muted)">Show</summary><p style="white-space:pre-wrap;font-size:14px">${esc(r.description||"")}</p></details>
+  </div>
+</article>`;
+}
+
+function cvText(r){
+  const ai = r.ai || {};
+  return [ai.tailored_headline, "", "PROFESSIONAL SUMMARY", ai.tailored_summary, "", "KEY SKILLS", list(ai.tailored_skills).join(" • "),
+    "", "EXPERIENCE / PROJECT BULLETS", ...list(ai.tailored_bullets).map(b=>"• "+b)].join("\n");
+}
+function download(name, title, text){
+  const html = `<html><head><meta charset="utf-8"><title>${esc(title)}</title></head><body style="font-family:Calibri,Arial;font-size:11pt">${
+    esc(text).split(/\n/).map(p=>`<p style="margin:0 0 8pt">${p||"&nbsp;"}</p>`).join("")}</body></html>`;
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["﻿"+html], {type:"application/msword"}));
+  a.download = name.replace(/[^\w\- ]+/g,"_").slice(0,80) + ".doc"; a.click();
+}
+
+function bind(r){
+  const el = document.getElementById("c-"+CSS.escape(r.id)); if(!el) return;
+  const letterBox = () => el.querySelector('[data-act="letter"]');
+  el.querySelectorAll("[data-act]").forEach(b => {
+    const a = b.dataset.act;
+    if(a==="status") b.onchange = () => setStatus(r.id, b.value);
+    if(a==="toggle") b.onclick = () => { el.classList.toggle("open"); el.classList.contains("open") ? openIds.add(r.id) : openIds.delete(r.id); };
+    if(a==="save") b.onclick = () => { setStatus(r.id, "saved"); toast("Saved ⭐"); };
+    if(a==="letter") b.oninput = () => setField(r.id, "letter", b.value);
+    if(a==="note") b.oninput = () => setField(r.id, "note", b.value);
+    if(a==="copyletter") b.onclick = () => copy(letterBox().value, "Cover letter copied ✔");
+    if(a==="dlletter") b.onclick = () => download(`CoverLetter ${r.company} ${r.title}`, "Cover letter", letterBox().value);
+    if(a==="copycv") b.onclick = () => copy(cvText(r), "Tailored CV copied ✔");
+    if(a==="dlcv") b.onclick = () => download(`TailoredCV ${r.company} ${r.title}`, "Tailored CV", cvText(r));
+    if(a==="gen") b.onclick = () => generate(r, b);
+    if(a==="apply") b.onclick = async () => {
+      const letter = (track[r.id] && track[r.id].letter) || (r.ai && r.ai.cover_letter) || "";
+      if(letter){ try{ await navigator.clipboard.writeText(letter); }catch(e){} }
+      window.open(r.url, "_blank", "noopener");
+      toast(letter ? "Cover letter copied. Use ⚡ Fill application on the form" : "Opened. Use ⚡ Fill application on the form");
+      setTimeout(() => { if(st(r.id)!=="applied" && confirm(`Did you apply to "${r.title}"?\nOK = mark as Applied`)) setStatus(r.id,"applied"); }, 1500);
+    };
+  });
+}
+
+/* ---------- AI on demand (Gemini free tier, key stays inside the encrypted page) ---------- */
+async function generate(r, btn){
+  const old = btn.textContent; btn.disabled = true; btn.textContent = "✨ Writing… (≈20s)";
+  const prompt = D.prompt.replace("{profile}", D.profile).replace("{cv}", D.cv).replace("{kind}", r.kind)
+    .replace("{category}", r.category).replace("{title}", r.title).replaceAll("{company}", r.company || "the selection committee")
+    .replace("{location}", r.location||"n/a").replace("{mode}", r.mode).replace("{desc}", (r.description||"").slice(0,9000))
+    .replace("{matched}", (r.matched||[]).join(", ")||"none").replace("{missing}", (r.missing||[]).join(", ")||"none");
+  let err = "";
+  for(const m of MODELS){
+    try{
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, {
+        method:"POST", headers:{"Content-Type":"application/json","x-goog-api-key":D.gemini_key},
+        body: JSON.stringify({contents:[{parts:[{text:prompt}]}], generationConfig:{temperature:.6, responseMimeType:"application/json"}})});
+      if(!res.ok){ err = `${m}: HTTP ${res.status}`; if([404,400,429,500,503].includes(res.status)) continue; break; }
+      const j = await res.json();
+      const txt = j.candidates[0].content.parts.map(p=>p.text||"").join("").replace(/^```(json)?|```$/gm,"").trim();
+      r.ai = JSON.parse(txt);
+      const cache = store("aiCache") || {}; cache[r.id] = r.ai; store("aiCache", cache);
+      if(track[r.id]) { delete track[r.id].letter; store("track", track); }
+      openIds.add(r.id); render();
+      toast("Cover letter & tailored CV ready ✔"); return;
+    }catch(e){ err = String(e); }
+  }
+  btn.disabled = false; btn.textContent = old; toast("AI failed: " + err + ". Try again in a minute.");
+}
+
+/* ---------- profile + bookmarklet ---------- */
+function renderProfile(){
+  const A = D.applicant || {};
+  const cache = store("aiCache") || {};
+  D.listings.forEach(r => { if(!r.ai && cache[r.id]) r.ai = cache[r.id]; });
+  const labels = {first_name:"First name",last_name:"Last name",email:"Email",phone:"Phone",linkedin:"LinkedIn",github:"GitHub / portfolio",
+    city:"City",country:"Country",location:"Location",current_title:"Current title",education:"Education",languages:"Languages",
+    work_authorization:"Work authorization",notice_period:"Notice period"};
+  $("#profile").innerHTML = `<h2 style="margin-top:0">Your details (copy & paste)</h2>` + Object.entries(A).map(([k,v]) =>
+    `<div class="prow"><span>${esc(labels[k]||k)}</span><div style="overflow-wrap:anywhere">${esc(v)}</div><button class="btn small" data-copy="${esc(v)}">Copy</button></div>`).join("");
+  document.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => copy(b.dataset.copy));
+  $("#bookmarklet").href = bookmarklet(A);
+  $("#bookmarklet").onclick = e => { e.preventDefault(); toast("Drag me to your bookmarks bar ↑"); };
+  $("#export").onclick = () => { const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify({track, aiCache:store("aiCache")||{}})],{type:"application/json"})); a.download="job-tracking.json"; a.click(); };
+  $("#import").onchange = async e => { try{ const d = JSON.parse(await e.target.files[0].text()); track = Object.assign(track, d.track||d); store("track", track);
+    if(d.aiCache) store("aiCache", Object.assign(store("aiCache")||{}, d.aiCache)); toast("Imported ✔"); renderProfile(); render(); }catch(x){ toast("Not a valid file"); } };
+}
+
+function bookmarklet(A){
+  const P = {fn:A.first_name||"", ln:A.last_name||"", em:A.email||"", ph:A.phone||"", li:A.linkedin||"", gh:A.github||"",
+             city:A.city||"", country:A.country||"", loc:A.location||""};
+  const code = `(async()=>{const P=${JSON.stringify(P)};
+const R=[[/first.?name|given.?name|prenom|prénom|vorname/i,P.fn],[/last.?name|family.?name|surname|nom de famille|nachname/i,P.ln],
+[/full.?name|^name$|your.?name|candidate.?name|^nom$/i,P.fn+' '+P.ln],[/e.?mail/i,P.em],[/phone|mobile|t[eé]l[eé]phone|tel\\b/i,P.ph],
+[/linkedin/i,P.li],[/github|portfolio|website|personal.?(site|url)|other.?url/i,P.gh],[/country|pays|land\\b/i,P.country],
+[/city|ville|town/i,P.city],[/location|address|adresse|where.*based/i,P.loc]];
+let L='';try{L=await navigator.clipboard.readText()}catch(e){}
+const set=(el,v)=>{const pr=el.tagName==='TEXTAREA'?HTMLTextAreaElement.prototype:HTMLInputElement.prototype;
+Object.getOwnPropertyDescriptor(pr,'value').set.call(el,v);el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));};
+const desc=el=>{let t=[el.name,el.id,el.placeholder,el.getAttribute('aria-label'),el.getAttribute('autocomplete'),el.getAttribute('data-qa')].join(' ');
+if(el.id){const l=document.querySelector('label[for="'+CSS.escape(el.id)+'"]');if(l)t+=' '+l.textContent}const pl=el.closest('label');if(pl)t+=' '+pl.textContent;
+const box=el.closest('.application-question,.field,.form-group,[class*=field],[class*=question]');if(box){const lb=box.querySelector('label,legend,.label,.text');if(lb)t+=' '+lb.textContent}return t.replace(/\\s+/g,' ').trim()};
+let n=0,cl=0;document.querySelectorAll('input,textarea').forEach(el=>{const ty=(el.type||'').toLowerCase();
+if(['hidden','file','checkbox','radio','submit','button','password','search'].includes(ty)||el.disabled||el.readOnly||el.value)return;
+const d=desc(el);if(el.tagName==='TEXTAREA'){if(/cover|letter|motivation|why.*(you|us|join|interested)|additional information|lettre/i.test(d)&&L.length>80){set(el,L);cl++;}return}
+for(const[re,v]of R){if(v&&re.test(d)){set(el,v);n++;break}}});
+const m=document.createElement('div');m.textContent='⚡ Filled '+n+' fields'+(cl?' + cover letter':L.length>80?' (paste cover letter with Ctrl+V)':'')+'. Upload your CV, check everything, then submit.';
+m.style.cssText='position:fixed;z-index:2147483647;top:16px;right:16px;background:#2f5bea;color:#fff;padding:12px 16px;border-radius:10px;font:14px system-ui;box-shadow:0 4px 18px rgba(0,0,0,.25);max-width:340px';
+document.body.appendChild(m);setTimeout(()=>m.remove(),7000);})()`;
+  return "javascript:" + encodeURIComponent(code.replace(/\n/g,""));
+}
+</script>
+</body>
+</html>

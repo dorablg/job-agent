@@ -1,0 +1,84 @@
+# ============ EDIT THIS FILE TO MATCH YOU ============
+
+# Your personal profile for the AI (who you are, what to emphasise) lives in cv/profile.txt,
+# which is encrypted with your CV. Run `python -m agent.secure lock` after editing it.
+profile: ""
+
+# ---------------------------------------------------------------------------------------------
+# YOUR 3 CATEGORIES. Every alert is put in the category it matches best.
+#   kinds:       job | internship | fellowship
+#   work_modes:  remote | hybrid | onsite
+#   must_any:    at least one of these must appear (in the title if match_in: title)
+#   require_any: at least one of these must ALSO appear anywhere in the posting (optional)
+#   boost_any:   each one found raises the score (your favourite topics)
+# ---------------------------------------------------------------------------------------------
+categories:
+  - name: "🤖 AI internship"
+    kinds: [internship]
+    work_modes: [remote, hybrid, unknown]   # "unknown" = opportunity sites that don't say
+    match_in: title
+    must_any: [ai, artificial intelligence, machine learning, ml, deep learning, data science, llm,
+      generative ai, nlp, computer vision, data scientist, ai engineer, data, analytics, research,
+      python, mlops]
+    boost_any: [fintech, finance, payments, banking, fraud, risk, insurance, environment, environmental,
+      climate, sustainability, sustainable, energy, renewable, green, agriculture, carbon, earth]
+
+  - name: "🎧 Remote support / operations job"
+    kinds: [job, internship]
+    work_modes: [remote]
+    match_in: title
+    must_any: [customer support, customer service, customer success, customer care, customer experience,
+      technical support, tech support, support specialist, support engineer, support agent,
+      support representative, support associate, help desk, helpdesk, service desk, back office,
+      backoffice, technical operations, tech ops, operations specialist, operations associate,
+      operations analyst, operations coordinator, payments operations, client operations,
+      trust and safety, kyc, onboarding specialist, chargeback, dispute]
+    boost_any: [part-time, part time, full-time, full time, french, arabic, fintech, payments, paypal,
+      saas, zendesk, intercom, salesforce, freshdesk, emea, europe]
+
+  - name: "🌍 Paid fellowship"
+    kinds: [fellowship]
+    work_modes: [remote, hybrid, onsite, unknown]
+    match_in: all
+    exclude_title: [top, how to, tips, ways to, mistakes, guide, currently open, list of, best]
+    must_any: [fellowship, fellows, scholarship, program, programme, residency, grant]
+    require_any: [fully funded, funded, paid, stipend, allowance, honorarium, salary, scholarship,
+      tuition, covered, compensation]
+    boost_any: [ai, artificial intelligence, machine learning, data, technology, tech, digital, stem,
+      engineering, computer science, climate, environment, sustainability, fintech, innovation, research,
+      women, young, africa, mena, tunisia, international, remote, virtual, online]
+
+# Used to query search-capable sources (Jobicy tags, Himalayas search).
+search_terms: [customer support, technical support, machine learning, ai, operations, intern]
+
+# Extra ATS keywords specific to your field (added to the built-in skills list).
+extra_keywords: [ros, predictive maintenance, lstm, prompt engineering, webrtc, mern, kpi, mentoring,
+  customer support, customer service, technical support, client operations, disputes, kyc, aml,
+  zendesk, salesforce, crm, ticketing, sla, troubleshooting, escalation, french, arabic, english]
+
+filters:
+  max_age_days: 14
+  exclude_title_words: [senior, sr, staff, principal, lead, director, head, manager, vp, phd, us remote,
+    us only, usa only, u.s. only, us-based, canada only]
+  exclude_words: [us citizens only, security clearance, must be located in the us, must reside in the us,
+    must reside in the united states, located in the united states, us work authorization, authorized to work in the us]
+  # If a posting names a location, it must contain one of these (empty list = anywhere).
+  allowed_locations: [worldwide, anywhere, europe, emea, africa, tunisia, france, germany, middle east, mena]
+
+min_score: 35                 # 0-100; raise to get fewer, better alerts
+max_alerts_per_run: 10
+max_ai_tailoring_per_run: 6   # keeps you inside the free AI quota
+notify_when_empty: false
+
+sources: [remotive, remoteok, arbeitnow, jobicy, himalayas]
+
+# Fellowships / scholarships / internships RSS feeds (add any WordPress site's /feed/).
+rss_feeds:
+  - https://opportunitydesk.org/feed/
+  - https://opportunitydesk.org/category/internships/feed/
+  - https://opportunitydesk.org/category/fellowships/feed/
+  - https://opportunitiescorners.com/feed/
+  - https://opportunitiescorners.com/category/internships/feed/
+  - https://www.opportunitiesforafricans.com/feed/
+  - https://www.scholars4dev.com/feed/
+  - https://weworkremotely.com/categories/remote-customer-support-jobs.rss

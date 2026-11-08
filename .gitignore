@@ -1,0 +1,8 @@
+.env
+output/
+site/
+__pycache__/
+*.pyc
+# personal files: only the encrypted cv.enc is committed
+cv/*
+!cv/README.md

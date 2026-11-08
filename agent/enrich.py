@@ -1,0 +1,165 @@
+"""Pulls filterable details out of a posting: country, paid, deadline, experience, degree, languages,
+requirements. Pure text rules (free, no AI) so every listing gets them."""
+from __future__ import annotations
+
+import re
+from datetime import datetime
+
+COUNTRIES = {
+    "United States": ["united states", "usa", "u.s.", "u.s.a", "us-based", "america"],
+    "United Kingdom": ["united kingdom", "uk", "england", "london", "scotland", "britain"],
+    "Germany": ["germany", "deutschland", "berlin", "munich", "münchen", "hamburg", "frankfurt", "cologne", "köln"],
+    "France": ["france", "paris", "lyon", "marseille", "toulouse"], "Tunisia": ["tunisia", "tunis", "sousse", "sfax"],
+    "Canada": ["canada", "toronto", "vancouver", "montreal"], "Netherlands": ["netherlands", "amsterdam"],
+    "Spain": ["spain", "madrid", "barcelona"], "Italy": ["italy", "rome", "milan"], "Portugal": ["portugal", "lisbon"],
+    "Belgium": ["belgium", "brussels"], "Switzerland": ["switzerland", "zurich", "geneva"], "Austria": ["austria", "vienna"],
+    "Ireland": ["ireland", "dublin"], "Poland": ["poland", "warsaw"], "Sweden": ["sweden", "stockholm"],
+    "Denmark": ["denmark", "copenhagen"], "Norway": ["norway", "oslo"], "Finland": ["finland", "helsinki"],
+    "Czechia": ["czech", "prague"], "Romania": ["romania", "bucharest"], "Greece": ["greece", "athens"],
+    "Hungary": ["hungary", "budapest"], "Estonia": ["estonia", "tallinn"], "Luxembourg": ["luxembourg"],
+    "Morocco": ["morocco", "casablanca", "rabat"], "Egypt": ["egypt", "cairo"], "Algeria": ["algeria", "algiers"],
+    "Nigeria": ["nigeria", "lagos", "abuja"], "Kenya": ["kenya", "nairobi"], "South Africa": ["south africa", "cape town", "johannesburg"],
+    "Ghana": ["ghana", "accra"], "Rwanda": ["rwanda", "kigali"], "UAE": ["uae", "united arab emirates", "dubai", "abu dhabi"],
+    "Saudi Arabia": ["saudi", "riyadh"], "Qatar": ["qatar", "doha"], "Turkey": ["turkey", "türkiye", "istanbul"],
+    "India": ["india", "bangalore", "bengaluru", "mumbai", "delhi"], "Japan": ["japan", "tokyo", "kyoto"],
+    "South Korea": ["korea", "seoul"], "China": ["china", "beijing", "shanghai"], "Singapore": ["singapore"],
+    "Australia": ["australia", "sydney", "melbourne"], "Brazil": ["brazil", "são paulo", "sao paulo"],
+    "Mexico": ["mexico"], "Argentina": ["argentina"], "Philippines": ["philippines", "manila"],
+    "Taiwan": ["taiwan", "taipei"], "Israel": ["israel", "tel aviv"], "Malaysia": ["malaysia", "kuala lumpur"],
+}
+REGIONS = {"Worldwide": ["worldwide", "anywhere", "global", "remote - anywhere", "international"],
+           "Europe": ["europe", "eu ", "emea", "european"], "Africa": ["africa", "african"],
+           "MENA": ["mena", "middle east", "north africa"], "Asia": ["asia", "apac"], "Americas": ["americas", "latam", "latin america"]}
+LANGS = ["English", "French", "German", "Spanish", "Arabic", "Italian", "Portuguese", "Dutch", "Polish", "Turkish",
+         "Japanese", "Chinese", "Mandarin", "Korean", "Russian", "Swedish", "Danish", "Norwegian"]
+MONTHS = "january february march april may june july august september october november december".split()
+
+
+def _has(term: str, text: str) -> bool:
+    return re.search(r"(?<![a-z0-9])" + re.escape(term) + r"(?![a-z0-9])", text) is not None
+
+
+def countries(location: str, title: str, text: str) -> list[str]:
+    loc = f" {location.lower()} "
+    found = [c for c, al in COUNTRIES.items() if any(_has(a, loc) for a in al)]
+    if not found:  # opportunity posts: "... 2027 in Japan (Fully Funded)", "Funded to the U.S."
+        t = f" {title.lower()} "
+        found = [c for c, al in COUNTRIES.items() if any(_has(a, t) for a in al)]
+    return found[:6]
+
+
+def regions(location: str, text: str) -> list[str]:
+    loc = location.lower()
+    r = [name for name, al in REGIONS.items() if any(a in loc for a in al)]
+    if not r and not location.strip() and re.search(r"\b(work from anywhere|fully remote|remote worldwide)\b", text.lower()):
+        r = ["Worldwide"]
+    return r
+
+
+def paid(text: str, salary: str, kind: str) -> str:
+    t = text.lower()
+    if re.search(r"\bunpaid\b|\bvolunteer(ing)? (role|position|opportunity)\b|\bno (stipend|compensation|salary)\b", t):
+        return "unpaid"
+    if salary or re.search(r"fully[- ]funded|\bfunded\b|\bstipend\b|\bpaid\b|\bsalary\b|\bcompensation\b|\ballowance\b|"
+                           r"\bhonorarium\b|[$€£]\s?\d|\d\s?(k|000)\s?(usd|eur|gbp|\$|€)|per (hour|month|year|annum)|/hr\b|"
+                           r"\btuition (waiver|covered)|scholarship covers|travel (costs|expenses) (covered|paid)", t):
+        return "paid"
+    if kind == "job":
+        return "paid"  # real jobs are paid even when the ad hides the number
+    return "unknown"
+
+
+def _parse_date(s: str) -> str:
+    s = re.sub(r"(\d)(st|nd|rd|th)", r"\1", s.strip().rstrip(".,")).replace(",", "")
+    for fmt in ("%B %d %Y", "%d %B %Y", "%b %d %Y", "%d %b %Y", "%Y-%m-%d", "%d/%m/%Y"):
+        try:
+            return datetime.strptime(s, fmt).date().isoformat()
+        except ValueError:
+            pass
+    return ""
+
+
+def deadline(text: str) -> str:
+    m = re.search(r"(?:deadline|apply by|applications? (?:close|closes|due)|closing date|submit .{0,30}? by|due date)"
+                  r"[^0-9a-z]{0,25}(?:is|on|:)?\s*(?:\w+day,?\s*)?"
+                  r"(\d{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]{3,9},?\s+\d{4}|[A-Za-z]{3,9}\s+\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4}|\d{4}-\d{2}-\d{2})",
+                  text, flags=re.I)
+    return _parse_date(m.group(1)) if m else ""
+
+
+def experience_years(text: str) -> int | None:
+    yrs = [int(m.group(1)) for m in re.finditer(
+        r"(\d{1,2})\s*\+?\s*(?:-\s*\d{1,2}\s*)?(?:years?|yrs?)(?:'s)?\s+(?:of\s+)?(?:[a-z/&,-]+\s+){0,4}?experience", text.lower())]
+    yrs = [y for y in yrs if y <= 15]
+    if yrs:
+        return min(yrs)
+    if re.search(r"\b(no (prior )?experience (required|needed)|entry[- ]level|recent graduate|new grad)\b", text.lower()):
+        return 0
+    return None
+
+
+def degree(text: str) -> str:
+    t = text.lower()
+    if re.search(r"\bph\.?d\b|doctoral|doctorate", t):
+        return "PhD"
+    if re.search(r"\bmaster'?s?\b|\bm\.?sc\b|\bmba\b|postgraduate", t):
+        return "Master's"
+    if re.search(r"\bbachelor'?s?\b|\bb\.?sc\b|\bundergraduate\b|university degree|college degree|\bdegree in\b", t):
+        return "Bachelor's"
+    if re.search(r"high school|secondary school|\bged\b", t):
+        return "High school"
+    return ""
+
+
+def languages(text: str) -> list[str]:
+    t = text.lower()
+    out = []
+    for lang in LANGS:
+        l = lang.lower()
+        if re.search(rf"\b(fluent|fluency|native|proficien\w*|business[- ]level|written and spoken|speak\w*|c1|c2|b2)\b[^.\n]{{0,40}}\b{l}\b"
+                     rf"|\b{l}\b[^.\n]{{0,25}}\b(speaker|fluency|fluent|proficien\w*|native|language|required|skills)\b", t):
+            out.append(lang)
+    return out
+
+
+def requirements(desc: str) -> list[str]:
+    lines = [l.strip(" •-*·\t") for l in desc.split("\n")]
+    head = re.compile(r"(requirement|qualification|what you('ll)? (need|bring)|you (have|bring|are)|who you are|"
+                      r"about you|eligib|must have|skills|profile|we('re)? looking for|criteria)", re.I)
+    out, take = [], 0
+    for l in lines:
+        if not l:
+            continue
+        if len(l) < 70 and head.search(l):
+            take = 10
+            continue
+        if take and 12 < len(l) < 260:
+            out.append(l)
+            take -= 1
+            if len(out) >= 10:
+                break
+        elif take and len(l) < 70 and l.endswith(":"):
+            take = 0
+    return out
+
+
+def apply(r: dict) -> dict:
+    """Adds the filter fields to a dashboard record (works on old records too)."""
+    desc = r.get("description", "")
+    text = f"{r.get('title', '')}\n{desc}"
+    r["countries"] = countries(r.get("location", ""), r.get("title", ""), text)
+    r["regions"] = regions(r.get("location", ""), text)
+    r["paid"] = paid(text, r.get("salary", ""), r.get("kind", "job"))
+    ai = r.get("ai") or {}
+    r["deadline"] = (ai.get("deadline") or "")[:10] or r.get("deadline") or deadline(text)
+    if ai.get("salary_or_funding") and not r.get("salary"):
+        r["salary"] = ai["salary_or_funding"]
+    if r.get("salary") and r["paid"] == "unknown":
+        r["paid"] = "paid"
+    r["exp_years"] = experience_years(text)
+    r["degree"] = degree(text)
+    r["languages"] = languages(text)
+    r["requirements"] = requirements(desc)
+    if r["paid"] == "unknown" and r.get("kind") == "fellowship" and re.search(r"funded", r.get("title", ""), re.I):
+        r["paid"] = "paid"
+    return r

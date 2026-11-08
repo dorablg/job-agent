@@ -17,7 +17,7 @@ from pathlib import Path
 
 import yaml
 
-from . import dashboard, llm, tailor, telegram
+from . import dashboard, gmail, llm, tailor, telegram
 from .match import find_cv, load_cv, score_jobs
 from .sources import fetch_all
 
@@ -131,7 +131,7 @@ def run(dry: bool = False) -> int:
             try:
                 telegram.send_text(card, url=j.url)
                 for f in files:
-                    telegram.send_file(f, caption=("✍️ Cover letter" if "Cover" in f.name else "📄 Tailored CV notes")
+                    telegram.send_file(f, caption=("✍️ Cover letter" if "Cover" in f.name else "📄 ATS CV tailored for this job")
                                        + f" — {j.title[:60]}")
             except Exception as ex:
                 print(f"   telegram error: {ex}")
@@ -144,7 +144,9 @@ def run(dry: bool = False) -> int:
         for j in matches:  # every match goes on the website, even beyond the Telegram limit
             dashboard.upsert(listings, dashboard.record(j, tailored.get(j.id)))
         dashboard.save(listings)
-        print(f"Dashboard: {len(listings)} listings -> {dashboard.build(listings, cv_text, cfg)}")
+        notify = (lambda text, link: telegram.send_text(text, url=link, button="📧 Open in Gmail")) if send else None
+        responses = gmail.check(listings, notify)
+        print(f"Dashboard: {len(listings)} listings -> {dashboard.build(listings, cv_text, cfg, responses)}")
     elif not dashboard.enabled():
         print("Dashboard skipped: set DASHBOARD_PASSWORD to build the website.")
     if not dry:

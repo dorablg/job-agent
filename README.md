@@ -57,6 +57,13 @@ Every run also updates a private website: `https://<your-github-username>.github
   (which makes GitHub Pages and Actions free) while only you can read them. The password is `DASHBOARD_PASSWORD` in `.env`.
 - Changed your CV or `cv/applicant.yaml`? Run `python -m agent.secure lock`, then commit `cv.enc`.
 
+## 📬 Gmail reply tracking
+The agent reads (read-only) your inbox every run, finds replies to applications (confirmation, test, interview,
+rejection, offer, request for documents), uses the free AI to sort them and link them to the right job, then
+updates that job's status on the dashboard, lists them in the 📬 Inbox tab, and alerts you on Telegram.
+Setup: Google Account → Security → 2-Step Verification (turn on) → App passwords → create one named "job agent",
+then set `GMAIL_ADDRESS` and `GMAIL_APP_PASSWORD` (in `.env` and as GitHub secrets).
+
 ## About LinkedIn and auto-apply
 - The agent does **not** log into LinkedIn or scrape it. LinkedIn bans accounts that do that, and it has no free jobs API.
   Use your exported LinkedIn PDF as described above, and set LinkedIn's own **Job Alerts** to email you.

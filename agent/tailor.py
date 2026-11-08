@@ -35,6 +35,23 @@ Return ONLY a JSON object with these keys:
 "tailored_skills": ordered list of the candidate's real skills, most relevant first,
 "tailored_bullets": list of 5-8 rewritten experience/project bullets (from real CV content, action verb + impact),
 "boost_tips": list of 4-6 concrete actions to boost THIS application (portfolio item, referral, certification, etc.),
+"key_requirements": list of the 5-10 most important requirements of the posting, each an object with keys
+ "requirement" (short), "met" ("yes", "partial" or "no") and "evidence" (what in the CV proves it, or what is missing),
+"deadline": application deadline as YYYY-MM-DD if the posting states one, else "",
+"salary_or_funding": salary / stipend / funding stated in the posting, else "",
+"screening_answers": list of 5 objects with keys "question" and "answer": first-person answers (60-120 words, real CV facts)
+ to the questions this application form most likely asks (e.g. why this company, why you, most relevant experience,
+ availability/notice and remote setup, salary expectations phrased flexibly),
+"ats_cv": a COMPLETE one-page ATS-friendly CV tailored to this posting, as an object with keys
+ "name", "headline", "contact" (one line: email | phone | city, country | LinkedIn | GitHub, from the CV),
+ "summary" (3-4 lines with the posting's keywords the candidate truly has),
+ "skills" (list of 3-5 strings, each "Group: skill, skill, skill", most relevant group first),
+ "experience" (list of objects with keys "title", "company", "location", "dates", "bullets" (2-4 strings);
+   ALL real jobs/internships from the CV, most relevant first within reverse-chronological order, bullets rewritten
+   with the posting's vocabulary, action verb + result),
+ "projects" (list of objects with keys "name", "bullets" — only if the CV has projects relevant to this posting, else []),
+ "education" (list of objects with keys "degree", "school", "dates"; include an in-progress engineering degree if the profile says so),
+ "certifications" (list of strings, most relevant first), "languages" (list of strings),
 "cover_letter": a complete, specific, warm but professional cover letter (250-350 words) addressed to the {company} hiring team,
  signed with the candidate's name from the CV, no placeholders like [Your Name] unless the CV has no name.
 """
@@ -87,34 +104,94 @@ def write_docs(job: Job, ai: dict, out_dir: Path) -> list[Path]:
     d.save(p)
     files.append(p)
 
-    # Tailored CV content
-    d = docx.Document()
-    d.styles["Normal"].font.name = "Calibri"
-    d.styles["Normal"].font.size = Pt(11)
-    d.add_heading(f"Tailored CV — {job.title} @ {job.company}", level=1)
-    if ai.get("tailored_headline"):
-        d.add_paragraph().add_run(str(ai["tailored_headline"])).bold = True
-    d.add_heading("Professional summary", level=2)
-    d.add_paragraph(str(ai.get("tailored_summary", "")))
-    d.add_heading("Key skills (most relevant first)", level=2)
-    d.add_paragraph(" • ".join(_listify(ai.get("tailored_skills"))))
-    d.add_heading("Experience / project bullets to use", level=2)
-    for b in _listify(ai.get("tailored_bullets")):
-        d.add_paragraph(b, style="List Bullet")
-    d.add_heading("ATS keywords you can truthfully add", level=2)
-    for b in _listify(ai.get("keywords_to_add")):
-        d.add_paragraph(b, style="List Bullet")
-    d.add_heading("Skill gaps to work on", level=2)
-    for b in _listify(ai.get("skill_gaps")):
-        d.add_paragraph(b, style="List Bullet")
-    d.add_heading("How to boost this application", level=2)
-    for b in _listify(ai.get("boost_tips")):
-        d.add_paragraph(b, style="List Bullet")
-    d.add_paragraph(f"\nApply here: {job.url}")
-    p = out_dir / f"TailoredCV_{base}.docx"
-    d.save(p)
-    files.append(p)
+    # Full ATS-friendly CV: one column, standard headings, plain bullets, no tables/images
+    cvd = ai.get("ats_cv") or {}
+    if cvd:
+        p = out_dir / f"CV_{base}.docx"
+        ats_cv_docx(cvd, p)
+        files.append(p)
     return files
+
+
+def ats_cv_docx(cv: dict, path: Path) -> None:
+    import docx
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.shared import Cm, Pt, RGBColor
+
+    d = docx.Document()
+    for s in d.sections:
+        s.top_margin = s.bottom_margin = Cm(1.6)
+        s.left_margin = s.right_margin = Cm(1.8)
+    st = d.styles["Normal"]
+    st.font.name, st.font.size = "Calibri", Pt(10.5)
+    st.paragraph_format.space_after = Pt(2)
+
+    def para(text="", bold=False, size=None, center=False, after=2, color=None):
+        p = d.add_paragraph()
+        p.paragraph_format.space_after = Pt(after)
+        if center:
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        r = p.add_run(str(text))
+        r.bold = bold
+        if size:
+            r.font.size = Pt(size)
+        if color:
+            r.font.color.rgb = RGBColor.from_string(color)
+        return p
+
+    def heading(text):
+        p = para(text.upper(), bold=True, size=11.5, after=3, color="1F3A8A")
+        p.paragraph_format.space_before = Pt(8)
+
+    def bullet(text):
+        p = d.add_paragraph(str(text), style="List Bullet")
+        p.paragraph_format.space_after = Pt(1)
+
+    para(cv.get("name", ""), bold=True, size=18, center=True, after=0)
+    if cv.get("headline"):
+        para(cv["headline"], size=11.5, center=True, after=0)
+    para(cv.get("contact", ""), size=9.5, center=True, after=4)
+    if cv.get("summary"):
+        heading("Professional Summary")
+        para(cv["summary"])
+    if cv.get("skills"):
+        heading("Skills")
+        for s in _listify(cv["skills"]):
+            bullet(s)
+    if cv.get("experience"):
+        heading("Professional Experience")
+        for e in cv["experience"]:
+            if not isinstance(e, dict):
+                bullet(e); continue
+            p = para(f"{e.get('title', '')} — {e.get('company', '')}", bold=True, after=0)
+            p.paragraph_format.space_before = Pt(4)
+            para(" | ".join(x for x in (e.get("location", ""), e.get("dates", "")) if x), size=9.5, after=1, color="555555")
+            for b in _listify(e.get("bullets")):
+                bullet(b)
+    if cv.get("projects"):
+        heading("Projects")
+        for pr in cv["projects"]:
+            if isinstance(pr, dict):
+                para(pr.get("name", ""), bold=True, after=0)
+                for b in _listify(pr.get("bullets")):
+                    bullet(b)
+            else:
+                bullet(pr)
+    if cv.get("education"):
+        heading("Education")
+        for e in cv["education"]:
+            if isinstance(e, dict):
+                para(f"{e.get('degree', '')} — {e.get('school', '')}" + (f" ({e['dates']})" if e.get("dates") else ""))
+            else:
+                para(e)
+    if cv.get("certifications"):
+        heading("Certifications")
+        for c in _listify(cv["certifications"]):
+            bullet(c)
+    if cv.get("languages"):
+        heading("Languages")
+        para(", ".join(_listify(cv["languages"])))
+    d.save(path)
 
 
 def basic_tips(job: Job) -> list[str]:

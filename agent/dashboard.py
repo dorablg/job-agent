@@ -8,7 +8,7 @@ from pathlib import Path
 
 import yaml
 
-from . import secure, tailor
+from . import enrich, secure, tailor
 from .sources import Job
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -50,7 +50,8 @@ def record(j: Job, ai: dict | None) -> dict:
     if ai:
         r["ai"] = {k: ai.get(k) for k in ("fit_summary", "ats_score_estimate", "keywords_to_add", "skill_gaps",
                                           "tailored_headline", "tailored_summary", "tailored_skills",
-                                          "tailored_bullets", "boost_tips", "cover_letter")}
+                                          "tailored_bullets", "boost_tips", "cover_letter", "key_requirements",
+                                          "deadline", "salary_or_funding", "screening_answers", "ats_cv")}
     else:
         r["tips"] = tailor.basic_tips(j)
     return r
@@ -65,12 +66,13 @@ def upsert(listings: dict, new: dict) -> None:
     listings[new["id"]] = new
 
 
-def build(listings: dict, cv_text: str, cfg: dict) -> Path:
+def build(listings: dict, cv_text: str, cfg: dict, responses: list | None = None) -> Path:
     applicant_file = ROOT / "cv" / "applicant.yaml"
     applicant = yaml.safe_load(applicant_file.read_text(encoding="utf-8")) if applicant_file.exists() else {}
     payload = {
         "generated": datetime.now(timezone.utc).isoformat(),
-        "listings": sorted(listings.values(), key=lambda r: r.get("found", ""), reverse=True),
+        "listings": [enrich.apply(dict(r)) for r in sorted(listings.values(), key=lambda r: r.get("found", ""), reverse=True)],
+        "responses": responses or [],
         "categories": [c["name"] for c in cfg.get("categories", [])],
         "applicant": applicant or {},
         "cv": cv_text[:12000],

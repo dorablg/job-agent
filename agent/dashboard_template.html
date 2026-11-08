@@ -5,404 +5,741 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Flous Job Board</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💼</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%234f46e5'/><text x='50' y='68' font-size='54' text-anchor='middle' fill='white' font-family='Arial' font-weight='700'>F</text></svg>">
 <style>
 :root{
-  --bg:#f6f7f9;--panel:#ffffff;--ink:#14181f;--muted:#5d6675;--line:#e3e6eb;--soft:#f0f2f5;
-  --accent:#2f5bea;--accent-ink:#ffffff;--good:#178a4c;--warn:#b26a00;--bad:#c23b3b;
-  --good-bg:#e6f5ec;--bad-bg:#fbeaea;--warn-bg:#fdf3e2;--accent-bg:#eaf0ff;
-  --shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.08);
+  --bg:#f5f6fb;--panel:#ffffff;--panel2:#fafbff;--ink:#121527;--muted:#636a82;--faint:#9097ad;--line:#e6e8f0;--soft:#eef0f7;
+  --accent:#4f46e5;--accent2:#7c3aed;--accent-ink:#fff;--accent-bg:#eef0ff;
+  --good:#0f8a5f;--good-bg:#e5f6ee;--warn:#b45309;--warn-bg:#fdf1de;--bad:#c2410c;--bad-bg:#fdeae3;
+  --c-ai:#7c3aed;--c-ai-bg:#f1eafe;--c-sup:#0e7f8f;--c-sup-bg:#e1f5f6;--c-fel:#b7791f;--c-fel-bg:#fbf1dc;
+  --shadow:0 1px 2px rgba(18,21,39,.05),0 4px 14px rgba(18,21,39,.05);--shadow-lg:0 20px 60px rgba(18,21,39,.18);
+  --paper:#ffffff;--paper-ink:#1b1f2e;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#0f1217;--panel:#171b22;--ink:#e8ebf0;--muted:#9aa3b2;--line:#2a303a;--soft:#1e232b;
-  --accent:#7c9dff;--accent-ink:#0f1217;--good:#4cc88a;--warn:#f0b24a;--bad:#f07a7a;
-  --good-bg:#16291f;--bad-bg:#2e1a1a;--warn-bg:#2d2414;--accent-bg:#1b2440;--shadow:none}}
+  --bg:#0d0f18;--panel:#151826;--panel2:#181c2c;--ink:#e9ebf5;--muted:#a1a7bd;--faint:#6f7690;--line:#262b40;--soft:#1d2134;
+  --accent:#8b85ff;--accent2:#b18cff;--accent-ink:#0d0f18;--accent-bg:#22224a;
+  --good:#4ad19a;--good-bg:#11291f;--warn:#f3b25b;--warn-bg:#2c2312;--bad:#ff8a65;--bad-bg:#2e1912;
+  --c-ai:#b99cff;--c-ai-bg:#251b3f;--c-sup:#5fd3df;--c-sup-bg:#102b2f;--c-fel:#f0c060;--c-fel-bg:#2c2412;
+  --shadow:none;--shadow-lg:0 20px 60px rgba(0,0,0,.5)}}
 :root[data-theme="dark"]{
-  --bg:#0f1217;--panel:#171b22;--ink:#e8ebf0;--muted:#9aa3b2;--line:#2a303a;--soft:#1e232b;
-  --accent:#7c9dff;--accent-ink:#0f1217;--good:#4cc88a;--warn:#f0b24a;--bad:#f07a7a;
-  --good-bg:#16291f;--bad-bg:#2e1a1a;--warn-bg:#2d2414;--accent-bg:#1b2440;--shadow:none}
+  --bg:#0d0f18;--panel:#151826;--panel2:#181c2c;--ink:#e9ebf5;--muted:#a1a7bd;--faint:#6f7690;--line:#262b40;--soft:#1d2134;
+  --accent:#8b85ff;--accent2:#b18cff;--accent-ink:#0d0f18;--accent-bg:#22224a;
+  --good:#4ad19a;--good-bg:#11291f;--warn:#f3b25b;--warn-bg:#2c2312;--bad:#ff8a65;--bad-bg:#2e1912;
+  --c-ai:#b99cff;--c-ai-bg:#251b3f;--c-sup:#5fd3df;--c-sup-bg:#102b2f;--c-fel:#f0c060;--c-fel-bg:#2c2412;
+  --shadow:none;--shadow-lg:0 20px 60px rgba(0,0,0,.5)}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:14.5px/1.55 "Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
 button,input,select,textarea{font:inherit;color:inherit}
-a{color:var(--accent)}
-.wrap{max-width:1080px;margin:0 auto;padding:20px 16px 60px}
-.btn{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:7px 12px;cursor:pointer;white-space:nowrap}
+a{color:var(--accent);text-decoration:none}
+.hidden{display:none!important}
+.muted{color:var(--muted)}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:7px 12px;cursor:pointer;white-space:nowrap;font-weight:500;transition:border-color .15s,background .15s}
 .btn:hover{border-color:var(--accent)}
-.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
-.btn.small{padding:4px 9px;font-size:13px}
-input[type=text],input[type=password],input[type=search],select,textarea{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-width:0}
-textarea{width:100%;min-height:220px;resize:vertical;line-height:1.5}
-/* lock */
-#lock{min-height:100vh;display:grid;place-items:center;padding:16px}
-#lock form{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:28px;width:100%;max-width:380px;box-shadow:var(--shadow)}
-#lock h1{margin:0 0 4px;font-size:22px}
-#lock p{margin:0 0 18px;color:var(--muted)}
-#lock input[type=password]{width:100%;margin-bottom:10px}
-#lock .err{color:var(--bad);min-height:1.4em;font-size:14px}
-/* header */
-header{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;margin-bottom:16px}
-header h1{margin:0;font-size:24px}
-header .sub{color:var(--muted);font-size:13px}
-.tabs{display:flex;gap:6px}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:0 0 16px}
-.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
-.stat b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
-.stat span{color:var(--muted);font-size:13px}
-.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
-.toolbar input[type=search]{flex:1 1 200px}
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
-.chip{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:5px 12px;cursor:pointer;font-size:14px}
-.chip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-/* cards */
-.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow)}
+.btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:var(--accent-ink);border-color:transparent;font-weight:650}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn.small{padding:4px 10px;font-size:13px;border-radius:8px}
+.btn:disabled{opacity:.6;cursor:progress}
+input[type=text],input[type=password],input[type=search],select,textarea{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 11px;min-width:0;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+textarea{width:100%;min-height:200px;resize:vertical;line-height:1.55}
+input[type=range]{width:100%;accent-color:var(--accent)}
+/* ---------- lock ---------- */
+#lock{min-height:100vh;display:grid;place-items:center;padding:16px;background:radial-gradient(1200px 600px at 10% -10%,var(--accent-bg),transparent),var(--bg)}
+#lock form{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:32px;width:100%;max-width:400px;box-shadow:var(--shadow-lg)}
+.logo{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:800;font-size:20px}
+#lock h1{margin:14px 0 4px;font-size:22px}
+#lock input[type=password]{width:100%;margin:16px 0 10px;padding:11px 13px}
+#lock .err{color:var(--bad);min-height:1.4em;font-size:13.5px;margin-top:8px}
+/* ---------- shell ---------- */
+.topbar{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.topbar .in{max-width:1320px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:14px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:750;font-size:16px}
+.brand small{display:block;font-weight:400;font-size:12px;color:var(--muted)}
+.nav{display:flex;gap:4px;margin-left:auto;overflow-x:auto}
+.nav button{border:0;background:transparent;padding:8px 12px;border-radius:9px;cursor:pointer;color:var(--muted);font-weight:600;white-space:nowrap}
+.nav button.on{background:var(--accent-bg);color:var(--accent)}
+.nav .count{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:9px;background:var(--accent);color:var(--accent-ink);font-size:11px;line-height:18px;text-align:center}
+.wrap{max-width:1320px;margin:0 auto;padding:18px 16px 70px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow)}
+.kpi b{display:block;font-size:26px;line-height:1.1;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+.kpi span{color:var(--muted);font-size:12.5px}
+/* ---------- discover ---------- */
+.layout{display:grid;grid-template-columns:272px 1fr;gap:18px;align-items:start}
+aside.filters{position:sticky;top:70px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;max-height:calc(100vh - 90px);overflow:auto;box-shadow:var(--shadow)}
+.fgroup{padding:10px 2px;border-bottom:1px solid var(--line)}
+.fgroup:last-child{border-bottom:0}
+.fgroup h4{margin:0 0 8px;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint)}
+.fgroup label.ck{display:flex;align-items:center;gap:8px;padding:3px 0;cursor:pointer;font-size:13.5px}
+.fgroup label.ck input{accent-color:var(--accent)}
+.fgroup label.ck .n{margin-left:auto;color:var(--faint);font-size:12px;font-variant-numeric:tabular-nums}
+.fgroup select{width:100%}
+.scroll{max-height:190px;overflow:auto;padding-right:4px}
+.rangeval{float:right;font-weight:650;color:var(--accent)}
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13.5px;padding:3px 0;cursor:pointer}
+.results-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
+.results-head input[type=search]{flex:1 1 240px;padding:10px 13px}
+.filterbtn{display:none}
+.cats{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.cat{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:6px 13px;cursor:pointer;font-size:13.5px;font-weight:550}
+.cat.on{border-color:var(--accent);background:var(--accent-bg);color:var(--accent)}
+.cat .n{color:var(--faint);font-weight:500}
+.cards{display:grid;gap:12px}
+.card{position:relative;display:grid;grid-template-columns:auto 1fr auto;gap:16px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px 18px 14px;box-shadow:var(--shadow);cursor:pointer;transition:transform .12s,border-color .15s}
+.card:hover{border-color:color-mix(in srgb,var(--accent) 45%,var(--line));transform:translateY(-1px)}
+.card::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:3px;background:var(--cc,var(--accent))}
 .card.dim{opacity:.55}
-.top{display:flex;gap:14px;align-items:flex-start}
-.score{flex:0 0 auto;width:54px;height:54px;border-radius:12px;display:grid;place-items:center;font-weight:700;font-size:18px;font-variant-numeric:tabular-nums}
-.s-hi{background:var(--good-bg);color:var(--good)}.s-mid{background:var(--warn-bg);color:var(--warn)}.s-lo{background:var(--soft);color:var(--muted)}
-.main{flex:1;min-width:0}
-.cat{font-size:12px;color:var(--muted);text-transform:none}
-.title{font-weight:650;font-size:16px;margin:1px 0;overflow-wrap:anywhere}
-.meta{color:var(--muted);font-size:13px;overflow-wrap:anywhere}
-.newdot{display:inline-block;background:var(--accent);color:var(--accent-ink);font-size:11px;border-radius:6px;padding:0 6px;margin-left:6px;vertical-align:2px}
-.right{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
-.status{font-size:13px;padding:5px 8px}
-.st-applied{border-color:var(--accent);background:var(--accent-bg)}
-.st-interview,.st-offer{border-color:var(--good);background:var(--good-bg)}
-.st-rejected,.st-skip{border-color:var(--line);background:var(--soft)}
-.ats{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-top:6px}
-.bar{flex:0 0 120px;height:6px;background:var(--soft);border-radius:6px;overflow:hidden}
-.bar i{display:block;height:100%;background:var(--accent)}
-.actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-.details{border-top:1px solid var(--line);margin-top:12px;padding-top:12px;display:none}
-.card.open .details{display:block}
-.kw{display:flex;flex-wrap:wrap;gap:5px;margin:4px 0 10px}
-.kw span{font-size:12px;border-radius:6px;padding:2px 7px}
+.ring{--p:50;width:58px;height:58px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--rc) calc(var(--p)*1%),var(--soft) 0)}
+.ring b{display:grid;place-items:center;width:46px;height:46px;border-radius:50%;background:var(--panel);font-size:16px;font-variant-numeric:tabular-nums}
+.ring small{display:block;text-align:center;font-size:10.5px;color:var(--faint);margin-top:4px}
+.c-main{min-width:0}
+.c-cat{font-size:12px;font-weight:650;color:var(--cc)}
+.c-title{font-size:16.5px;font-weight:700;letter-spacing:-.2px;margin:2px 0 2px;overflow-wrap:anywhere}
+.c-sub{color:var(--muted);font-size:13.5px;overflow-wrap:anywhere}
+.badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.bd{display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:2px 9px;border-radius:999px;background:var(--soft);color:var(--muted);white-space:nowrap}
+.bd.good{background:var(--good-bg);color:var(--good)}.bd.warn{background:var(--warn-bg);color:var(--warn)}.bd.bad{background:var(--bad-bg);color:var(--bad)}.bd.acc{background:var(--accent-bg);color:var(--accent)}
+.atsline{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12.5px;color:var(--muted)}
+.bar{flex:0 0 140px;height:6px;background:var(--soft);border-radius:6px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.c-side{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.pill{font-size:12px;font-weight:650;padding:4px 10px;border-radius:999px;background:var(--soft);color:var(--muted);white-space:nowrap}
+.pill.new{background:var(--accent-bg);color:var(--accent)}.pill.saved{background:var(--warn-bg);color:var(--warn)}
+.pill.applied{background:#e6effe;color:#2457c5}.pill.assessment{background:#f3e8ff;color:#7e22ce}
+.pill.interview,.pill.offer{background:var(--good-bg);color:var(--good)}.pill.rejected,.pill.skip{background:var(--soft);color:var(--faint)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .pill.applied{background:#162545;color:#8cb0ff}:root:not([data-theme="light"]) .pill.assessment{background:#2a1840;color:#d1a6ff}}
+.star{border:0;background:transparent;cursor:pointer;font-size:18px;line-height:1;opacity:.45;padding:2px}
+.star.on{opacity:1}
+.newtag{font-size:10.5px;font-weight:750;letter-spacing:.04em;color:var(--accent-ink);background:var(--accent);border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:1px}
+.empty{text-align:center;color:var(--muted);padding:50px 10px;background:var(--panel);border:1px dashed var(--line);border-radius:16px}
+@media (max-width:900px){
+  .layout{grid-template-columns:1fr}
+  aside.filters{position:fixed;inset:0 auto 0 0;width:min(320px,88vw);max-height:none;border-radius:0 16px 16px 0;z-index:30;transform:translateX(-105%);transition:transform .2s}
+  aside.filters.open{transform:none;box-shadow:var(--shadow-lg)}
+  .filterbtn{display:inline-flex}
+  .card{grid-template-columns:auto 1fr;}
+  .c-side{grid-column:1/-1;flex-direction:row;justify-content:space-between;align-items:center}
+  .brand small{display:none}
+}
+@media (max-width:640px){
+  .brand>div{display:none}
+  .topbar .in{gap:6px;padding:8px 10px}
+  .nav button{padding:7px 9px;font-size:13px}
+  .kpis{grid-template-columns:repeat(3,1fr);gap:8px}
+  .kpi{padding:10px 11px}.kpi b{font-size:20px}.kpi span{font-size:11.5px}
+  .results-head select{flex:1}
+}
+/* ---------- drawer ---------- */
+.scrim{position:fixed;inset:0;background:rgba(10,12,22,.42);z-index:40;opacity:0;pointer-events:none;transition:opacity .2s}
+.scrim.on{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(860px,100vw);background:var(--bg);z-index:41;transform:translateX(102%);transition:transform .22s ease;display:flex;flex-direction:column;box-shadow:var(--shadow-lg)}
+.drawer.on{transform:none}
+.dhead{background:var(--panel);border-bottom:1px solid var(--line);padding:16px 20px 0}
+.dtop{display:flex;gap:14px;align-items:flex-start}
+.dtop .x{margin-left:auto}
+.dtitle{font-size:20px;font-weight:750;letter-spacing:-.3px;margin:2px 0;overflow-wrap:anywhere}
+.dactions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
+.dtabs{display:flex;gap:2px;overflow-x:auto}
+.dtabs button{border:0;background:transparent;padding:10px 14px;cursor:pointer;color:var(--muted);font-weight:600;border-bottom:2px solid transparent;white-space:nowrap}
+.dtabs button.on{color:var(--accent);border-bottom-color:var(--accent)}
+.dbody{flex:1;overflow:auto;padding:18px 20px 40px}
+.sec{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:14px}
+.sec h3{margin:0 0 10px;font-size:14.5px}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.fact{background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:9px 12px}
+.fact span{display:block;font-size:11.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.05em}
+.fact b{font-weight:600;font-size:13.5px;overflow-wrap:anywhere}
+.req{display:grid;grid-template-columns:24px 1fr;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
+.req:last-child{border-bottom:0}
+.req small{display:block;color:var(--muted)}
+.kw{display:flex;flex-wrap:wrap;gap:6px}
+.kw span{font-size:12px;border-radius:7px;padding:2px 8px}
 .kw .y{background:var(--good-bg);color:var(--good)}.kw .n{background:var(--bad-bg);color:var(--bad)}
-h3{font-size:14px;margin:14px 0 6px}
-ul{margin:4px 0 8px;padding-left:20px}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-@media (max-width:760px){.grid2{grid-template-columns:1fr}.top{flex-wrap:wrap}.right{flex-direction:row;align-items:center;width:100%}}
-.note{width:100%;min-height:60px}
-.empty{text-align:center;color:var(--muted);padding:40px 0}
-.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:9px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
-.toast.show{opacity:1}
-/* profile tab */
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:14px}
-.prow{display:grid;grid-template-columns:170px 1fr auto;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
+.steps{counter-reset:s;display:grid;gap:12px}
+.step{display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start}
+.step::before{counter-increment:s;content:counter(s);display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--accent-bg);color:var(--accent);font-weight:750}
+.step h4{margin:4px 0 6px;font-size:14px}
+.qa{border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin-bottom:8px;background:var(--panel2)}
+.qa b{display:block;margin-bottom:4px}
+.qa p{margin:0 0 6px;white-space:pre-wrap}
+.paper{background:var(--paper);color:var(--paper-ink);border-radius:8px;padding:34px 38px;box-shadow:0 2px 18px rgba(0,0,0,.12);max-width:780px;margin:0 auto;font:13px/1.45 Calibri,Arial,sans-serif}
+.paper h1{font-size:24px;margin:0;text-align:center}
+.paper .hl{text-align:center;font-size:14px;margin:2px 0}
+.paper .ct{text-align:center;font-size:12px;color:#444;margin-bottom:10px}
+.paper h2{font-size:13px;letter-spacing:.06em;color:#1f3a8a;border-bottom:1.5px solid #1f3a8a;padding-bottom:2px;margin:14px 0 6px}
+.paper .job{margin:6px 0 2px;font-weight:700}
+.paper .when{color:#555;font-size:12px}
+.paper ul{margin:3px 0 4px;padding-left:18px}
+.timeline{border-left:2px solid var(--line);margin-left:6px;padding-left:16px}
+.tl{position:relative;padding:4px 0 10px}
+.tl::before{content:"";position:absolute;left:-22px;top:9px;width:10px;height:10px;border-radius:50%;background:var(--accent)}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(10px);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:12px;font-size:14px;opacity:0;transition:all .2s;pointer-events:none;z-index:60}
+.toast.show{opacity:1;transform:translateX(-50%)}
+/* ---------- pipeline ---------- */
+.board{display:grid;grid-template-columns:repeat(6,minmax(210px,1fr));gap:12px;overflow-x:auto;padding-bottom:8px}
+.col{background:var(--soft);border-radius:14px;padding:10px;min-height:200px}
+.col h4{margin:2px 4px 10px;font-size:13px;display:flex;justify-content:space-between}
+.col.drop{outline:2px dashed var(--accent)}
+.mini{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:9px 11px;margin-bottom:8px;cursor:grab;font-size:13px}
+.mini b{display:block;font-size:13.5px;line-height:1.3}
+/* ---------- inbox ---------- */
+.mail{display:grid;grid-template-columns:44px 1fr auto;gap:14px;align-items:start;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:10px}
+.mail .ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:19px;background:var(--soft)}
+.mail .t-interview .ic,.mail.t-interview .ic,.mail.t-offer .ic{background:var(--good-bg)}
+.mail.t-rejection .ic{background:var(--soft)}
+.mail.t-assessment .ic,.mail.t-info_request .ic{background:var(--warn-bg)}
+.prow{display:grid;grid-template-columns:180px 1fr auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
 .prow:last-child{border-bottom:0}
 .prow span{color:var(--muted);font-size:13px}
-@media (max-width:560px){.prow{grid-template-columns:1fr auto}.prow span{grid-column:1/-1}}
-.bm{display:inline-block;background:var(--accent);color:var(--accent-ink);padding:10px 16px;border-radius:9px;font-weight:700;text-decoration:none;cursor:grab}
-.hidden{display:none!important}
+@media (max-width:560px){.prow{grid-template-columns:1fr auto}.prow span{grid-column:1/-1}.mail{grid-template-columns:40px 1fr}.mail .act{grid-column:1/-1}.paper{padding:20px}}
+.bm{display:inline-block;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;padding:10px 18px;border-radius:11px;font-weight:750;cursor:grab}
 </style>
 </head>
 <body>
 
 <div id="lock">
   <form id="lockform" autocomplete="off">
-    <h1>💼 Flous Job Board</h1>
-    <p>Private dashboard. Enter your password to unlock.</p>
+    <span class="logo">F</span>
+    <h1>Flous Job Board</h1>
+    <div class="muted">Your private job search. Enter your password to unlock.</div>
     <input type="password" id="pw" placeholder="Password" autofocus>
-    <label style="display:flex;gap:8px;align-items:center;font-size:14px;color:var(--muted);margin-bottom:14px">
+    <label style="display:flex;gap:8px;align-items:center;font-size:13.5px;color:var(--muted);margin-bottom:16px">
       <input type="checkbox" id="remember" checked> Remember on this device
     </label>
-    <button class="btn primary" style="width:100%">Unlock</button>
+    <button class="btn primary" style="width:100%;justify-content:center;padding:11px">Unlock</button>
     <div class="err" id="err"></div>
   </form>
 </div>
 
-<div id="app" class="wrap hidden">
-  <header>
-    <div>
-      <h1>💼 Flous Job Board</h1>
-      <div class="sub" id="updated"></div>
-    </div>
-    <div class="tabs">
-      <button class="btn primary" data-tab="board">Listings</button>
-      <button class="btn" data-tab="profile">Autofill &amp; profile</button>
-      <button class="btn" id="lockbtn" title="Forget password on this device">🔒</button>
-    </div>
-  </header>
+<div id="app" class="hidden">
+  <div class="topbar"><div class="in">
+    <div class="brand"><span class="logo" style="width:34px;height:34px;font-size:17px">F</span><div>Flous Job Board<small id="updated"></small></div></div>
+    <nav class="nav" id="nav">
+      <button data-view="discover" class="on">🔎 Discover</button>
+      <button data-view="pipeline">📊 My applications</button>
+      <button data-view="inbox">📬 Inbox <span class="count hidden" id="inboxCount"></span></button>
+      <button data-view="profile">⚡ Autofill &amp; profile</button>
+    </nav>
+    <button class="btn ghost small" id="theme" title="Switch light/dark">🌓</button>
+    <button class="btn ghost small" id="lockbtn" title="Lock and forget password on this device">🔒</button>
+  </div></div>
 
-  <section id="tab-board">
-    <div class="stats" id="stats"></div>
-    <div class="chips" id="cats"></div>
-    <div class="toolbar">
-      <input type="search" id="q" placeholder="Search title, company, keyword…">
-      <select id="fstatus">
-        <option value="active">Active (hide rejected / not interested)</option>
-        <option value="all">All statuses</option>
-        <option value="new">New</option><option value="saved">Saved</option>
-        <option value="applied">Applied</option><option value="interview">Interview</option>
-        <option value="offer">Offer</option><option value="rejected">Rejected</option>
-        <option value="skip">Not interested</option>
-      </select>
-      <select id="sort">
-        <option value="score">Best match first</option>
-        <option value="found">Newest first</option>
-        <option value="ats">Highest ATS first</option>
-      </select>
-    </div>
-    <div id="list"></div>
-  </section>
+  <div class="wrap">
+    <div class="kpis" id="kpis"></div>
 
-  <section id="tab-profile" class="hidden">
-    <div class="panel">
-      <h2 style="margin-top:0">⚡ One-click application filler</h2>
-      <ol>
-        <li>Show your bookmarks bar (<b>Ctrl+Shift+B</b>).</li>
-        <li>Drag this button onto the bookmarks bar: <a class="bm" id="bookmarklet" href="#">⚡ Fill application</a></li>
-        <li>On a job, click <b>Apply</b> here. That copies the cover letter and opens the application page.</li>
-        <li>On the application page, click <b>⚡ Fill application</b> in your bookmarks bar. It fills your name, email, phone, LinkedIn, GitHub and location, and pastes the cover letter if the page has a cover letter box.</li>
-        <li>Upload your CV file, check everything, and submit it yourself.</li>
-      </ol>
-      <p class="sub" style="color:var(--muted)">It works on most forms (Lever, Workable, Ashby, SmartRecruiters, many company sites). If a form is shown inside a box from another site, open that box's page directly, or use the copy buttons below.</p>
-    </div>
-    <div class="panel" id="profile"></div>
-    <div class="panel">
-      <h2 style="margin-top:0">Move your tracking to another device</h2>
-      <p style="color:var(--muted)">Your statuses and notes are saved in this browser. To move them to your phone or another computer, export them here and import them there.</p>
-      <div class="actions">
-        <button class="btn" id="export">⬇ Export tracking</button>
-        <label class="btn">⬆ Import tracking<input type="file" id="import" accept=".json" class="hidden"></label>
+    <!-- DISCOVER -->
+    <section id="v-discover">
+      <div class="layout">
+        <aside class="filters" id="filters"></aside>
+        <div>
+          <div class="cats" id="cats"></div>
+          <div class="results-head">
+            <button class="btn filterbtn" id="openFilters">⚙️ Filters</button>
+            <input type="search" id="q" placeholder="Search title, company, skill, country…">
+            <select id="sort">
+              <option value="score">Best match</option><option value="found">Newest</option>
+              <option value="ats">Highest ATS</option><option value="deadline">Deadline soonest</option>
+            </select>
+          </div>
+          <div class="muted" id="resultCount" style="margin:-4px 0 10px;font-size:13px"></div>
+          <div class="cards" id="cards"></div>
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
+
+    <!-- PIPELINE -->
+    <section id="v-pipeline" class="hidden">
+      <p class="muted" style="margin-top:0">Drag cards between columns, or change the status inside a job. Gmail replies move them for you.</p>
+      <div class="board" id="board"></div>
+    </section>
+
+    <!-- INBOX -->
+    <section id="v-inbox" class="hidden"><div id="inbox"></div></section>
+
+    <!-- PROFILE -->
+    <section id="v-profile" class="hidden">
+      <div class="sec">
+        <h3>⚡ One-click application filler</h3>
+        <ol style="margin:0;padding-left:20px;line-height:1.9">
+          <li>Show your bookmarks bar: <b>Ctrl+Shift+B</b>.</li>
+          <li>Drag this button onto the bookmarks bar: <a class="bm" id="bookmarklet" href="#">⚡ Fill application</a></li>
+          <li>On a job, open <b>Apply kit</b> and click <b>🚀 Apply</b>. It copies the cover letter and opens the form.</li>
+          <li>On the form, click <b>⚡ Fill application</b>. It fills your name, email, phone, LinkedIn, GitHub and location, and pastes the cover letter.</li>
+          <li>Upload the <b>ATS CV</b> PDF for that job, answer the questions (copy them from the Apply kit), check everything and submit.</li>
+        </ol>
+        <p class="muted" style="margin-bottom:0;font-size:13px">Works on most forms (Lever, Workable, Ashby, SmartRecruiters, Teamtailor, many company sites). If a form is inside a box from another site, open that box's page directly.</p>
+      </div>
+      <div class="sec" id="profile"></div>
+      <div class="sec">
+        <h3>Move your tracking to another device</h3>
+        <p class="muted">Statuses, notes and edited letters are saved in this browser. Export them here, then import them on your phone or another computer.</p>
+        <button class="btn" id="export">⬇ Export</button>
+        <label class="btn">⬆ Import<input type="file" id="import" accept=".json" class="hidden"></label>
+      </div>
+    </section>
+  </div>
 </div>
+
+<div class="scrim" id="scrim"></div>
+<div class="drawer" id="drawer"></div>
 <div class="toast" id="toast"></div>
 
 <script>
 const BLOB = __PAYLOAD__;
-const STATUSES = {new:"🆕 New",saved:"⭐ Saved",applied:"📨 Applied",interview:"🗣 Interview",offer:"🎉 Offer",rejected:"✖ Rejected",skip:"🙈 Not interested"};
+const STATUSES = {new:"New",saved:"Saved",applied:"Applied",assessment:"Assessment",interview:"Interview",offer:"Offer",rejected:"Rejected",skip:"Not interested"};
+const SICON = {new:"🆕",saved:"⭐",applied:"📨",assessment:"🧪",interview:"🗣",offer:"🎉",rejected:"✖",skip:"🙈"};
+const RANK = {new:0,saved:1,applied:2,assessment:3,interview:4,offer:5};
+const MAIL2STATUS = {confirmation:"applied",assessment:"assessment",interview:"interview",offer:"offer",rejection:"rejected"};
+const MAILICON = {confirmation:"📨",interview:"🗣",assessment:"🧪",rejection:"✖",offer:"🎉",info_request:"❓",other:"✉️"};
 const MODELS = ["gemini-3.5-flash","gemini-3.5-flash-lite","gemini-flash-latest"];
-let D = null, track = {}, cat = "All", lastSeen = "";
-const openIds = new Set();
+const FLAGS = {"United States":"🇺🇸","United Kingdom":"🇬🇧","Germany":"🇩🇪","France":"🇫🇷","Tunisia":"🇹🇳","Canada":"🇨🇦","Netherlands":"🇳🇱","Spain":"🇪🇸","Italy":"🇮🇹","Portugal":"🇵🇹","Belgium":"🇧🇪","Switzerland":"🇨🇭","Austria":"🇦🇹","Ireland":"🇮🇪","Poland":"🇵🇱","Sweden":"🇸🇪","Denmark":"🇩🇰","Norway":"🇳🇴","Finland":"🇫🇮","Czechia":"🇨🇿","Romania":"🇷🇴","Greece":"🇬🇷","Hungary":"🇭🇺","Estonia":"🇪🇪","Luxembourg":"🇱🇺","Morocco":"🇲🇦","Egypt":"🇪🇬","Algeria":"🇩🇿","Nigeria":"🇳🇬","Kenya":"🇰🇪","South Africa":"🇿🇦","Ghana":"🇬🇭","Rwanda":"🇷🇼","UAE":"🇦🇪","Saudi Arabia":"🇸🇦","Qatar":"🇶🇦","Turkey":"🇹🇷","India":"🇮🇳","Japan":"🇯🇵","South Korea":"🇰🇷","China":"🇨🇳","Singapore":"🇸🇬","Australia":"🇦🇺","Brazil":"🇧🇷","Mexico":"🇲🇽","Argentina":"🇦🇷","Philippines":"🇵🇭","Taiwan":"🇹🇼","Israel":"🇮🇱","Malaysia":"🇲🇾","Worldwide":"🌍","Europe":"🇪🇺","Africa":"🌍","MENA":"🌍","Asia":"🌏","Americas":"🌎"};
+// Windows can't draw flag emojis: use a pin there
+if(/Win/i.test(navigator.platform || navigator.userAgent)) for(const k in FLAGS) if(/^[\u{1F1E6}-\u{1F1FF}]/u.test(FLAGS[k])) FLAGS[k] = "📍";
+const DEFAULT_F = {cats:[],places:[],modes:[],emp:[],paidOnly:false,exp:"any",degree:"any",langs:["English","French","Arabic"],langStrict:false,deadline:"any",posted:"any",minScore:0,minAts:0,status:"active"};
 
+let D = null, track = {}, F = {...DEFAULT_F}, lastSeen = "", view = "discover", openId = null, dtab = "overview";
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const list = v => Array.isArray(v) ? v.map(x => typeof x === "object" && x ? Object.values(x).join(" — ") : String(x)) : (v ? [String(v)] : []);
 function store(k, v){ try{ if(v===undefined) return JSON.parse(localStorage.getItem(k)); localStorage.setItem(k, JSON.stringify(v)); }catch(e){ return null; } }
-function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),2200); }
+function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),2400); }
 async function copy(text, msg){ try{ await navigator.clipboard.writeText(text); toast(msg||"Copied ✔"); }catch(e){ prompt("Copy this:", text); } }
+const days = iso => iso ? Math.ceil((new Date(iso) - new Date()) / 864e5) : null;
+const fmtDate = iso => iso ? new Date(iso).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"}) : "";
+const catVar = c => /intern/i.test(c||"") ? "ai" : /support|operation/i.test(c||"") ? "sup" : "fel";
+
+/* ---------- theme ---------- */
+(function(){ const t = store("theme"); if(t) document.documentElement.dataset.theme = t; })();
+$("#theme").onclick = () => { const cur = document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");
+  const nxt = cur==="dark"?"light":"dark"; document.documentElement.dataset.theme = nxt; store("theme", nxt); };
 
 /* ---------- decrypt ---------- */
 const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
 async function decrypt(pw){
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveKey"]);
-  const aes = await crypto.subtle.deriveKey({name:"PBKDF2", salt:b64(BLOB.salt), iterations:BLOB.iter, hash:"SHA-256"},
-    key, {name:"AES-GCM", length:256}, false, ["decrypt"]);
-  const out = await crypto.subtle.decrypt({name:"AES-GCM", iv:b64(BLOB.iv)}, aes, b64(BLOB.ct));
-  return JSON.parse(new TextDecoder().decode(out));
+  const aes = await crypto.subtle.deriveKey({name:"PBKDF2", salt:b64(BLOB.salt), iterations:BLOB.iter, hash:"SHA-256"}, key, {name:"AES-GCM", length:256}, false, ["decrypt"]);
+  return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:"AES-GCM", iv:b64(BLOB.iv)}, aes, b64(BLOB.ct))));
 }
 async function unlock(pw, remember){
-  try{
-    D = await decrypt(pw);
-    if(remember) store("pw", pw);
-    $("#lock").classList.add("hidden"); $("#app").classList.remove("hidden");
-    track = store("track") || {};
-    init();
-  }catch(e){ $("#err").textContent = "Wrong password."; store("pw", null); }
+  try{ D = await decrypt(pw); }catch(e){ $("#err").textContent = "Wrong password."; store("pw", null); return; }
+  if(remember) store("pw", pw);
+  $("#lock").classList.add("hidden"); $("#app").classList.remove("hidden");
+  init();
 }
-$("#lockform").onsubmit = e => { e.preventDefault(); $("#err").textContent="Unlocking…"; unlock($("#pw").value, $("#remember").checked); };
+$("#lockform").onsubmit = e => { e.preventDefault(); $("#err").textContent = "Unlocking…"; unlock($("#pw").value, $("#remember").checked); };
 $("#lockbtn").onclick = () => { try{ localStorage.removeItem("pw"); }catch(e){} location.reload(); };
-const saved = store("pw"); if(saved) unlock(saved, true);
+const savedPw = store("pw"); if(savedPw) unlock(savedPw, true);
 
 /* ---------- tracking ---------- */
-function st(id){ return (track[id] && track[id].status) || "new"; }
-function setStatus(id, s){
-  track[id] = Object.assign(track[id] || {}, {status:s, [s+"_at"]: new Date().toISOString()});
-  store("track", track); render();
+const st = id => (track[id] && track[id].status) || "new";
+function setStatus(id, s, by){
+  const t = track[id] = track[id] || {};
+  if(t.status === s) return;
+  t.status = s; t[s+"_at"] = new Date().toISOString();
+  (t.history = t.history || []).push({s, at:t[s+"_at"], by: by||"you"});
+  store("track", track);
 }
 function setField(id, k, v){ track[id] = Object.assign(track[id] || {}, {[k]:v}); store("track", track); }
+function applyMailStatuses(){
+  let changed = 0;
+  for(const m of D.responses || []){
+    if(!m.listing_id || !MAIL2STATUS[m.type]) continue;
+    const t = track[m.listing_id] = track[m.listing_id] || {};
+    t.mails = t.mails || [];
+    if(t.mails.includes(m.key)) continue;
+    t.mails.push(m.key);
+    const want = MAIL2STATUS[m.type], cur = st(m.listing_id);
+    const up = want === "rejected" ? cur !== "offer" : (RANK[want] ?? 0) > (RANK[cur] ?? 0) || cur === "skip";
+    if(up){ setStatus(m.listing_id, want, "Gmail"); changed++; }
+  }
+  store("track", track);
+  return changed;
+}
 
-/* ---------- UI ---------- */
+/* ---------- init ---------- */
+const L = () => D.listings;
 function init(){
-  const g = new Date(D.generated);
-  $("#updated").textContent = `${D.listings.length} listings · updated ${g.toLocaleString()}`;
-  document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => {
-    document.querySelectorAll("[data-tab]").forEach(x => x.classList.toggle("primary", x===b));
-    $("#tab-board").classList.toggle("hidden", b.dataset.tab!=="board");
-    $("#tab-profile").classList.toggle("hidden", b.dataset.tab!=="profile");
-  });
-  ["#q","#fstatus","#sort"].forEach(s => $(s).oninput = render);
+  track = store("track") || {};
+  F = Object.assign({...DEFAULT_F}, store("filters") || {});
+  const cache = store("aiCache") || {};
+  L().forEach(r => { if(!r.ai && cache[r.id]) r.ai = cache[r.id]; });
   lastSeen = store("lastVisit") || ""; store("lastVisit", D.generated);
-  renderProfile(); render();
+  $("#updated").textContent = `Updated ${new Date(D.generated).toLocaleString(undefined,{dateStyle:"medium",timeStyle:"short"})}`;
+  const moved = applyMailStatuses();
+  if(moved) setTimeout(() => toast(`📬 Gmail updated ${moved} application${moved>1?"s":""}`), 600);
+  document.querySelectorAll("#nav button").forEach(b => b.onclick = () => go(b.dataset.view));
+  $("#q").oninput = renderCards; $("#sort").onchange = renderCards;
+  $("#openFilters").onclick = () => $("#filters").classList.add("open");
+  $("#scrim").onclick = closeDrawer;
+  document.addEventListener("keydown", e => { if(e.key === "Escape") closeDrawer(); });
+  renderProfile(); renderAll();
+  const hash = decodeURIComponent(location.hash.slice(1)); if(hash && L().some(r => r.id === hash)) openDrawer(hash);
+}
+function go(v){
+  view = v;
+  document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.view === v));
+  ["discover","pipeline","inbox","profile"].forEach(x => $("#v-"+x).classList.toggle("hidden", x !== v));
+  renderAll(); window.scrollTo(0,0);
+}
+function renderAll(){
+  renderKpis();
+  if(view === "discover"){ renderFilters(); renderCats(); renderCards(); }
+  if(view === "pipeline") renderBoard();
+  if(view === "inbox") renderInbox();
+  const nNew = (D.responses||[]).filter(m => m.date > lastSeen).length;
+  $("#inboxCount").textContent = nNew; $("#inboxCount").classList.toggle("hidden", !nNew);
+}
+function renderKpis(){
+  const c = s => L().filter(r => st(r.id) === s).length;
+  const soon = L().filter(r => { const d = days(r.deadline); return d !== null && d >= 0 && d <= 14 && !["applied","rejected","skip"].includes(st(r.id)); }).length;
+  $("#kpis").innerHTML = [
+    [L().length, "Opportunities"], [L().filter(r => r.found > lastSeen).length, "New since last visit"],
+    [c("saved"), "Saved"], [c("applied")+c("assessment"), "Applied"], [c("interview")+c("offer"), "Interviews & offers"],
+    [soon, "Deadlines in 14 days"]
+  ].map(([n,t]) => `<div class="kpi"><b>${n}</b><span>${t}</span></div>`).join("");
 }
 
-function render(){
-  const L = D.listings;
-  const counts = s => L.filter(r => st(r.id)===s).length;
-  $("#stats").innerHTML = [
-    [L.length,"Listings"],[L.filter(r=>r.found>lastSeen).length,"New since last visit"],
-    [counts("saved"),"Saved"],[counts("applied"),"Applied"],[counts("interview")+counts("offer"),"Interviews / offers"]
-  ].map(([n,t]) => `<div class="stat"><b>${n}</b><span>${t}</span></div>`).join("");
+/* ---------- filters ---------- */
+function places(r){ const p = [...(r.countries||[]), ...(r.regions||[])]; return p.length ? p : ["Not specified"]; }
+function match(r, skip){
+  const s = st(r.id);
+  if(skip !== "cats" && F.cats.length && !F.cats.includes(r.category)) return false;
+  if(F.status === "active" && (s === "rejected" || s === "skip")) return false;
+  if(!["active","all"].includes(F.status) && s !== F.status) return false;
+  if(skip !== "places" && F.places.length && !places(r).some(p => F.places.includes(p))) return false;
+  if(skip !== "modes" && F.modes.length && !F.modes.includes(r.mode)) return false;
+  if(skip !== "emp" && F.emp.length && !F.emp.includes(r.employment || "unspecified")) return false;
+  if(F.paidOnly && r.paid !== "paid") return false;
+  if(F.exp !== "any" && r.exp_years != null && r.exp_years > +F.exp) return false;
+  if(F.degree === "nomaster" && ["Master's","PhD"].includes(r.degree)) return false;
+  if(F.degree === "none" && r.degree) return false;
+  if(F.langStrict && (r.languages||[]).some(l => !F.langs.includes(l))) return false;
+  const dl = days(r.deadline);
+  if(F.deadline === "open" && dl !== null && dl < 0) return false;
+  if(F.deadline === "soon" && !(dl !== null && dl >= 0 && dl <= 14)) return false;
+  if(F.deadline === "has" && dl === null) return false;
+  if(F.posted !== "any"){ const p = r.posted || r.found; if(p && (Date.now() - new Date(p)) / 864e5 > +F.posted) return false; }
+  if(r.score < F.minScore) return false;
+  if(r.kind !== "fellowship" && r.ats < F.minAts) return false;
+  const q = $("#q").value.toLowerCase().trim();
+  if(q && ![r.title,r.company,r.location,r.category,(r.countries||[]).join(" "),(r.matched||[]).join(" "),r.description].join(" ").toLowerCase().includes(q)) return false;
+  return true;
+}
+function counts(key, fn){ const m = {}; L().filter(r => match(r, key)).forEach(r => [].concat(fn(r)).forEach(v => m[v] = (m[v]||0) + 1)); return m; }
+function ckList(key, values, labelFn){
+  return values.map(([v,n]) => `<label class="ck"><input type="checkbox" data-f="${key}" value="${esc(v)}" ${F[key].includes(v)?"checked":""}> ${labelFn?labelFn(v):esc(v)}<span class="n">${n}</span></label>`).join("") || `<div class="muted" style="font-size:13px">—</div>`;
+}
+function renderFilters(){
+  const pc = Object.entries(counts("places", places)).sort((a,b) => b[1]-a[1]);
+  const mc = Object.entries(counts("modes", r => r.mode)).sort((a,b) => b[1]-a[1]);
+  const ec = Object.entries(counts("emp", r => r.employment || "unspecified")).sort((a,b) => b[1]-a[1]);
+  const allLangs = [...new Set(["English","French","Arabic", ...L().flatMap(r => r.languages||[])])];
+  $("#filters").innerHTML = `
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+    <b>Filters</b><span><button class="btn small ghost" id="resetF">Reset</button><button class="btn small ghost filterbtn" id="closeF">✕</button></span></div>
+  <div class="fgroup"><h4>Status</h4><select data-s="status">
+    ${[["active","Active (hide rejected / not interested)"],["all","All"],...Object.entries(STATUSES)].map(([v,t]) => `<option value="${v}" ${F.status===v?"selected":""}>${t}</option>`).join("")}</select></div>
+  <div class="fgroup"><h4>💰 Pay</h4><label class="toggle">Paid only (salary, stipend or funded)<input type="checkbox" data-b="paidOnly" ${F.paidOnly?"checked":""}></label></div>
+  <div class="fgroup"><h4>🌍 Country / region</h4><div class="scroll">${ckList("places", pc, v => `${FLAGS[v]||"📍"} ${esc(v)}`)}</div></div>
+  <div class="fgroup"><h4>🏠 Work mode</h4>${ckList("modes", mc)}</div>
+  <div class="fgroup"><h4>⏱ Contract</h4>${ckList("emp", ec)}</div>
+  <div class="fgroup"><h4>🎓 Requirements</h4>
+    <label class="muted" style="font-size:12.5px">Experience required, at most</label>
+    <select data-s="exp">${[["any","Any"],["0","None / entry level"],["1","1 year"],["2","2 years"],["3","3 years"],["5","5 years"]].map(([v,t]) => `<option value="${v}" ${F.exp===v?"selected":""}>${t}</option>`).join("")}</select>
+    <label class="muted" style="font-size:12.5px;display:block;margin-top:8px">Degree</label>
+    <select data-s="degree">${[["any","Any"],["nomaster","Bachelor's or less (hide Master's/PhD)"],["none","No degree mentioned"]].map(([v,t]) => `<option value="${v}" ${F.degree===v?"selected":""}>${t}</option>`).join("")}</select>
+    <label class="muted" style="font-size:12.5px;display:block;margin-top:8px">Languages I speak</label>
+    ${allLangs.map(l => `<label class="ck"><input type="checkbox" data-f="langs" value="${esc(l)}" ${F.langs.includes(l)?"checked":""}> ${esc(l)}</label>`).join("")}
+    <label class="toggle" style="margin-top:4px">Hide jobs needing other languages<input type="checkbox" data-b="langStrict" ${F.langStrict?"checked":""}></label>
+  </div>
+  <div class="fgroup"><h4>⏰ Dates</h4>
+    <select data-s="deadline">${[["any","Any deadline"],["open","Deadline not passed"],["soon","Closes within 14 days"],["has","Has a deadline"]].map(([v,t]) => `<option value="${v}" ${F.deadline===v?"selected":""}>${t}</option>`).join("")}</select>
+    <select data-s="posted" style="margin-top:8px">${[["any","Posted any time"],["3","Last 3 days"],["7","Last 7 days"],["14","Last 14 days"]].map(([v,t]) => `<option value="${v}" ${F.posted===v?"selected":""}>${t}</option>`).join("")}</select></div>
+  <div class="fgroup"><h4>🎯 Scores</h4>
+    <label style="font-size:13px">Min match <span class="rangeval">${F.minScore}</span></label><input type="range" min="0" max="90" step="5" data-r="minScore" value="${F.minScore}">
+    <label style="font-size:13px">Min ATS <span class="rangeval">${F.minAts}%</span></label><input type="range" min="0" max="90" step="5" data-r="minAts" value="${F.minAts}"></div>`;
+  const save = () => { store("filters", F); renderFilters(); renderCats(); renderCards(); };
+  $("#filters").querySelectorAll("[data-f]").forEach(i => i.onchange = () => { const k = i.dataset.f; F[k] = i.checked ? [...new Set([...F[k], i.value])] : F[k].filter(x => x !== i.value); save(); });
+  $("#filters").querySelectorAll("[data-s]").forEach(i => i.onchange = () => { F[i.dataset.s] = i.value; save(); });
+  $("#filters").querySelectorAll("[data-b]").forEach(i => i.onchange = () => { F[i.dataset.b] = i.checked; save(); });
+  $("#filters").querySelectorAll("[data-r]").forEach(i => { i.oninput = () => { i.previousElementSibling.querySelector(".rangeval").textContent = i.value + (i.dataset.r==="minAts"?"%":""); }; i.onchange = () => { F[i.dataset.r] = +i.value; save(); }; });
+  $("#resetF").onclick = () => { F = {...DEFAULT_F}; $("#q").value = ""; save(); };
+  $("#closeF").onclick = () => $("#filters").classList.remove("open");
+}
+function renderCats(){
+  const cc = counts("cats", r => r.category);
+  $("#cats").innerHTML = `<button class="cat ${!F.cats.length?"on":""}" data-c="">All</button>` + D.categories.map(c =>
+    `<button class="cat ${F.cats.includes(c)?"on":""}" data-c="${esc(c)}">${esc(c)} <span class="n">${cc[c]||0}</span></button>`).join("");
+  $("#cats").querySelectorAll(".cat").forEach(b => b.onclick = () => { const c = b.dataset.c;
+    F.cats = !c ? [] : F.cats.includes(c) ? F.cats.filter(x => x !== c) : [...F.cats, c]; store("filters", F); renderFilters(); renderCats(); renderCards(); });
+}
 
-  const cats = ["All", ...D.categories];
-  $("#cats").innerHTML = cats.map(c => {
-    const n = c==="All" ? L.length : L.filter(r=>r.category===c).length;
-    return `<button class="chip ${c===cat?"on":""}" data-c="${esc(c)}">${esc(c)} · ${n}</button>`;
-  }).join("");
-  document.querySelectorAll(".chip").forEach(b => b.onclick = () => { cat = b.dataset.c; render(); });
-
-  const q = $("#q").value.toLowerCase().trim(), fs = $("#fstatus").value, sort = $("#sort").value;
-  let rows = L.filter(r => cat==="All" || r.category===cat).filter(r => {
-    const s = st(r.id);
-    if(fs==="active" && (s==="rejected" || s==="skip")) return false;
-    if(fs!=="active" && fs!=="all" && s!==fs) return false;
-    if(!q) return true;
-    return [r.title,r.company,r.location,r.category,(r.matched||[]).join(" "),r.description].join(" ").toLowerCase().includes(q);
+/* ---------- cards ---------- */
+function ringColor(s){ return s >= 65 ? "var(--good)" : s >= 45 ? "var(--warn)" : "var(--faint)"; }
+function badges(r){
+  const b = [];
+  places(r).slice(0,3).forEach(p => p !== "Not specified" && b.push(`<span class="bd">${FLAGS[p]||"📍"} ${esc(p)}</span>`));
+  b.push(`<span class="bd">${r.mode==="remote"?"🏠 Remote":r.mode==="hybrid"?"🏢 Hybrid":r.mode==="onsite"?"🏢 On-site":"❔ Mode not stated"}</span>`);
+  if(r.employment) b.push(`<span class="bd">⏱ ${esc(r.employment)}</span>`);
+  if(r.paid === "paid") b.push(`<span class="bd good">💰 ${esc(r.salary ? r.salary.slice(0,40) : "Paid")}</span>`);
+  if(r.paid === "unpaid") b.push(`<span class="bd bad">Unpaid</span>`);
+  const dl = days(r.deadline);
+  if(dl !== null) b.push(`<span class="bd ${dl<0?"bad":dl<=7?"bad":dl<=14?"warn":""}">⏰ ${dl<0?"Closed":dl===0?"Closes today":`${dl} days left`}</span>`);
+  if(r.exp_years != null) b.push(`<span class="bd ${r.exp_years>2?"warn":""}">🧭 ${r.exp_years ? r.exp_years+"+ yrs" : "Entry level"}</span>`);
+  if(r.degree) b.push(`<span class="bd">🎓 ${esc(r.degree)}</span>`);
+  (r.languages||[]).forEach(l => b.push(`<span class="bd ${F.langs.includes(l)?"":"warn"}">🗣 ${esc(l)}</span>`));
+  if(r.ai) b.push(`<span class="bd acc">✍️ Kit ready</span>`);
+  return b.join("");
+}
+function renderCards(){
+  const sort = $("#sort").value;
+  const rows = L().filter(r => match(r)).sort((a,b) =>
+    sort === "found" ? b.found.localeCompare(a.found) : sort === "ats" ? b.ats - a.ats :
+    sort === "deadline" ? ((days(a.deadline) ?? 999) < 0 ? 999 : (days(a.deadline) ?? 999)) - ((days(b.deadline) ?? 999) < 0 ? 999 : (days(b.deadline) ?? 999)) : b.score - a.score);
+  $("#resultCount").textContent = `${rows.length} of ${L().length} opportunities`;
+  $("#cards").innerHTML = rows.length ? rows.map(r => {
+    const s = st(r.id), cv = catVar(r.category);
+    return `<article class="card ${s==="skip"||s==="rejected"?"dim":""}" data-id="${esc(r.id)}" style="--cc:var(--c-${cv})">
+      <div><div class="ring" style="--p:${Math.round(r.score)};--rc:${ringColor(r.score)}"><b>${Math.round(r.score)}</b></div><small class="muted" style="display:block;text-align:center;font-size:10.5px;margin-top:3px">match</small></div>
+      <div class="c-main">
+        <div class="c-cat">${esc(r.category)}${r.found>lastSeen?'<span class="newtag">NEW</span>':""}</div>
+        <div class="c-title">${esc(r.title)}</div>
+        <div class="c-sub">${r.company?`<b style="color:var(--ink);font-weight:600">${esc(r.company)}</b> · `:""}${esc(r.location||"Location not stated")} · via ${esc(r.source)}${r.posted?` · posted ${fmtDate(r.posted)}`:""}</div>
+        <div class="badges">${badges(r)}</div>
+        ${r.kind!=="fellowship"||r.ats?`<div class="atsline">ATS ${Math.round(r.ats)}%${r.ai&&r.ai.ats_score_estimate?` → ~${esc(r.ai.ats_score_estimate)}% with tailored CV`:""}<span class="bar"><i style="width:${Math.min(100,r.ats)}%"></i></span></div>`:""}
+      </div>
+      <div class="c-side">
+        <span class="pill ${s}">${SICON[s]} ${STATUSES[s]}</span>
+        <button class="star ${s==="saved"?"on":""}" data-star title="Save">⭐</button>
+      </div></article>`;
+  }).join("") : `<div class="empty">No opportunities match these filters.<br><button class="btn small" style="margin-top:10px" onclick="F={...DEFAULT_F};store('filters',F);renderAll()">Reset filters</button></div>`;
+  $("#cards").querySelectorAll(".card").forEach(c => c.onclick = e => {
+    const id = c.dataset.id;
+    if(e.target.closest("[data-star]")){ e.stopPropagation(); setStatus(id, st(id)==="saved"?"new":"saved"); renderAll(); toast(st(id)==="saved"?"Saved ⭐":"Removed from saved"); return; }
+    openDrawer(id);
   });
-  rows.sort((a,b) => sort==="found" ? b.found.localeCompare(a.found) : sort==="ats" ? b.ats-a.ats : b.score-a.score);
-  $("#list").innerHTML = rows.length ? rows.map(r => card(r, lastSeen)).join("") : `<div class="empty">Nothing here yet. New matches appear after each run.</div>`;
-  rows.forEach(bind);
 }
 
-function card(r, lastSeen){
-  const s = st(r.id), ai = r.ai || null, t = track[r.id] || {};
-  const sc = r.score>=65?"s-hi":r.score>=45?"s-mid":"s-lo";
-  const posted = r.posted ? new Date(r.posted).toLocaleDateString() : "";
-  const appliedOn = t.applied_at ? ` · applied ${new Date(t.applied_at).toLocaleDateString()}` : "";
-  const est = ai && ai.ats_score_estimate ? ` → ~${esc(ai.ats_score_estimate)}% after tailoring` : "";
-  const tips = ai ? list(ai.boost_tips) : (r.tips||[]);
-  const letter = t.letter ?? (ai ? ai.cover_letter : "");
-  return `<article class="card ${s==="skip"||s==="rejected"?"dim":""} ${openIds.has(r.id)?"open":""}" id="c-${CSS.escape(r.id)}" data-id="${esc(r.id)}">
-  <div class="top">
-    <div class="score ${sc}" title="Match score">${Math.round(r.score)}</div>
-    <div class="main">
-      <div class="cat">${esc(r.category)}${r.found>lastSeen?'<span class="newdot">NEW</span>':""}</div>
-      <div class="title">${esc(r.title)}</div>
-      <div class="meta">${r.company?"🏢 "+esc(r.company)+" · ":""}📍 ${esc(r.location||"n/a")} · ${esc(r.mode)}${r.employment?" · ⏱ "+esc(r.employment):""}${r.salary?" · 💰 "+esc(r.salary):""}${posted?" · 🗓 "+posted:""} · via ${esc(r.source)}${appliedOn}</div>
-      ${r.kind!=="fellowship"||r.ats?`<div class="ats"><span>ATS keywords ${Math.round(r.ats)}%${est}</span><span class="bar"><i style="width:${Math.min(100,r.ats)}%"></i></span></div>`:""}
-    </div>
-    <div class="right">
-      <select class="status st-${s}" data-act="status">${Object.entries(STATUSES).map(([k,v])=>`<option value="${k}" ${k===s?"selected":""}>${v}</option>`).join("")}</select>
-    </div>
-  </div>
-  <div class="actions">
-    <button class="btn primary small" data-act="apply">🚀 Apply</button>
-    <button class="btn small" data-act="toggle">${ai?"✍️ Cover letter & tailored CV":"Details"}</button>
-    ${!ai && D.gemini_key ? `<button class="btn small" data-act="gen">✨ Write cover letter with AI</button>`:""}
-    <button class="btn small" data-act="save">⭐ Save</button>
-  </div>
-  <div class="details">
-    ${ai&&ai.fit_summary?`<p>🧠 ${esc(ai.fit_summary)}</p>`:""}
-    ${(r.matched||[]).length?`<h3>✅ Keywords you have</h3><div class="kw">${r.matched.map(k=>`<span class="y">${esc(k)}</span>`).join("")}</div>`:""}
-    ${(r.missing||[]).length?`<h3>❌ Keywords missing from your CV</h3><div class="kw">${r.missing.map(k=>`<span class="n">${esc(k)}</span>`).join("")}</div>`:""}
-    ${tips.length?`<h3>🚀 Boost this application</h3><ul>${tips.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}
-    <div class="grid2">
-      <div>
-        <h3>✍️ Cover letter <span style="color:var(--muted);font-weight:400">(you can edit; it's saved)</span></h3>
-        <textarea data-act="letter" placeholder="${D.gemini_key?"Click ✨ Write cover letter with AI":"No cover letter yet"}">${esc(letter)}</textarea>
-        <div class="actions">
-          <button class="btn small" data-act="copyletter">📋 Copy</button>
-          <button class="btn small" data-act="dlletter">⬇ Word file</button>
-          ${D.gemini_key?`<button class="btn small" data-act="gen">✨ ${ai?"Rewrite":"Write"} with AI</button>`:""}
-        </div>
+/* ---------- drawer ---------- */
+function openDrawer(id){ if(openId !== id) dtab = "overview"; openId = id; renderDrawer(); $("#drawer").classList.add("on"); $("#scrim").classList.add("on"); history.replaceState(null,"","#"+encodeURIComponent(id)); }
+function closeDrawer(){ openId = null; $("#drawer").classList.remove("on"); $("#scrim").classList.remove("on"); history.replaceState(null,"",location.pathname); $("#filters").classList.remove("open"); renderAll(); }
+function renderDrawer(){
+  const r = L().find(x => x.id === openId); if(!r) return;
+  const s = st(r.id), ai = r.ai || null;
+  $("#drawer").innerHTML = `
+  <div class="dhead">
+    <div class="dtop">
+      <div class="ring" style="--p:${Math.round(r.score)};--rc:${ringColor(r.score)}"><b>${Math.round(r.score)}</b></div>
+      <div style="min-width:0">
+        <div class="c-cat" style="--cc:var(--c-${catVar(r.category)})">${esc(r.category)}</div>
+        <div class="dtitle">${esc(r.title)}</div>
+        <div class="c-sub">${r.company?`<b style="color:var(--ink)">${esc(r.company)}</b> · `:""}${esc(r.location||"Location not stated")}</div>
       </div>
-      <div>
-        <h3>📄 Tailored CV for this posting</h3>
-        ${ai ? `<p><b>${esc(ai.tailored_headline||"")}</b></p><p>${esc(ai.tailored_summary||"")}</p>
-          <p style="font-size:13px"><b>Skills order:</b> ${esc(list(ai.tailored_skills).join(" • "))}</p>
-          <ul>${list(ai.tailored_bullets).map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
-          ${list(ai.keywords_to_add).length?`<p style="font-size:13px"><b>Add to CV (if true):</b> ${esc(list(ai.keywords_to_add).join("; "))}</p>`:""}
-          ${list(ai.skill_gaps).length?`<p style="font-size:13px"><b>Gaps to work on:</b> ${esc(list(ai.skill_gaps).join(", "))}</p>`:""}
-          <div class="actions"><button class="btn small" data-act="copycv">📋 Copy</button><button class="btn small" data-act="dlcv">⬇ Word file</button></div>`
-          : `<p style="color:var(--muted)">Generate with AI to get a tailored headline, summary, bullet points and the keywords to add.</p>`}
-      </div>
+      <button class="btn ghost x" id="dclose" title="Close">✕</button>
     </div>
-    <h3>🗒 Notes</h3>
-    <textarea class="note" data-act="note" placeholder="Contact name, interview date, salary…">${esc(t.note||"")}</textarea>
-    <h3>Job description</h3>
-    <details><summary style="cursor:pointer;color:var(--muted)">Show</summary><p style="white-space:pre-wrap;font-size:14px">${esc(r.description||"")}</p></details>
+    <div class="dactions">
+      <button class="btn primary" data-a="apply">🚀 Apply</button>
+      <a class="btn" href="${esc(r.url)}" target="_blank" rel="noopener">↗ Open posting</a>
+      <select id="dstatus">${Object.entries(STATUSES).map(([k,v]) => `<option value="${k}" ${k===s?"selected":""}>${SICON[k]} ${v}</option>`).join("")}</select>
+      ${D.gemini_key?`<button class="btn" data-a="gen">✨ ${ai?"Regenerate kit":"Generate apply kit"}</button>`:""}
+    </div>
+    <div class="dtabs">${[["overview","Overview"],["kit","Apply kit"],["cv","ATS CV"],["notes","Notes & emails"]].map(([k,t]) => `<button data-t="${k}" class="${dtab===k?"on":""}">${t}</button>`).join("")}</div>
   </div>
-</article>`;
+  <div class="dbody" id="dbody">${dtab==="overview"?tabOverview(r):dtab==="kit"?tabKit(r):dtab==="cv"?tabCV(r):tabNotes(r)}</div>`;
+  $("#dclose").onclick = closeDrawer;
+  $("#dstatus").onchange = e => { setStatus(r.id, e.target.value); renderDrawer(); renderKpis(); toast(`Marked ${STATUSES[e.target.value]}`); };
+  $("#drawer").querySelectorAll("[data-t]").forEach(b => b.onclick = () => { dtab = b.dataset.t; renderDrawer(); });
+  $("#drawer").querySelectorAll("[data-a]").forEach(b => b.onclick = () => action(r, b.dataset.a, b));
+  $("#drawer").querySelectorAll("[data-copy]").forEach(b => b.onclick = () => copy(b.dataset.copy));
+  const lt = $("#letter"); if(lt) lt.oninput = () => setField(r.id, "letter", lt.value);
+  const nt = $("#note"); if(nt) nt.oninput = () => setField(r.id, "note", nt.value);
 }
-
-function cvText(r){
+function genHint(r){ return D.gemini_key ? `<div class="sec" style="text-align:center"><p class="muted">The tailored CV, cover letter, requirements check and answers aren't generated for this one yet.</p><button class="btn primary" data-a="gen">✨ Generate apply kit (≈30 s)</button></div>` : ""; }
+function tabOverview(r){
   const ai = r.ai || {};
-  return [ai.tailored_headline, "", "PROFESSIONAL SUMMARY", ai.tailored_summary, "", "KEY SKILLS", list(ai.tailored_skills).join(" • "),
-    "", "EXPERIENCE / PROJECT BULLETS", ...list(ai.tailored_bullets).map(b=>"• "+b)].join("\n");
+  const facts = [
+    ["Country / region", places(r).map(p => `${FLAGS[p]||"📍"} ${p}`).join(", ")],
+    ["Work mode", r.mode], ["Contract", r.employment || "Not stated"],
+    ["Pay", r.paid==="paid" ? (r.salary || "Paid") : r.paid==="unpaid" ? "Unpaid" : "Not stated"],
+    ["Deadline", r.deadline ? `${fmtDate(r.deadline)} (${days(r.deadline) < 0 ? "closed" : days(r.deadline)+" days left"})` : "Not stated"],
+    ["Experience", r.exp_years == null ? "Not stated" : r.exp_years ? r.exp_years+"+ years" : "Entry level"],
+    ["Degree", r.degree || "Not stated"], ["Languages", (r.languages||[]).join(", ") || "Not stated"],
+    ["Posted", r.posted ? fmtDate(r.posted) : "—"], ["Found by agent", fmtDate(r.found)], ["Source", r.source],
+    ["ATS keywords", r.kind==="fellowship" && !r.ats ? "n/a" : `${Math.round(r.ats)}%` + (ai.ats_score_estimate?` → ~${ai.ats_score_estimate}% tailored`:"")]];
+  const reqs = Array.isArray(ai.key_requirements) && ai.key_requirements.length ? ai.key_requirements.map(q => typeof q === "object" ?
+      `<div class="req"><span>${q.met==="yes"?"✅":q.met==="partial"?"⚠️":"❌"}</span><div>${esc(q.requirement)}<small>${esc(q.evidence||"")}</small></div></div>` : `<div class="req"><span>•</span><div>${esc(q)}</div></div>`).join("")
+    : (r.requirements||[]).length ? (r.requirements||[]).map(q => `<div class="req"><span>•</span><div>${esc(q)}</div></div>`).join("") + `<p class="muted" style="font-size:12.5px;margin-bottom:0">Generate the apply kit to check each requirement against your CV.</p>` : `<p class="muted">The posting doesn't list requirements clearly. Open the posting to read them.</p>`;
+  const tips = ai.boost_tips ? list(ai.boost_tips) : (r.tips || []);
+  return `${ai.fit_summary?`<div class="sec" style="border-color:var(--accent);background:var(--accent-bg)"><b>🧠 Fit</b><p style="margin:6px 0 0">${esc(ai.fit_summary)}</p></div>`:""}
+  <div class="sec"><h3>Key facts</h3><div class="facts">${facts.map(([k,v]) => `<div class="fact"><span>${k}</span><b>${esc(v)}</b></div>`).join("")}</div></div>
+  <div class="sec"><h3>Requirements ${ai.key_requirements?"vs your CV":""}</h3>${reqs}</div>
+  ${(r.matched||[]).length||(r.missing||[]).length?`<div class="sec"><h3>ATS keywords</h3>
+    ${(r.matched||[]).length?`<div class="muted" style="font-size:12.5px;margin-bottom:4px">In your CV</div><div class="kw">${r.matched.map(k=>`<span class="y">${esc(k)}</span>`).join("")}</div>`:""}
+    ${(r.missing||[]).length?`<div class="muted" style="font-size:12.5px;margin:10px 0 4px">Missing from your CV (add only if true)</div><div class="kw">${r.missing.map(k=>`<span class="n">${esc(k)}</span>`).join("")}</div>`:""}
+    ${list(ai.skill_gaps).length?`<div class="muted" style="font-size:12.5px;margin:10px 0 4px">Skill gaps to work on</div><div>${esc(list(ai.skill_gaps).join(" · "))}</div>`:""}</div>`:""}
+  ${tips.length?`<div class="sec"><h3>🚀 Boost this application</h3><ul style="margin:0;padding-left:18px">${tips.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div>`:""}
+  ${!r.ai?genHint(r):""}
+  <div class="sec"><h3>Job description</h3><details><summary style="cursor:pointer" class="muted">Show full text</summary><p style="white-space:pre-wrap;font-size:13.5px">${esc(r.description||"")}</p></details></div>`;
 }
-function download(name, title, text){
-  const html = `<html><head><meta charset="utf-8"><title>${esc(title)}</title></head><body style="font-family:Calibri,Arial;font-size:11pt">${
-    esc(text).split(/\n/).map(p=>`<p style="margin:0 0 8pt">${p||"&nbsp;"}</p>`).join("")}</body></html>`;
+function tabKit(r){
+  const ai = r.ai || {}, t = track[r.id] || {};
+  const letter = t.letter ?? ai.cover_letter ?? "";
+  const qa = Array.isArray(ai.screening_answers) ? ai.screening_answers : [];
+  return `${!r.ai?genHint(r):""}<div class="sec"><div class="steps">
+    <div class="step"><div><h4>Download your ATS CV for this job</h4>
+      ${ai.ats_cv?`<button class="btn small" data-a="pdf">⬇ PDF (best for ATS)</button> <button class="btn small" data-a="word">⬇ Word</button> <button class="btn small ghost" data-a="tabcv">Preview</button>`:`<span class="muted">Generate the apply kit first.</span>`}</div></div>
+    <div class="step"><div><h4>Check the cover letter <span class="muted" style="font-weight:400">(edits are saved)</span></h4>
+      <textarea id="letter" placeholder="${D.gemini_key?"Generate the apply kit to write it":"No cover letter yet"}">${esc(letter)}</textarea>
+      <div style="margin-top:6px"><button class="btn small" data-a="copyletter">📋 Copy</button> <button class="btn small" data-a="letterdoc">⬇ Word</button></div></div></div>
+    <div class="step"><div><h4>Open the application and auto-fill it</h4>
+      <p class="muted" style="margin:0 0 8px">🚀 Apply copies your cover letter and opens the form. Then click <b>⚡ Fill application</b> in your bookmarks bar (set it up in the Autofill tab).</p>
+      <button class="btn primary small" data-a="apply">🚀 Apply</button></div></div>
+    <div class="step"><div><h4>Paste answers to the form's questions</h4>
+      ${qa.length ? qa.map(x => `<div class="qa"><b>${esc(x.question||"")}</b><p>${esc(x.answer||"")}</p><button class="btn small" data-copy="${esc(x.answer||"")}">📋 Copy answer</button></div>`).join("") : `<span class="muted">Generate the apply kit to get answers.</span>`}</div></div>
+    <div class="step"><div><h4>Submit, then mark it as applied</h4><button class="btn small" data-a="markapplied">📨 Mark as applied</button>
+      <p class="muted" style="font-size:12.5px;margin:6px 0 0">If Gmail is connected, the confirmation, interview or rejection emails will update this automatically.</p></div></div>
+  </div></div>`;
+}
+function cvHTML(c){
+  const L2 = v => list(v);
+  return `<h1>${esc(c.name||"")}</h1>${c.headline?`<div class="hl">${esc(c.headline)}</div>`:""}<div class="ct">${esc(c.contact||"")}</div>
+  ${c.summary?`<h2>PROFESSIONAL SUMMARY</h2><div>${esc(c.summary)}</div>`:""}
+  ${(c.skills||[]).length?`<h2>SKILLS</h2><ul>${L2(c.skills).map(s=>`<li>${esc(s)}</li>`).join("")}</ul>`:""}
+  ${(c.experience||[]).length?`<h2>PROFESSIONAL EXPERIENCE</h2>${c.experience.map(e => typeof e!=="object"?`<div>${esc(e)}</div>`:
+    `<div class="job">${esc(e.title||"")} — ${esc(e.company||"")}</div><div class="when">${esc([e.location,e.dates].filter(Boolean).join(" | "))}</div><ul>${L2(e.bullets).map(b=>`<li>${esc(b)}</li>`).join("")}</ul>`).join("")}`:""}
+  ${(c.projects||[]).length?`<h2>PROJECTS</h2>${c.projects.map(p => typeof p!=="object"?`<div>${esc(p)}</div>`:`<div class="job">${esc(p.name||"")}</div><ul>${L2(p.bullets).map(b=>`<li>${esc(b)}</li>`).join("")}</ul>`).join("")}`:""}
+  ${(c.education||[]).length?`<h2>EDUCATION</h2>${c.education.map(e => `<div>${typeof e==="object"?`<b>${esc(e.degree||"")}</b> — ${esc(e.school||"")}${e.dates?` (${esc(e.dates)})`:""}`:esc(e)}</div>`).join("")}`:""}
+  ${(c.certifications||[]).length?`<h2>CERTIFICATIONS</h2><ul>${L2(c.certifications).map(s=>`<li>${esc(s)}</li>`).join("")}</ul>`:""}
+  ${(c.languages||[]).length?`<h2>LANGUAGES</h2><div>${esc(L2(c.languages).join(", "))}</div>`:""}`;
+}
+const PAPER_CSS = `body{margin:0;font:11pt/1.4 Calibri,Arial,sans-serif;color:#111}h1{font-size:20pt;margin:0;text-align:center}.hl{text-align:center;font-size:12pt}.ct{text-align:center;font-size:9.5pt;color:#333;margin-bottom:8pt}h2{font-size:11pt;letter-spacing:.5pt;color:#1f3a8a;border-bottom:1pt solid #1f3a8a;margin:10pt 0 4pt;padding-bottom:1pt}.job{font-weight:700;margin-top:5pt}.when{color:#555;font-size:9.5pt}ul{margin:2pt 0 3pt;padding-left:14pt}li{margin:1pt 0}@page{size:A4;margin:14mm 16mm}`;
+function tabCV(r){
+  const c = (r.ai||{}).ats_cv;
+  if(!c) return genHint(r) || `<div class="empty">No ATS CV for this listing yet.</div>`;
+  return `<div class="sec" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"><b style="margin-right:auto">ATS-friendly: one column, standard headings, no tables or images</b>
+    <button class="btn small primary" data-a="pdf">⬇ PDF</button><button class="btn small" data-a="word">⬇ Word</button><button class="btn small" data-a="copycv">📋 Copy text</button></div>
+    <div class="paper">${cvHTML(c)}</div>`;
+}
+function tabNotes(r){
+  const t = track[r.id] || {};
+  const mails = (D.responses||[]).filter(m => m.listing_id === r.id);
+  return `<div class="sec"><h3>🗒 Notes</h3><textarea id="note" style="min-height:110px" placeholder="Contact person, interview date, salary discussed…">${esc(t.note||"")}</textarea></div>
+  <div class="sec"><h3>📬 Emails about this application</h3>${mails.length ? mails.map(mailRow).join("") : `<p class="muted" style="margin:0">No replies linked yet.</p>`}</div>
+  <div class="sec"><h3>🕑 Timeline</h3><div class="timeline">
+    <div class="tl"><b>Found by the agent</b><div class="muted" style="font-size:12.5px">${fmtDate(r.found)}</div></div>
+    ${(t.history||[]).map(h => `<div class="tl"><b>${SICON[h.s]||""} ${STATUSES[h.s]||h.s}</b><div class="muted" style="font-size:12.5px">${fmtDate(h.at)} · by ${esc(h.by)}</div></div>`).join("")}
+  </div></div>`;
+}
+function download(name, html, type){
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob(["﻿"+html], {type:"application/msword"}));
-  a.download = name.replace(/[^\w\- ]+/g,"_").slice(0,80) + ".doc"; a.click();
+  a.href = URL.createObjectURL(new Blob(["﻿"+html], {type}));
+  a.download = name.replace(/[^\w\- .]+/g,"_").slice(0,90); a.click();
+}
+function docHtml(title, body){ return `<html><head><meta charset="utf-8"><title>${esc(title)}</title><style>${PAPER_CSS}</style></head><body>${body}</body></html>`; }
+function cvPlain(c){ return [c.name,c.headline,c.contact,"","PROFESSIONAL SUMMARY",c.summary,"","SKILLS",...list(c.skills).map(s=>"• "+s),"","PROFESSIONAL EXPERIENCE",
+  ...(c.experience||[]).flatMap(e => typeof e!=="object"?[e]:[`${e.title} — ${e.company}`,[e.location,e.dates].filter(Boolean).join(" | "),...list(e.bullets).map(b=>"• "+b),""]),
+  "EDUCATION",...(c.education||[]).map(e => typeof e==="object"?`${e.degree} — ${e.school}${e.dates?` (${e.dates})`:""}`:e),"","CERTIFICATIONS",...list(c.certifications).map(s=>"• "+s),"","LANGUAGES",list(c.languages).join(", ")].filter(x => x!==undefined).join("\n"); }
+async function action(r, a, btn){
+  const ai = r.ai || {}, fname = `${(D.applicant||{}).first_name||"CV"}_${(D.applicant||{}).last_name||""}_${r.company||r.title}`;
+  const letter = () => (track[r.id] && track[r.id].letter) ?? ai.cover_letter ?? "";
+  if(a === "gen") return generate(r, btn);
+  if(a === "tabcv"){ dtab = "cv"; return renderDrawer(); }
+  if(a === "copyletter") return copy(letter(), "Cover letter copied ✔");
+  if(a === "letterdoc") return download(`Cover letter ${r.company||r.title}.doc`, docHtml("Cover letter", letter().split(/\n/).map(p=>`<p>${esc(p)||"&nbsp;"}</p>`).join("")), "application/msword");
+  if(a === "word") return download(`${fname}.doc`, docHtml("CV", cvHTML(ai.ats_cv)), "application/msword");
+  if(a === "copycv") return copy(cvPlain(ai.ats_cv), "CV text copied ✔");
+  if(a === "pdf"){
+    const w = window.open("", "_blank"); if(!w) return toast("Allow pop-ups to save the PDF");
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(fname)}</title><style>${PAPER_CSS}</style></head><body>${cvHTML(ai.ats_cv)}<script>setTimeout(()=>print(),300)<\/script></body></html>`);
+    w.document.close(); toast("Choose “Save as PDF” in the print window"); return;
+  }
+  if(a === "markapplied"){ setStatus(r.id, "applied"); renderDrawer(); renderKpis(); return toast("Marked as applied 📨"); }
+  if(a === "apply"){
+    const l = letter(); if(l){ try{ await navigator.clipboard.writeText(l); }catch(e){} }
+    window.open(r.url, "_blank", "noopener");
+    toast(l ? "Cover letter copied. Use ⚡ Fill application on the form" : "Opened. Use ⚡ Fill application on the form");
+    if(RANK[st(r.id)] < RANK.applied) setTimeout(() => { if(confirm(`Did you submit your application to “${r.title}”?\nOK = mark as Applied`)){ setStatus(r.id,"applied"); renderDrawer(); renderKpis(); } }, 1800);
+  }
 }
 
-function bind(r){
-  const el = document.getElementById("c-"+CSS.escape(r.id)); if(!el) return;
-  const letterBox = () => el.querySelector('[data-act="letter"]');
-  el.querySelectorAll("[data-act]").forEach(b => {
-    const a = b.dataset.act;
-    if(a==="status") b.onchange = () => setStatus(r.id, b.value);
-    if(a==="toggle") b.onclick = () => { el.classList.toggle("open"); el.classList.contains("open") ? openIds.add(r.id) : openIds.delete(r.id); };
-    if(a==="save") b.onclick = () => { setStatus(r.id, "saved"); toast("Saved ⭐"); };
-    if(a==="letter") b.oninput = () => setField(r.id, "letter", b.value);
-    if(a==="note") b.oninput = () => setField(r.id, "note", b.value);
-    if(a==="copyletter") b.onclick = () => copy(letterBox().value, "Cover letter copied ✔");
-    if(a==="dlletter") b.onclick = () => download(`CoverLetter ${r.company} ${r.title}`, "Cover letter", letterBox().value);
-    if(a==="copycv") b.onclick = () => copy(cvText(r), "Tailored CV copied ✔");
-    if(a==="dlcv") b.onclick = () => download(`TailoredCV ${r.company} ${r.title}`, "Tailored CV", cvText(r));
-    if(a==="gen") b.onclick = () => generate(r, b);
-    if(a==="apply") b.onclick = async () => {
-      const letter = (track[r.id] && track[r.id].letter) || (r.ai && r.ai.cover_letter) || "";
-      if(letter){ try{ await navigator.clipboard.writeText(letter); }catch(e){} }
-      window.open(r.url, "_blank", "noopener");
-      toast(letter ? "Cover letter copied. Use ⚡ Fill application on the form" : "Opened. Use ⚡ Fill application on the form");
-      setTimeout(() => { if(st(r.id)!=="applied" && confirm(`Did you apply to "${r.title}"?\nOK = mark as Applied`)) setStatus(r.id,"applied"); }, 1500);
-    };
-  });
-}
-
-/* ---------- AI on demand (Gemini free tier, key stays inside the encrypted page) ---------- */
+/* ---------- AI on demand ---------- */
 async function generate(r, btn){
-  const old = btn.textContent; btn.disabled = true; btn.textContent = "✨ Writing… (≈20s)";
-  const prompt = D.prompt.replace("{profile}", D.profile).replace("{cv}", D.cv).replace("{kind}", r.kind)
-    .replace("{category}", r.category).replace("{title}", r.title).replaceAll("{company}", r.company || "the selection committee")
-    .replace("{location}", r.location||"n/a").replace("{mode}", r.mode).replace("{desc}", (r.description||"").slice(0,9000))
+  const old = btn.textContent; btn.disabled = true; btn.textContent = "✨ Writing… (≈30 s)";
+  const prompt = D.prompt.replace("{profile}", D.profile).replace("{cv}", D.cv).replace("{kind}", r.kind).replace("{category}", r.category)
+    .replace("{title}", r.title).replaceAll("{company}", r.company || "the selection committee").replace("{location}", r.location||"n/a")
+    .replace("{mode}", r.mode).replace("{desc}", (r.description||"").slice(0,9000))
     .replace("{matched}", (r.matched||[]).join(", ")||"none").replace("{missing}", (r.missing||[]).join(", ")||"none");
   let err = "";
   for(const m of MODELS){
     try{
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, {
-        method:"POST", headers:{"Content-Type":"application/json","x-goog-api-key":D.gemini_key},
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, {method:"POST",
+        headers:{"Content-Type":"application/json","x-goog-api-key":D.gemini_key},
         body: JSON.stringify({contents:[{parts:[{text:prompt}]}], generationConfig:{temperature:.6, responseMimeType:"application/json"}})});
-      if(!res.ok){ err = `${m}: HTTP ${res.status}`; if([404,400,429,500,503].includes(res.status)) continue; break; }
+      if(!res.ok){ err = `${m}: HTTP ${res.status}`; if([400,404,429,500,503].includes(res.status)) continue; break; }
       const j = await res.json();
-      const txt = j.candidates[0].content.parts.map(p=>p.text||"").join("").replace(/^```(json)?|```$/gm,"").trim();
-      r.ai = JSON.parse(txt);
+      r.ai = JSON.parse(j.candidates[0].content.parts.map(p => p.text||"").join("").replace(/^```(json)?|```$/gm,"").trim());
+      if(r.ai.deadline && !r.deadline) r.deadline = r.ai.deadline.slice(0,10);
       const cache = store("aiCache") || {}; cache[r.id] = r.ai; store("aiCache", cache);
       if(track[r.id]) { delete track[r.id].letter; store("track", track); }
-      openIds.add(r.id); render();
-      toast("Cover letter & tailored CV ready ✔"); return;
+      dtab = "kit"; renderDrawer(); toast("Apply kit ready ✔"); return;
     }catch(e){ err = String(e); }
   }
-  btn.disabled = false; btn.textContent = old; toast("AI failed: " + err + ". Try again in a minute.");
+  btn.disabled = false; btn.textContent = old; toast("AI busy (" + err + "). Try again in a minute.");
+}
+
+/* ---------- pipeline ---------- */
+function renderBoard(){
+  const cols = ["saved","applied","assessment","interview","offer","rejected"];
+  $("#board").innerHTML = cols.map(c => {
+    const rows = L().filter(r => st(r.id) === c);
+    return `<div class="col" data-col="${c}"><h4><span>${SICON[c]} ${STATUSES[c]}</span><span class="muted">${rows.length}</span></h4>
+      ${rows.map(r => `<div class="mini" draggable="true" data-id="${esc(r.id)}"><b>${esc(r.title)}</b><span class="muted">${esc(r.company||r.source)}</span>
+      ${track[r.id]&&track[r.id][c+"_at"]?`<div class="muted" style="font-size:11.5px">${fmtDate(track[r.id][c+"_at"])}</div>`:""}</div>`).join("") || `<div class="muted" style="font-size:12.5px;padding:4px">Empty</div>`}</div>`;
+  }).join("");
+  $("#board").querySelectorAll(".mini").forEach(m => { m.ondragstart = e => e.dataTransfer.setData("text", m.dataset.id); m.onclick = () => openDrawer(m.dataset.id); });
+  $("#board").querySelectorAll(".col").forEach(c => {
+    c.ondragover = e => { e.preventDefault(); c.classList.add("drop"); };
+    c.ondragleave = () => c.classList.remove("drop");
+    c.ondrop = e => { e.preventDefault(); setStatus(e.dataTransfer.getData("text"), c.dataset.col); renderAll(); };
+  });
+}
+
+/* ---------- inbox ---------- */
+function mailRow(m){
+  const r = L().find(x => x.id === m.listing_id);
+  return `<div class="mail t-${m.type}"><div class="ic">${MAILICON[m.type]||"✉️"}</div>
+    <div style="min-width:0"><div><b>${esc((m.type||"").replace("_"," ").replace(/^./,c=>c.toUpperCase()))}</b> · ${esc(m.company||m.from)} <span class="muted" style="font-size:12.5px">· ${fmtDate(m.date)}</span>${m.date>lastSeen?'<span class="newtag">NEW</span>':""}</div>
+      <div style="font-weight:600;overflow-wrap:anywhere">${esc(m.subject)}</div>
+      <div class="muted">${esc(m.summary)}</div>
+      ${m.action?`<div style="margin-top:4px">👉 ${esc(m.action)}${m.due?` <span class="bd warn">⏰ ${esc(m.due)}</span>`:""}</div>`:""}
+      ${r?`<div style="margin-top:6px"><a href="#" data-open="${esc(r.id)}">↳ ${esc(r.title)}</a></div>`:""}</div>
+    <div class="act"><a class="btn small" href="${esc(m.link)}" target="_blank" rel="noopener">Open in Gmail</a></div></div>`;
+}
+function renderInbox(){
+  const R = D.responses || [];
+  $("#inbox").innerHTML = R.length ? `<p class="muted" style="margin-top:0">Replies to your applications found in Gmail. Statuses update automatically.</p>` + R.map(mailRow).join("")
+    : `<div class="empty"><div style="font-size:34px">📬</div><b>No application replies yet</b><p class="muted" style="max-width:460px;margin:8px auto 0">When Gmail is connected, the agent reads replies to your applications (confirmations, tests, interviews, rejections, offers), puts them here, updates the job's status and alerts you on Telegram.</p></div>`;
+  $("#inbox").querySelectorAll("[data-open]").forEach(a => a.onclick = e => { e.preventDefault(); openDrawer(a.dataset.open); });
 }
 
 /* ---------- profile + bookmarklet ---------- */
 function renderProfile(){
   const A = D.applicant || {};
-  const cache = store("aiCache") || {};
-  D.listings.forEach(r => { if(!r.ai && cache[r.id]) r.ai = cache[r.id]; });
-  const labels = {first_name:"First name",last_name:"Last name",email:"Email",phone:"Phone",linkedin:"LinkedIn",github:"GitHub / portfolio",
-    city:"City",country:"Country",location:"Location",current_title:"Current title",education:"Education",languages:"Languages",
-    work_authorization:"Work authorization",notice_period:"Notice period"};
-  $("#profile").innerHTML = `<h2 style="margin-top:0">Your details (copy & paste)</h2>` + Object.entries(A).map(([k,v]) =>
+  const labels = {first_name:"First name",last_name:"Last name",email:"Email",phone:"Phone",linkedin:"LinkedIn",github:"GitHub / portfolio",city:"City",country:"Country",location:"Location",current_title:"Current title",education:"Education",languages:"Languages",work_authorization:"Work authorization",notice_period:"Notice period"};
+  $("#profile").innerHTML = `<h3>Your details (copy &amp; paste)</h3>` + Object.entries(A).map(([k,v]) =>
     `<div class="prow"><span>${esc(labels[k]||k)}</span><div style="overflow-wrap:anywhere">${esc(v)}</div><button class="btn small" data-copy="${esc(v)}">Copy</button></div>`).join("");
-  document.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => copy(b.dataset.copy));
+  $("#profile").querySelectorAll("[data-copy]").forEach(b => b.onclick = () => copy(b.dataset.copy));
   $("#bookmarklet").href = bookmarklet(A);
   $("#bookmarklet").onclick = e => { e.preventDefault(); toast("Drag me to your bookmarks bar ↑"); };
-  $("#export").onclick = () => { const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify({track, aiCache:store("aiCache")||{}})],{type:"application/json"})); a.download="job-tracking.json"; a.click(); };
+  $("#export").onclick = () => download("job-tracking.json", JSON.stringify({track, aiCache: store("aiCache")||{}}), "application/json");
   $("#import").onchange = async e => { try{ const d = JSON.parse(await e.target.files[0].text()); track = Object.assign(track, d.track||d); store("track", track);
-    if(d.aiCache) store("aiCache", Object.assign(store("aiCache")||{}, d.aiCache)); toast("Imported ✔"); renderProfile(); render(); }catch(x){ toast("Not a valid file"); } };
+    if(d.aiCache){ const c = Object.assign(store("aiCache")||{}, d.aiCache); store("aiCache", c); L().forEach(r => { if(!r.ai && c[r.id]) r.ai = c[r.id]; }); }
+    toast("Imported ✔"); renderAll(); }catch(x){ toast("Not a valid file"); } };
 }
-
 function bookmarklet(A){
-  const P = {fn:A.first_name||"", ln:A.last_name||"", em:A.email||"", ph:A.phone||"", li:A.linkedin||"", gh:A.github||"",
-             city:A.city||"", country:A.country||"", loc:A.location||""};
+  const P = {fn:A.first_name||"", ln:A.last_name||"", em:A.email||"", ph:A.phone||"", li:A.linkedin||"", gh:A.github||"", city:A.city||"", country:A.country||"", loc:A.location||""};
   const code = `(async()=>{const P=${JSON.stringify(P)};
 const R=[[/first.?name|given.?name|prenom|prénom|vorname/i,P.fn],[/last.?name|family.?name|surname|nom de famille|nachname/i,P.ln],
 [/full.?name|^name$|your.?name|candidate.?name|^nom$/i,P.fn+' '+P.ln],[/e.?mail/i,P.em],[/phone|mobile|t[eé]l[eé]phone|tel\\b/i,P.ph],
@@ -419,7 +756,7 @@ if(['hidden','file','checkbox','radio','submit','button','password','search'].in
 const d=desc(el);if(el.tagName==='TEXTAREA'){if(/cover|letter|motivation|why.*(you|us|join|interested)|additional information|lettre/i.test(d)&&L.length>80){set(el,L);cl++;}return}
 for(const[re,v]of R){if(v&&re.test(d)){set(el,v);n++;break}}});
 const m=document.createElement('div');m.textContent='⚡ Filled '+n+' fields'+(cl?' + cover letter':L.length>80?' (paste cover letter with Ctrl+V)':'')+'. Upload your CV, check everything, then submit.';
-m.style.cssText='position:fixed;z-index:2147483647;top:16px;right:16px;background:#2f5bea;color:#fff;padding:12px 16px;border-radius:10px;font:14px system-ui;box-shadow:0 4px 18px rgba(0,0,0,.25);max-width:340px';
+m.style.cssText='position:fixed;z-index:2147483647;top:16px;right:16px;background:#4f46e5;color:#fff;padding:12px 16px;border-radius:12px;font:14px system-ui;box-shadow:0 6px 24px rgba(0,0,0,.25);max-width:340px';
 document.body.appendChild(m);setTimeout(()=>m.remove(),7000);})()`;
   return "javascript:" + encodeURIComponent(code.replace(/\n/g,""));
 }

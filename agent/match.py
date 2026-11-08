@@ -102,7 +102,7 @@ def passes_filters(job: Job, cfg: dict) -> bool:
     text = f"{job.title} {job.description}".lower()
     if any(_has(w.lower(), text) for w in f.get("exclude_words", [])):
         return False
-    max_age = f.get("max_age_days", 14)
+    max_age = f.get("max_age_days", 14) * (4 if job.kind == "fellowship" else 1)  # scholarships stay open for months
     if job.posted and job.posted < datetime.now(timezone.utc) - timedelta(days=max_age):
         return False
     allowed = [a.lower() for a in f.get("allowed_locations", [])]
@@ -125,6 +125,25 @@ def _count(terms: list[str], text: str) -> int:
     return sum(1 for t in terms if _has(t, text))
 
 
+def _flat(v) -> list[str]:
+    """config lists may contain other lists (reused with *name in config.yaml)."""
+    out = []
+    for x in v or []:
+        out.extend(_flat(x) if isinstance(x, list) else [str(x)])
+    return out
+
+
+ITALIAN = re.compile(r"\b(della|delle|degli|nella|sono|esperienza|lavoro|azienda|candidato|requisiti|conoscenza|"
+                     r"offriamo|siamo|cerchiamo|stiamo|ruolo|sede)\b", re.I)
+
+
+def foreign_language_required(text: str, banned: list[str]) -> bool:
+    """True if the posting requires a language you don't speak, or is written in Italian."""
+    if banned and any(l in banned for l in enrich.languages(text)):
+        return True
+    return "Italian" in banned and len(ITALIAN.findall(text[:3000])) >= 6
+
+
 def _score_in_category(j: Job, cat: dict, title: str, body: str) -> float | None:
     if j.kind not in cat.get("kinds", ["job", "internship", "fellowship"]):
         return None
@@ -132,11 +151,25 @@ def _score_in_category(j: Job, cat: dict, title: str, body: str) -> float | None
         return None
     if any(_has(t.lower(), title) for t in cat.get("exclude_title", [])):
         return None
+    places = [p.lower() for p in _flat(cat.get("locations_any", []))]
+    if places:
+        where = f"{j.location} {title}".lower()
+        if cat.get("locations_in") == "all":
+            where += " " + body[:2500]
+        elif j.location.count(",") >= 3:
+            return None  # a long country list = a remote job for many countries, not a London/Italy job
+        if not any(_has(p, where) for p in places):
+            return None
+        m = re.search(r"\b(?:work|based|relocat\w*|located) (?:in|to) ([a-z]+)", title)
+        if m and not any(_has(p, m.group(1)) for p in places):
+            return None  # "... - Work in Sofia, Bulgaria" posted under Italy
+    if cat.get("require_tunisia") and enrich.tunisia(j.location, f"{title}\n{body}") != "yes":
+        return None
     tiers = cat.get("tiers") or {}
     fit = ""
     if tiers:  # title groups by fit: the best group found decides the fit label
         for label in tiers:
-            if _count([t.lower() for t in tiers[label]], title):
+            if _count([t.lower() for t in _flat(tiers[label])], title):
                 fit = label
                 break
         if not fit:
@@ -173,6 +206,8 @@ def score_jobs(jobs: list[Job], cv_text: str, cfg: dict) -> list[Job]:
             continue
         yrs = enrich.experience_years(full)
         if j.kind == "job" and yrs is not None and yrs > f.get("max_experience_years", 99):
+            continue
+        if j.kind != "fellowship" and foreign_language_required(full, f.get("exclude_required_languages", [])):
             continue
         title, body = j.title.lower(), f"{j.description} {' '.join(map(str, j.tags))}".lower()
         j.ats, j.matched, j.missing = ats_score(cv_text, f"{j.title} \n{body}", vocab)

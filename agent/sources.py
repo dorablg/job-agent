@@ -194,29 +194,83 @@ def himalayas(terms) -> list[Job]:
     return out
 
 
-def workable(_terms, queries: list[str] | None = None) -> list[Job]:
-    """Workable's job search, limited to remote jobs that are open in Tunisia."""
+WORKMODE = {"remote": "remote", "hybrid": "hybrid", "on_site": "onsite"}
+FOCUS_LOC = re.compile(r"london|united kingdom|\buk\b|england|italy|italia|milan|milano|rome|roma|turin|torino|"
+                       r"bologna|florence|firenze|naples|napoli|padua|padova|pisa|trento|genoa|genova|verona|bergamo", re.I)
+
+
+def workable(_terms, searches: list[dict] | None = None) -> list[Job]:
+    """Workable's job search. Each search: {location, workplace (optional), queries}.
+    Tunisia searches keep only remote jobs open in Tunisia; London/Italy keep jobs located there."""
     out, seen = [], set()
-    for q in queries or ["customer support"]:
+    for srch in searches or []:
+        where = srch["location"]
+        for q in srch.get("queries", []):
+            params = {"query": q, "location": where}
+            if srch.get("workplace"):
+                params["workplace"] = srch["workplace"]
+            try:
+                data = _get("https://jobs.workable.com/api/v1/jobs", params=params)
+            except Exception:
+                continue
+            for j in data.get("jobs", []):
+                if j.get("id") in seen:
+                    continue
+                loc = j.get("location") or {}
+                country, city = (loc.get("countryName") or ""), (loc.get("city") or "")
+                if where.lower() == "tunisia":
+                    if country.lower() != "tunisia" or j.get("workplace") != "remote":
+                        continue
+                    location = "Tunisia (remote)"
+                else:
+                    location = ", ".join(x for x in (city, country) if x)
+                    if not FOCUS_LOC.search(location):
+                        continue
+                seen.add(j.get("id"))
+                desc = clean("\n".join(str(j.get(k) or "") for k in ("description", "requirementsSection", "benefitsSection")))
+                emp = (j.get("employmentType") or "").replace("_", " ")
+                out.append(Job(
+                    id=f"workable-{j['id']}", title=j["title"], company=(j.get("company") or {}).get("title", ""),
+                    url=j.get("url", ""), description=f"Employment type: {emp}\n{desc}", location=location,
+                    source="Workable", kind=detect_kind(j["title"], emp),
+                    work_mode=WORKMODE.get(j.get("workplace"), "unknown"), posted=_dt(j.get("created")),
+                ))
+    return out
+
+
+def company_boards(_terms, boards: dict | None = None) -> list[Job]:
+    """Jobs from company career pages (Greenhouse / Lever / Ashby), kept only in London, UK or Italy."""
+    out = []
+    for company, ats in (boards or {}).items():
         try:
-            data = _get("https://jobs.workable.com/api/v1/jobs",
-                        params={"query": q, "location": "Tunisia", "workplace": "remote"})
+            if ats == "greenhouse":
+                data = _get(f"https://boards-api.greenhouse.io/v1/boards/{company}/jobs", params={"content": "true"})
+                rows = [(str(j["id"]), j["title"], j.get("absolute_url", ""), (j.get("location") or {}).get("name", ""),
+                         clean(html.unescape(j.get("content") or "")), j.get("updated_at")) for j in data.get("jobs", [])]
+            elif ats == "lever":
+                data = _get(f"https://api.lever.co/v0/postings/{company}", params={"mode": "json"})
+                rows = [(j["id"], j["text"], j.get("hostedUrl", ""), (j.get("categories") or {}).get("location", ""),
+                         clean((j.get("descriptionPlain") or "") + "\n" + "\n".join(
+                             f"{l.get('text', '')}\n{clean(l.get('content', ''))}" for l in j.get("lists") or [])),
+                         j.get("createdAt", 0) / 1000 if j.get("createdAt") else None) for j in data]
+            else:  # ashby
+                data = _get(f"https://api.ashbyhq.com/posting-api/job-board/{company}")
+                rows = [(j["id"], j["title"], j.get("jobUrl", ""),
+                         ", ".join([j.get("location") or ""] + [x.get("location", "") for x in j.get("secondaryLocations") or []]),
+                         clean(j.get("descriptionPlain") or j.get("descriptionHtml") or ""), j.get("publishedAt"))
+                        for j in data.get("jobs", []) if j.get("isListed", True)]
         except Exception:
             continue
-        for j in data.get("jobs", []):
-            if j.get("id") in seen or j.get("workplace") != "remote":
+        name = {"trading212": "Trading 212", "complyadvantage": "ComplyAdvantage", "gocardless": "GoCardless",
+                "oaknorth": "OakNorth", "truelayer": "TrueLayer", "elevenlabs": "ElevenLabs", "sumup": "SumUp",
+                "9fin": "9fin"}.get(company, company.title())
+        for jid, title, url, location, desc, posted in rows:
+            if not FOCUS_LOC.search(location or ""):
                 continue
-            seen.add(j.get("id"))
-            loc = j.get("location") or {}
-            if (loc.get("countryName") or "").lower() != "tunisia":
-                continue
-            desc = clean("\n".join(str(j.get(k) or "") for k in ("description", "requirementsSection", "benefitsSection")))
-            emp = (j.get("employmentType") or "").replace("_", " ")
             out.append(Job(
-                id=f"workable-{j['id']}", title=j["title"], company=(j.get("company") or {}).get("title", ""),
-                url=j.get("url", ""), description=f"Employment type: {emp}\n{desc}",
-                location="Tunisia (remote)", source="Workable", kind=detect_kind(j["title"], emp),
-                work_mode="remote", posted=_dt(j.get("created")),
+                id=f"{ats}-{company}-{jid}", title=title, company=name, url=url, description=desc,
+                location=location, source=f"{name} careers", kind=detect_kind(title, desc[:300]),
+                work_mode=detect_mode(f"{title} {location} {desc[:1500]}"), posted=_dt(posted),
             ))
     return out
 
@@ -246,6 +300,7 @@ def rss(feeds: list[str]) -> list[Job]:
 
 SOURCES = {
     "workable": workable,
+    "company_boards": company_boards,
     "remotive": remotive,
     "remoteok": remoteok,
     "arbeitnow": arbeitnow,
@@ -261,7 +316,8 @@ def fetch_all(cfg: dict, log=print) -> list[Job]:
         if name not in SOURCES:
             continue
         try:
-            got = SOURCES[name](terms, cfg.get("workable_queries")) if name == "workable" else SOURCES[name](terms)
+            extra = {"workable": cfg.get("workable_searches"), "company_boards": cfg.get("company_boards")}
+            got = SOURCES[name](terms, extra[name]) if name in extra else SOURCES[name](terms)
             log(f"  {name}: {len(got)}")
             jobs += got
         except Exception as ex:  # one broken source must never stop the run

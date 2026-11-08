@@ -298,7 +298,7 @@ const MODELS = ["gemini-3.5-flash","gemini-3.5-flash-lite","gemini-flash-latest"
 const FLAGS = {"United States":"🇺🇸","United Kingdom":"🇬🇧","Germany":"🇩🇪","France":"🇫🇷","Tunisia":"🇹🇳","Canada":"🇨🇦","Netherlands":"🇳🇱","Spain":"🇪🇸","Italy":"🇮🇹","Portugal":"🇵🇹","Belgium":"🇧🇪","Switzerland":"🇨🇭","Austria":"🇦🇹","Ireland":"🇮🇪","Poland":"🇵🇱","Sweden":"🇸🇪","Denmark":"🇩🇰","Norway":"🇳🇴","Finland":"🇫🇮","Czechia":"🇨🇿","Romania":"🇷🇴","Greece":"🇬🇷","Hungary":"🇭🇺","Estonia":"🇪🇪","Luxembourg":"🇱🇺","Morocco":"🇲🇦","Egypt":"🇪🇬","Algeria":"🇩🇿","Nigeria":"🇳🇬","Kenya":"🇰🇪","South Africa":"🇿🇦","Ghana":"🇬🇭","Rwanda":"🇷🇼","UAE":"🇦🇪","Saudi Arabia":"🇸🇦","Qatar":"🇶🇦","Turkey":"🇹🇷","India":"🇮🇳","Japan":"🇯🇵","South Korea":"🇰🇷","China":"🇨🇳","Singapore":"🇸🇬","Australia":"🇦🇺","Brazil":"🇧🇷","Mexico":"🇲🇽","Argentina":"🇦🇷","Philippines":"🇵🇭","Taiwan":"🇹🇼","Israel":"🇮🇱","Malaysia":"🇲🇾","Worldwide":"🌍","Europe":"🇪🇺","Africa":"🌍","MENA":"🌍","Asia":"🌏","Americas":"🌎"};
 // Windows can't draw flag emojis: use a pin there
 if(/Win/i.test(navigator.platform || navigator.userAgent)) for(const k in FLAGS) if(/^[\u{1F1E6}-\u{1F1FF}]/u.test(FLAGS[k])) FLAGS[k] = "📍";
-const DEFAULT_F = {tn:"open",fits:[],cats:[],places:[],modes:[],emp:[],paidOnly:false,exp:"any",degree:"any",langs:["English","French","Arabic"],langStrict:false,deadline:"any",posted:"any",minScore:0,minAts:0,status:"active"};
+const DEFAULT_F = {focus:[],tn:"open",fits:[],cats:[],places:[],modes:[],emp:[],paidOnly:false,exp:"any",degree:"any",langs:["English","French","Arabic"],langStrict:false,deadline:"any",posted:"any",minScore:0,minAts:0,status:"review"};
 
 let D = null, track = {}, F = {...DEFAULT_F}, lastSeen = "", view = "discover", openId = null, dtab = "overview";
 const $ = s => document.querySelector(s);
@@ -367,6 +367,7 @@ const L = () => D.listings;
 function init(){
   track = store("track") || {};
   F = Object.assign({...DEFAULT_F}, store("filters") || {});
+  if(store("filtersV") !== 3){ F = {...DEFAULT_F}; store("filters", F); store("filtersV", 3); }
   muted = store("muted") || [];
   const cache = store("aiCache") || {};
   L().forEach(r => { if(!r.ai && cache[r.id]) r.ai = cache[r.id]; });
@@ -412,12 +413,15 @@ function places(r){ const p = [...(r.countries||[]), ...(r.regions||[])]; return
 function match(r, skip){
   const s = st(r.id);
   if(skip !== "cats" && F.cats.length && !F.cats.includes(r.category)) return false;
-  if(F.tn === "yes" && r.tunisia !== "yes") return false;
-  if(F.tn === "open" && r.tunisia === "no") return false;
+  const remoteRole = r.mode === "remote" && !["London / UK","Italy"].includes(r.focus);
+  if(remoteRole && F.tn === "yes" && r.tunisia !== "yes") return false;
+  if(remoteRole && F.tn === "open" && r.tunisia === "no") return false;
   if(skip !== "fits" && F.fits.length && !F.fits.includes(r.fit || "—")) return false;
   if(r.company && muted.includes(r.company.toLowerCase())) return false;
+  if(F.status === "review" && !["new","saved"].includes(s)) return false;
   if(F.status === "active" && (s === "rejected" || s === "skip")) return false;
-  if(!["active","all"].includes(F.status) && s !== F.status) return false;
+  if(!["review","active","all"].includes(F.status) && s !== F.status) return false;
+  if(skip !== "focus" && F.focus.length && !F.focus.includes(r.focus || "Other")) return false;
   if(skip !== "places" && F.places.length && !places(r).some(p => F.places.includes(p))) return false;
   if(skip !== "modes" && F.modes.length && !F.modes.includes(r.mode)) return false;
   if(skip !== "emp" && F.emp.length && !F.emp.includes(r.employment || "unspecified")) return false;
@@ -450,9 +454,10 @@ function renderFilters(){
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
     <b>Filters</b><span><button class="btn small ghost" id="resetF">Reset</button><button class="btn small ghost filterbtn" id="closeF">✕</button></span></div>
   <div class="fgroup"><h4>Status</h4><select data-s="status">
-    ${[["active","Active (hide rejected / not interested)"],["all","All"],...Object.entries(STATUSES)].map(([v,t]) => `<option value="${v}" ${F.status===v?"selected":""}>${t}</option>`).join("")}</select></div>
-  <div class="fgroup"><h4>🇹🇳 Open to Tunisia</h4><select data-s="tn">${[["open","Open or not stated (hide closed)"],["yes","Confirmed open to Tunisia only"],["any","Show everything"]].map(([v,t]) => `<option value="${v}" ${F.tn===v?"selected":""}>${t}</option>`).join("")}</select></div>
-  <div class="fgroup"><h4>🎯 Fit for your profile</h4>${ckList("fits", Object.entries(counts("fits", r => r.fit || "—")).sort((a,b) => (FITRANK[b[0]]||0)-(FITRANK[a[0]]||0)), v => v==="—" ? "Internships & fellowships" : `${v==="Excellent"?"🟢":v==="Very good"?"🔵":"🟡"} ${esc(v)}`)}</div>
+    ${[["review","To review (new + saved)"],["active","All active (incl. applied)"],["all","Everything"],...Object.entries(STATUSES)].map(([v,t]) => `<option value="${v}" ${F.status===v?"selected":""}>${t}</option>`).join("")}</select></div>
+  <div class="fgroup"><h4>📍 Where</h4>${ckList("focus", Object.entries(counts("focus", r => r.focus || "Other")).sort((a,b) => b[1]-a[1]), v => ({"London / UK":"🇬🇧 London / UK","Italy":"🇮🇹 Italy","Remote (Tunisia)":"🏠 Remote, open to Tunisia","Remote":"🏠 Remote (other)","Other":"🌐 Other"})[v] || esc(v))}</div>
+  <div class="fgroup"><h4>🇹🇳 Remote jobs: open to Tunisia</h4><select data-s="tn">${[["open","Open or not stated (hide closed)"],["yes","Confirmed open to Tunisia only"],["any","Show everything"]].map(([v,t]) => `<option value="${v}" ${F.tn===v?"selected":""}>${t}</option>`).join("")}</select></div>
+  <div class="fgroup"><h4>🎯 Fit for your profile</h4>${ckList("fits", Object.entries(counts("fits", r => r.fit || "—")).sort((a,b) => (FITRANK[b[0]]||0)-(FITRANK[a[0]]||0)), v => v==="—" ? "Scholarships & fellowships" : `${v==="Excellent"?"🟢":v==="Very good"?"🔵":"🟡"} ${esc(v)}`)}</div>
   <div class="fgroup"><h4>💰 Pay</h4><label class="toggle">Paid only (salary, stipend or funded)<input type="checkbox" data-b="paidOnly" ${F.paidOnly?"checked":""}></label></div>
   <div class="fgroup"><h4>🌍 Country / region</h4><div class="scroll">${ckList("places", pc, v => `${FLAGS[v]||"📍"} ${esc(v)}`)}</div></div>
   <div class="fgroup"><h4>🏠 Work mode</h4>${ckList("modes", mc)}</div>
@@ -493,8 +498,10 @@ function ringColor(s){ return s >= 65 ? "var(--good)" : s >= 45 ? "var(--warn)" 
 function badges(r){
   const b = [];
   if(r.fit) b.push(`<span class="bd ${r.fit==="Excellent"?"good":r.fit==="Very good"?"acc":"warn"}">🎯 ${esc(r.fit)} fit</span>`);
-  b.push(r.tunisia==="yes" ? `<span class="bd good">✅ Open to Tunisia</span>` : r.tunisia==="no" ? `<span class="bd bad">⛔ Not open to Tunisia</span>` : `<span class="bd warn">❔ Check Tunisia eligibility</span>`);
+  if(r.mode === "remote" && !["London / UK","Italy"].includes(r.focus)) b.push(r.tunisia==="yes" ? `<span class="bd good">✅ Open to Tunisia</span>` : r.tunisia==="no" ? `<span class="bd bad">⛔ Not open to Tunisia</span>` : `<span class="bd warn">❔ Check Tunisia eligibility</span>`);
   if(r.currency) b.push(`<span class="bd good">💵 ${esc(r.currency)}</span>`);
+  if(r.visa === "sponsor") b.push(`<span class="bd good">🛂 Visa sponsorship</span>`);
+  if(r.visa === "rtw") b.push(`<span class="bd bad">🛂 Needs right to work</span>`);
   places(r).slice(0,3).forEach(p => p !== "Not specified" && b.push(`<span class="bd">${FLAGS[p]||"📍"} ${esc(p)}</span>`));
   b.push(`<span class="bd">${r.mode==="remote"?"🏠 Remote":r.mode==="hybrid"?"🏢 Hybrid":r.mode==="onsite"?"🏢 On-site":"❔ Mode not stated"}</span>`);
   if(r.employment) b.push(`<span class="bd">⏱ ${esc(r.employment)}</span>`);
@@ -571,7 +578,7 @@ function renderDrawer(){
   $("#drawer").querySelectorAll("[data-q]").forEach(b => b.onclick = () => { const q = b.dataset.q;
     if(q === "applied"){ setStatus(r.id, "applied"); toast("Marked as applied 📨"); queueNext(); }
     else if(q === "skip") queueNext(); else if(q === "na") notApplicable(r.id); else { queue = null; closeDrawer(); } });
-  $("#dstatus").onchange = e => { setStatus(r.id, e.target.value); renderDrawer(); renderKpis(); toast(`Marked ${STATUSES[e.target.value]}`); };
+  $("#dstatus").onchange = e => { setStatus(r.id, e.target.value); renderDrawer(); renderAll(); toast(`Marked ${STATUSES[e.target.value]}. Moved to My applications`); };
   $("#drawer").querySelectorAll("[data-t]").forEach(b => b.onclick = () => { dtab = b.dataset.t; renderDrawer(); });
   $("#drawer").querySelectorAll("[data-a]").forEach(b => b.onclick = () => action(r, b.dataset.a, b));
   $("#drawer").querySelectorAll("[data-copy]").forEach(b => b.onclick = () => copy(b.dataset.copy));
@@ -585,6 +592,7 @@ function tabOverview(r){
   const facts = [
     ["Fit for your profile", r.fit || "—"], ["Open to Tunisia", r.tunisia==="yes"?"✅ Yes":r.tunisia==="no"?"⛔ No":"❔ Not stated: check before applying"],
     ["Pay currency", r.currency || "Not stated"],
+    ["Visa", r.visa==="sponsor" ? "🛂 Sponsorship / relocation offered" : r.visa==="rtw" ? "⚠️ Says you must already have the right to work" : "Not stated: ask the recruiter"],
     ["Country / region", places(r).map(p => `${FLAGS[p]||"📍"} ${p}`).join(", ")],
     ["Work mode", r.mode], ["Contract", r.employment || "Not stated"],
     ["Pay", r.paid==="paid" ? (r.salary || "Paid") : r.paid==="unpaid" ? "Unpaid" : "Not stated"],
@@ -795,12 +803,12 @@ async function action(r, a, btn){
     w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(fname)}</title><style>${PAPER_CSS}</style></head><body>${cvHTML(cvOf(r))}<script>setTimeout(()=>print(),300)<\/script></body></html>`);
     w.document.close(); toast("Choose “Save as PDF” in the print window"); return;
   }
-  if(a === "markapplied"){ setStatus(r.id, "applied"); renderDrawer(); renderKpis(); return toast("Marked as applied 📨"); }
+  if(a === "markapplied"){ setStatus(r.id, "applied"); renderDrawer(); renderAll(); return toast("Marked as applied 📨. Moved to My applications"); }
   if(a === "apply"){
     const l = letter(); if(l){ try{ await navigator.clipboard.writeText(l); }catch(e){} }
     window.open(r.url, "_blank", "noopener");
     toast(l ? "Cover letter copied. Use ⚡ Fill application on the form" : "Opened. Use ⚡ Fill application on the form");
-    if(RANK[st(r.id)] < RANK.applied) setTimeout(() => { if(confirm(`Did you submit your application to “${r.title}”?\nOK = mark as Applied`)){ setStatus(r.id,"applied"); renderDrawer(); renderKpis(); } }, 1800);
+    if(RANK[st(r.id)] < RANK.applied) setTimeout(() => { if(confirm(`Did you submit your application to “${r.title}”?\nOK = mark as Applied`)){ setStatus(r.id,"applied"); renderDrawer(); renderAll(); } }, 1800);
   }
 }
 
@@ -831,7 +839,7 @@ function notApplicable(id){
 }
 
 /* ---------- apply queue ---------- */
-function readyJobs(){ return L().filter(r => r.ai && ["new","saved"].includes(st(r.id)) && r.tunisia !== "no" && !(r.company && muted.includes(r.company.toLowerCase())))
+function readyJobs(){ return L().filter(r => r.ai && ["new","saved"].includes(st(r.id)) && !(r.mode === "remote" && r.tunisia === "no" && !["London / UK","Italy"].includes(r.focus)) && !(r.company && muted.includes(r.company.toLowerCase())))
   .sort((a,b) => (FITRANK[b.fit]||0) - (FITRANK[a.fit]||0) || (b.tunisia==="yes") - (a.tunisia==="yes") || b.score - a.score); }
 function startQueue(){ const q = readyJobs(); if(!q.length) return toast("No ready jobs yet. Generate kits first"); queue = {ids: q.map(r => r.id), i: 0}; dtab = "kit"; openDrawer(queue.ids[0]); }
 function queueNext(){ if(!queue) return; queue.i++; if(queue.i >= queue.ids.length){ queue = null; closeDrawer(); toast("🎉 Queue finished!"); return; } dtab = "kit"; openDrawer(queue.ids[queue.i]); }

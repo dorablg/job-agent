@@ -31,7 +31,8 @@ REGIONS = {"Worldwide": ["worldwide", "anywhere", "global", "remote - anywhere",
            "Europe": ["europe", "eu ", "emea", "european"], "Africa": ["africa", "african"],
            "MENA": ["mena", "middle east", "north africa"], "Asia": ["asia", "apac"], "Americas": ["americas", "latam", "latin america"]}
 LANGS = ["English", "French", "German", "Spanish", "Arabic", "Italian", "Portuguese", "Dutch", "Polish", "Turkish",
-         "Japanese", "Chinese", "Mandarin", "Korean", "Russian", "Swedish", "Danish", "Norwegian"]
+         "Japanese", "Chinese", "Mandarin", "Korean", "Russian", "Swedish", "Danish", "Norwegian", "Greek", "Bulgarian",
+         "Romanian", "Czech", "Hebrew", "Finnish", "Hungarian"]
 MONTHS = "january february march april may june july august september october november december".split()
 
 
@@ -119,6 +120,8 @@ def languages(text: str) -> list[str]:
         if re.search(rf"\b(fluent|fluency|native|proficien\w*|business[- ]level|written and spoken|speak\w*|c1|c2|b2)\b[^.\n]{{0,40}}\b{l}\b"
                      rf"|\b{l}\b[^.\n]{{0,25}}\b(speaker|fluency|fluent|proficien\w*|native|language|required|skills)\b", t):
             out.append(lang)
+        elif re.search(rf"(?<![a-z]){l}[- ]speaking", t[:300]):  # "Greek Speaking Support Specialist"
+            out.append(lang)
     return out
 
 
@@ -172,6 +175,21 @@ def tunisia(location: str, text: str) -> str:
     return "check"
 
 
+def visa(text: str) -> str:
+    """'sponsor' = the posting offers visa sponsorship, 'rtw' = you must already have the right to work there."""
+    t = text.lower()
+    if re.search(r"(no|not|unable to|cannot|can't|do not|don't|does not|doesn't|won't|will not)\s+(be able to\s+)?"
+                 r"(offer|provide|support)?\s*(visa\s+)?sponsor|without (the need for )?(visa )?sponsorship|"
+                 r"(must|need to|required to) (already )?have (the |full |existing )?(right|permission|eligibility|authori[sz]ation) to work|"
+                 r"right to work in the uk (is )?(required|essential)|must be eligible to work in the (uk|united kingdom|eu|italy)", t):
+        return "rtw"
+    if re.search(r"visa sponsorship (is )?(available|offered|provided|possible)|(we|will|can|able to) (offer |provide )?sponsor\w* "
+                 r"(visas?|work permits?|skilled worker)|sponsorship (is )?available|skilled worker visa|relocation support|"
+                 r"relocation (package|assistance)|we sponsor", t):
+        return "sponsor"
+    return ""
+
+
 def currency(salary: str, text: str) -> str:
     s = f"{salary} {text[:6000]}"
     if re.search(r"\$\s?\d|\busd\b|us dollars?", s, re.I):
@@ -198,6 +216,19 @@ def apply(r: dict) -> dict:
         r["paid"] = "paid"
     r["tunisia"] = tunisia(r.get("location", ""), text)
     r["currency"] = currency(r.get("salary", ""), desc)
+    r["visa"] = visa(text) if r.get("tunisia") != "yes" else ""
+    if re.search(r"tunisia \(remote\)", r.get("location", ""), re.I) or (
+            r.get("mode") == "remote" and r.get("location", "").count(",") >= 3):
+        r["focus"] = "Remote (Tunisia)" if r.get("tunisia") == "yes" else "Remote"
+    elif re.search(r"london|united kingdom|\buk\b|england|scotland|wales|cardiff|manchester|leeds|redhill", f"{r.get('location', '')} {r.get('title', '')}", re.I):
+        r["focus"] = "London / UK"
+    elif re.search(r"ital|milan|rome|roma|turin|torino|bologna|florence|firenze|naples|venice|padua|pisa|trento|verona",
+                   f"{r.get('location', '')} {r.get('title', '')}", re.I):
+        r["focus"] = "Italy"
+    elif r.get("mode") == "remote":
+        r["focus"] = "Remote (Tunisia)" if r.get("tunisia") == "yes" else "Remote"
+    else:
+        r["focus"] = "Other"
     r["exp_years"] = experience_years(text)
     r["degree"] = degree(text)
     r["languages"] = languages(text)

@@ -152,7 +152,7 @@ filters:
   # Languages you don't speak: postings that require them (or are written in them) are skipped
   exclude_required_languages: [Italian, German, Spanish, Dutch, Portuguese, Polish, Swedish, Danish, Norwegian,
     Japanese, Greek, Bulgarian, Romanian, Czech, Turkish, Hebrew, Russian, Finnish, Hungarian, Korean, Chinese]
-  exclude_title_words: [senior, sr, staff, principal, lead, director, head, manager, vp, phd, expert, ii, iii, iv,
+  exclude_title_words: [senior, sr, staff, principal, lead, director, head, manager, vp, phd, mba, expert, ii, iii, iv,
     mid-level, mid level, experienced, us remote, us only, usa only, u.s. only, us-based, canada only]
   exclude_words: [us citizens only, security clearance, must be located in the us, must reside in the us,
     must reside in the united states, located in the united states, us work authorization, authorized to work in the us]

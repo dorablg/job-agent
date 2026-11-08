@@ -506,9 +506,9 @@ function renderCards(){
       <div class="c-main">
         <div class="c-cat">${esc(r.category)}${r.found>lastSeen?'<span class="newtag">NEW</span>':""}</div>
         <div class="c-title">${esc(r.title)}</div>
-        <div class="c-sub">${r.company?`<b style="color:var(--ink);font-weight:600">${esc(r.company)}</b> · `:""}${esc(r.location||"Location not stated")} · via ${esc(r.source)}${r.posted?` · posted ${fmtDate(r.posted)}`:""}</div>
+        <div class="c-sub">${r.company?`<b style="color:var(--ink);font-weight:600">${esc(r.company)}</b> · `:""}${esc((r.location||"Location not stated").length>90?r.location.slice(0,90)+"…":(r.location||"Location not stated"))} · via ${esc(r.source)}${r.posted?` · posted ${fmtDate(r.posted)}`:""}</div>
         <div class="badges">${badges(r)}</div>
-        ${r.kind!=="fellowship"||r.ats?`<div class="atsline">ATS ${Math.round(r.ats)}%${r.ai&&r.ai.ats_score_estimate?` → ~${esc(r.ai.ats_score_estimate)}% with tailored CV`:""}<span class="bar"><i style="width:${Math.min(100,r.ats)}%"></i></span></div>`:""}
+        ${r.kind!=="fellowship"||r.ats?`<div class="atsline">ATS ${Math.round(r.ats)}%${cvOf(r)&&atsCheck(r,cvOf(r)).n?` → <b style="color:var(--accent)">${atsCheck(r,cvOf(r)).after}%</b> with tailored CV`:""}<span class="bar"><i style="width:${Math.min(100,r.ats)}%"></i></span></div>`:""}
       </div>
       <div class="c-side">
         <span class="pill ${s}">${SICON[s]} ${STATUSES[s]}</span>
@@ -535,7 +535,7 @@ function renderDrawer(){
       <div style="min-width:0">
         <div class="c-cat" style="--cc:var(--c-${catVar(r.category)})">${esc(r.category)}</div>
         <div class="dtitle">${esc(r.title)}</div>
-        <div class="c-sub">${r.company?`<b style="color:var(--ink)">${esc(r.company)}</b> · `:""}${esc(r.location||"Location not stated")}</div>
+        <div class="c-sub">${r.company?`<b style="color:var(--ink)">${esc(r.company)}</b> · `:""}${esc((r.location||"Location not stated").length>110?r.location.slice(0,110)+"…":(r.location||"Location not stated"))}</div>
       </div>
       <button class="btn ghost x" id="dclose" title="Close">✕</button>
     </div>
@@ -553,6 +553,7 @@ function renderDrawer(){
   $("#drawer").querySelectorAll("[data-t]").forEach(b => b.onclick = () => { dtab = b.dataset.t; renderDrawer(); });
   $("#drawer").querySelectorAll("[data-a]").forEach(b => b.onclick = () => action(r, b.dataset.a, b));
   $("#drawer").querySelectorAll("[data-copy]").forEach(b => b.onclick = () => copy(b.dataset.copy));
+  if(dtab === "cv") bindCV(r);
   const lt = $("#letter"); if(lt) lt.oninput = () => setField(r.id, "letter", lt.value);
   const nt = $("#note"); if(nt) nt.oninput = () => setField(r.id, "note", nt.value);
 }
@@ -567,7 +568,7 @@ function tabOverview(r){
     ["Experience", r.exp_years == null ? "Not stated" : r.exp_years ? r.exp_years+"+ years" : "Entry level"],
     ["Degree", r.degree || "Not stated"], ["Languages", (r.languages||[]).join(", ") || "Not stated"],
     ["Posted", r.posted ? fmtDate(r.posted) : "—"], ["Found by agent", fmtDate(r.found)], ["Source", r.source],
-    ["ATS keywords", r.kind==="fellowship" && !r.ats ? "n/a" : `${Math.round(r.ats)}%` + (ai.ats_score_estimate?` → ~${ai.ats_score_estimate}% tailored`:"")]];
+    ["ATS keywords", r.kind==="fellowship" && !r.ats ? "n/a" : `${Math.round(r.ats)}%` + (cvOf(r)&&atsCheck(r,cvOf(r)).n?` → ${atsCheck(r,cvOf(r)).after}% with tailored CV`:"")]];
   const reqs = Array.isArray(ai.key_requirements) && ai.key_requirements.length ? ai.key_requirements.map(q => typeof q === "object" ?
       `<div class="req"><span>${q.met==="yes"?"✅":q.met==="partial"?"⚠️":"❌"}</span><div>${esc(q.requirement)}<small>${esc(q.evidence||"")}</small></div></div>` : `<div class="req"><span>•</span><div>${esc(q)}</div></div>`).join("")
     : (r.requirements||[]).length ? (r.requirements||[]).map(q => `<div class="req"><span>•</span><div>${esc(q)}</div></div>`).join("") + `<p class="muted" style="font-size:12.5px;margin-bottom:0">Generate the apply kit to check each requirement against your CV.</p>` : `<p class="muted">The posting doesn't list requirements clearly. Open the posting to read them.</p>`;
@@ -615,12 +616,124 @@ function cvHTML(c){
   ${(c.languages||[]).length?`<h2>LANGUAGES</h2><div>${esc(L2(c.languages).join(", "))}</div>`:""}`;
 }
 const PAPER_CSS = `body{margin:0;font:11pt/1.4 Calibri,Arial,sans-serif;color:#111}h1{font-size:20pt;margin:0;text-align:center}.hl{text-align:center;font-size:12pt}.ct{text-align:center;font-size:9.5pt;color:#333;margin-bottom:8pt}h2{font-size:11pt;letter-spacing:.5pt;color:#1f3a8a;border-bottom:1pt solid #1f3a8a;margin:10pt 0 4pt;padding-bottom:1pt}.job{font-weight:700;margin-top:5pt}.when{color:#555;font-size:9.5pt}ul{margin:2pt 0 3pt;padding-left:14pt}li{margin:1pt 0}@page{size:A4;margin:14mm 16mm}`;
+/* ---------- ATS CV: edited copy, live ATS check, keyword verification ---------- */
+let cvMode = "preview";
+const clone = o => JSON.parse(JSON.stringify(o));
+function cvOf(r){ const t = track[r.id]; return (t && t.cv) || ((r.ai||{}).ats_cv ? clone(r.ai.ats_cv) : null); }
+function saveCv(r, c){ setField(r.id, "cv", c); }
+const kwRe = k => new RegExp("(?<![a-z0-9])" + k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "s?(?![a-z0-9])", "i");
+const has = (k, text) => kwRe(k).test(text);
+function flat(x){ return x == null ? "" : typeof x === "object" ? Object.values(x).map(flat).join(" \n ") : String(x); }
+function atsCheck(r, c){
+  const wanted = [...new Set([...(r.matched||[]), ...(r.missing||[])])];
+  const orig = D.cv, now = flat(c);
+  const ok = (track[r.id] && track[r.id].kwOk) || [];
+  const rows = wanted.map(k => ({k, before: has(k, orig), after: has(k, now), ok: ok.includes(k)}));
+  const pct = f => wanted.length ? Math.round(100 * rows.filter(f).length / wanted.length) : 0;
+  return {rows, n: wanted.length, before: pct(x => x.before), after: pct(x => x.after)};
+}
+function atsPanel(r, c){
+  const a = atsCheck(r, c);
+  if(!a.n) return `<div class="sec"><b>ATS check</b><p class="muted" style="margin:6px 0 0">This posting lists no technical keywords (common for fellowships), so the ATS score doesn't apply. Focus on the motivation and the requirements.</p></div>`;
+  const added = a.rows.filter(x => x.after && !x.before), missing = a.rows.filter(x => !x.after), had = a.rows.filter(x => x.before && x.after);
+  const bar = (v, col) => `<div class="bar" style="flex:1;height:10px"><i style="width:${v}%;${col?`background:${col}`:""}"></i></div>`;
+  return `<div class="sec" id="atsPanel">
+    <h3>📈 ATS check: does this CV pass the robot?</h3>
+    <p class="muted" style="margin:-4px 0 12px;font-size:13px">The same keyword test as the alerts: how many of the ${a.n} keywords the posting asks for appear in the CV.</p>
+    <div style="display:grid;grid-template-columns:150px 1fr 48px;gap:8px 12px;align-items:center;font-size:13.5px">
+      <span>Your original CV</span>${bar(a.before, "var(--faint)")}<b>${a.before}%</b>
+      <span><b>This tailored CV</b></span>${bar(a.after)}<b style="color:var(--accent)">${a.after}%</b>
+    </div>
+    <p style="margin:10px 0 0;font-weight:650;color:${a.after > a.before ? "var(--good)" : "var(--muted)"}">${a.after > a.before ? `⬆ +${a.after - a.before} points from the booster` : "No change yet"}</p>
+    ${had.length?`<div class="muted" style="font-size:12.5px;margin:12px 0 4px">✅ Already in your CV</div><div class="kw">${had.map(x=>`<span class="y">${esc(x.k)}</span>`).join("")}</div>`:""}
+    ${added.length?`<div class="muted" style="font-size:12.5px;margin:12px 0 4px">⚡ Added by the booster: confirm each one is true for you</div>
+      <div style="display:grid;gap:6px">${added.map(x => `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:6px 10px">
+        <span class="bd acc">⚡ ${esc(x.k)}</span>${x.ok?`<span class="muted" style="font-size:12.5px">✓ confirmed</span>`:`<span class="muted" style="font-size:12.5px;margin-right:auto">Can you show this in an interview?</span>
+        <button class="btn small" data-kwok="${esc(x.k)}">✓ True</button><button class="btn small" data-kwdel="${esc(x.k)}">✕ Not true, remove</button>`}</div>`).join("")}</div>`:""}
+    ${missing.length?`<div class="muted" style="font-size:12.5px;margin:12px 0 4px">❌ Still missing: add only skills you really have (they get tested)</div>
+      <div class="kw">${missing.map(x=>`<span class="n" style="display:inline-flex;gap:6px;align-items:center">${esc(x.k)} <button class="btn small" style="padding:0 7px" data-kwadd="${esc(x.k)}">+ Add</button></span>`).join("")}</div>`:""}
+  </div>`;
+}
+function linesOf(v){ return list(v).join("\n"); }
+function cvEditor(c){
+  const exp = (c.experience||[]).map(e => typeof e === "object" ? e : {title:String(e), company:"", location:"", dates:"", bullets:[]});
+  const field = (label, path, val, area, rows) => `<label style="display:block;margin-bottom:10px"><span class="muted" style="font-size:12.5px">${label}</span>
+    ${area ? `<textarea data-cv="${path}" style="min-height:${rows||70}px">${esc(val)}</textarea>` : `<input type="text" data-cv="${path}" value="${esc(val)}" style="width:100%">`}</label>`;
+  return `<div class="sec">
+    ${field("Name", "name", c.name||"")}${field("Headline (use the job title)", "headline", c.headline||"")}${field("Contact line", "contact", c.contact||"")}
+    ${field("Professional summary", "summary", c.summary||"", true, 90)}
+    ${field("Skills: one group per line, e.g. “Support tools: Zendesk, Jira”", "skills", linesOf(c.skills), true, 100)}
+  </div>
+  ${exp.map((e,i) => `<div class="sec"><div style="display:flex;align-items:center;margin-bottom:8px"><b style="margin-right:auto">Experience ${i+1}</b>
+      ${i>0?`<button class="btn small ghost" data-exp-up="${i}" title="Move up">↑</button>`:""}<button class="btn small ghost" data-exp-del="${i}">🗑 Remove</button></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 10px">${field("Job title", `experience.${i}.title`, e.title||"")}${field("Company", `experience.${i}.company`, e.company||"")}
+    ${field("Location", `experience.${i}.location`, e.location||"")}${field("Dates", `experience.${i}.dates`, e.dates||"")}</div>
+    ${field("Bullet points: one per line, start with a verb, add numbers", `experience.${i}.bullets`, linesOf(e.bullets), true, 110)}</div>`).join("")}
+  <div style="margin:-4px 0 14px"><button class="btn small" data-exp-add>+ Add experience</button></div>
+  <div class="sec">
+    ${field("Education: one per line", "education", (c.education||[]).map(e => typeof e==="object" ? `${e.degree||""} — ${e.school||""}${e.dates?` (${e.dates})`:""}` : e).join("\n"), true, 70)}
+    ${field("Certifications: one per line", "certifications", linesOf(c.certifications), true, 90)}
+    ${field("Languages: one per line", "languages", linesOf(c.languages), true, 70)}
+  </div>`;
+}
+function readEditor(r){
+  const c = cvOf(r) || {};
+  document.querySelectorAll("#dbody [data-cv]").forEach(el => {
+    const p = el.dataset.cv.split("."), v = el.value;
+    const lines = v.split("\n").map(s => s.trim()).filter(Boolean);
+    if(p[0] === "experience"){ c.experience = c.experience || []; const e = c.experience[+p[1]] = typeof c.experience[+p[1]] === "object" ? c.experience[+p[1]] : {};
+      e[p[2]] = p[2] === "bullets" ? lines : v; }
+    else if(["skills","certifications","languages"].includes(p[0])) c[p[0]] = lines;
+    else if(p[0] === "education") c.education = lines.map(l => { const m = l.match(/^(.*?)\s+—\s+(.*?)(?:\s+\((.*)\))?$/); return m ? {degree:m[1], school:m[2], dates:m[3]||""} : l; });
+    else c[p[0]] = v;
+  });
+  return c;
+}
+function removeKeyword(c, k){
+  const re = kwRe(k).source;
+  const strip = s => String(s)
+    .replace(new RegExp(`\\s*\\b(using|with|via|in|through|on)\\s+${re}`, "gi"), "")
+    .replace(new RegExp(`${re}\\s*(,|/|&|and)\\s*`, "gi"), "").replace(new RegExp(`\\s*(,|/|&)\\s*${re}`, "gi"), "")
+    .replace(new RegExp(re, "gi"), "").replace(/\s{2,}/g, " ").replace(/\s+([,.;:])/g, "$1").replace(/:\s*,/g, ":").trim();
+  const walk = x => Array.isArray(x) ? x.map(walk).filter(v => !(typeof v === "string" && /^[^:]*:?\s*$/.test(v) && !v.trim())) : x && typeof x === "object" ? Object.fromEntries(Object.entries(x).map(([a,b]) => [a, a==="name"||a==="contact"?b:walk(b)])) : typeof x === "string" ? strip(x) : x;
+  return walk(c);
+}
 function tabCV(r){
-  const c = (r.ai||{}).ats_cv;
+  const c = cvOf(r);
   if(!c) return genHint(r) || `<div class="empty">No ATS CV for this listing yet.</div>`;
-  return `<div class="sec" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"><b style="margin-right:auto">ATS-friendly: one column, standard headings, no tables or images</b>
-    <button class="btn small primary" data-a="pdf">⬇ PDF</button><button class="btn small" data-a="word">⬇ Word</button><button class="btn small" data-a="copycv">📋 Copy text</button></div>
-    <div class="paper">${cvHTML(c)}</div>`;
+  const edited = !!(track[r.id] && track[r.id].cv);
+  return `${atsPanel(r, c)}
+    <div class="sec" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+      <span style="display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-right:auto">
+        <button class="btn small ${cvMode==="preview"?"primary":"ghost"}" style="border-radius:0" data-cvmode="preview">👁 Preview</button>
+        <button class="btn small ${cvMode==="edit"?"primary":"ghost"}" style="border-radius:0" data-cvmode="edit">✏️ Edit</button></span>
+      ${edited?`<button class="btn small ghost" data-a="cvreset" title="Undo all your edits">↺ Reset to AI version</button>`:""}
+      <button class="btn small primary" data-a="pdf">⬇ PDF</button><button class="btn small" data-a="word">⬇ Word</button><button class="btn small" data-a="copycv">📋 Copy</button></div>
+    <div id="cvBody">${cvMode === "edit" ? cvEditor(c) : `<div class="paper">${cvHTML(c)}</div>`}</div>
+    <p class="muted" style="font-size:12.5px;text-align:center">ATS-friendly: one column, standard headings, no tables, photos or icons. Edits save automatically on this device.</p>`;
+}
+function bindCV(r){
+  const body = $("#dbody");
+  body.querySelectorAll("[data-cvmode]").forEach(b => b.onclick = () => { cvMode = b.dataset.cvmode; renderDrawer(); });
+  const refreshPanel = c => { const p = $("#atsPanel"); if(p){ p.outerHTML = atsPanel(r, c); bindKw(); } };
+  body.querySelectorAll("[data-cv]").forEach(el => el.oninput = () => { const c = readEditor(r); saveCv(r, c); refreshPanel(c); });
+  body.querySelectorAll("[data-exp-del]").forEach(b => b.onclick = () => { const c = cvOf(r); c.experience.splice(+b.dataset.expDel, 1); saveCv(r, c); renderDrawer(); });
+  body.querySelectorAll("[data-exp-up]").forEach(b => b.onclick = () => { const c = cvOf(r), i = +b.dataset.expUp; [c.experience[i-1], c.experience[i]] = [c.experience[i], c.experience[i-1]]; saveCv(r, c); renderDrawer(); });
+  body.querySelectorAll("[data-exp-add]").forEach(b => b.onclick = () => { const c = cvOf(r); (c.experience = c.experience||[]).push({title:"",company:"",location:"",dates:"",bullets:[]}); saveCv(r, c); cvMode = "edit"; renderDrawer(); });
+  function bindKw(){
+    body.querySelectorAll("[data-kwok]").forEach(b => b.onclick = () => { const t = track[r.id] = track[r.id] || {}; t.kwOk = [...new Set([...(t.kwOk||[]), b.dataset.kwok])]; store("track", track); refreshPanel(cvOf(r)); });
+    body.querySelectorAll("[data-kwdel]").forEach(b => b.onclick = () => { saveCv(r, removeKeyword(cvOf(r), b.dataset.kwdel)); renderDrawer(); toast(`Removed “${b.dataset.kwdel}” from this CV`); });
+    body.querySelectorAll("[data-kwadd]").forEach(b => b.onclick = () => {
+      const k = b.dataset.kwadd;
+      if(!confirm(`Add “${k}” to your Skills?\n\nOnly add it if you have really used it. Recruiters ask about every skill, and many jobs include a test.`)) return;
+      const c = cvOf(r); c.skills = list(c.skills);
+      const i = c.skills.findIndex(s => /^additional skills:/i.test(s));
+      if(i >= 0) c.skills[i] += `, ${k}`; else c.skills.push(`Additional skills: ${k}`);
+      const t = track[r.id] = track[r.id] || {}; t.kwOk = [...new Set([...(t.kwOk||[]), k])];
+      saveCv(r, c); renderDrawer(); toast(`Added “${k}”. ATS score updated`);
+    });
+  }
+  bindKw();
 }
 function tabNotes(r){
   const t = track[r.id] || {};
@@ -648,11 +761,12 @@ async function action(r, a, btn){
   if(a === "tabcv"){ dtab = "cv"; return renderDrawer(); }
   if(a === "copyletter") return copy(letter(), "Cover letter copied ✔");
   if(a === "letterdoc") return download(`Cover letter ${r.company||r.title}.doc`, docHtml("Cover letter", letter().split(/\n/).map(p=>`<p>${esc(p)||"&nbsp;"}</p>`).join("")), "application/msword");
-  if(a === "word") return download(`${fname}.doc`, docHtml("CV", cvHTML(ai.ats_cv)), "application/msword");
-  if(a === "copycv") return copy(cvPlain(ai.ats_cv), "CV text copied ✔");
+  if(a === "word") return download(`${fname}.doc`, docHtml("CV", cvHTML(cvOf(r))), "application/msword");
+  if(a === "copycv") return copy(cvPlain(cvOf(r)), "CV text copied ✔");
+  if(a === "cvreset"){ if(!confirm("Undo all your edits to this CV?")) return; if(track[r.id]){ delete track[r.id].cv; delete track[r.id].kwOk; store("track", track); } return renderDrawer(); }
   if(a === "pdf"){
     const w = window.open("", "_blank"); if(!w) return toast("Allow pop-ups to save the PDF");
-    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(fname)}</title><style>${PAPER_CSS}</style></head><body>${cvHTML(ai.ats_cv)}<script>setTimeout(()=>print(),300)<\/script></body></html>`);
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(fname)}</title><style>${PAPER_CSS}</style></head><body>${cvHTML(cvOf(r))}<script>setTimeout(()=>print(),300)<\/script></body></html>`);
     w.document.close(); toast("Choose “Save as PDF” in the print window"); return;
   }
   if(a === "markapplied"){ setStatus(r.id, "applied"); renderDrawer(); renderKpis(); return toast("Marked as applied 📨"); }
@@ -682,7 +796,7 @@ async function generate(r, btn){
       r.ai = JSON.parse(j.candidates[0].content.parts.map(p => p.text||"").join("").replace(/^```(json)?|```$/gm,"").trim());
       if(r.ai.deadline && !r.deadline) r.deadline = r.ai.deadline.slice(0,10);
       const cache = store("aiCache") || {}; cache[r.id] = r.ai; store("aiCache", cache);
-      if(track[r.id]) { delete track[r.id].letter; store("track", track); }
+      if(track[r.id]) { delete track[r.id].letter; delete track[r.id].cv; delete track[r.id].kwOk; store("track", track); }
       dtab = "kit"; renderDrawer(); toast("Apply kit ready ✔"); return;
     }catch(e){ err = String(e); }
   }

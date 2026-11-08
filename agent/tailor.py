@@ -21,6 +21,8 @@ Keywords from the posting already found in the CV: {matched}
 Keywords from the posting missing from the CV: {missing}
 
 STRICT RULES: never invent experience, degrees, employers, dates or numbers that are not in the CV.
+Tools, software, platforms and technologies (e.g. Jira, Zendesk, Salesforce, Azure, ServiceNow, Excel) may appear
+in the tailored CV ONLY if the CV above literally names them — otherwise they go in "skill_gaps", never in the CV.
 You may rephrase, reorder and emphasise real CV content and use the posting's vocabulary for things
 the candidate genuinely did. If a missing keyword is not supported by the CV, list it as a gap to learn,
 do not add it to the CV.

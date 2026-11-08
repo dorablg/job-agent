@@ -19,7 +19,7 @@ import yaml
 
 from . import dashboard, gmail, llm, tailor, telegram
 from .match import find_cv, load_cv, score_jobs
-from .sources import fetch_all
+from .sources import Job, fetch_all
 
 ROOT = Path(__file__).resolve().parent.parent
 STATE = ROOT / "state" / "seen.json"
@@ -143,6 +143,21 @@ def run(dry: bool = False) -> int:
         listings = dashboard.load()
         for j in matches:  # every match goes on the website, even beyond the Telegram limit
             dashboard.upsert(listings, dashboard.record(j, tailored.get(j.id)))
+        # backfill: older good matches that still have no apply kit (best fit first)
+        rank = {"Excellent": 3, "Very good": 2, "Good": 1}
+        todo = sorted((r for r in listings.values() if "ai" not in r and r.get("fit")),
+                      key=lambda r: (rank.get(r.get("fit"), 0), r.get("score", 0)), reverse=True)
+        for r in todo[:cfg.get("max_backfill_kits_per_run", 0)]:
+            jb = Job(id=r["id"], title=r["title"], company=r.get("company", ""), url=r["url"],
+                     description=r.get("description", ""), location=r.get("location", ""), kind=r.get("kind", "job"),
+                     work_mode=r.get("mode", "remote"), category=r.get("category", ""),
+                     matched=r.get("matched", []), missing=r.get("missing", []))
+            ai = tailor.generate(jb, cv_text, cfg)
+            if ai:
+                upd = dict(r)
+                upd["ai"] = dashboard.record(jb, ai)["ai"]
+                listings[r["id"]] = upd
+                print(f"  kit backfilled: {r['title'][:60]}")
         dashboard.save(listings)
         notify = (lambda text, link: telegram.send_text(text, url=link, button="📧 Open in Gmail")) if send else None
         responses = gmail.check(listings, notify)

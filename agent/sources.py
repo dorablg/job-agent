@@ -31,6 +31,7 @@ class Job:
 
     # filled later
     category: str = ""
+    fit: str = ""                # Excellent | Very good | Good (target jobs)
     employment: str = ""         # full-time | part-time | ""
     score: float = 0.0
     ats: float = 0.0
@@ -193,6 +194,33 @@ def himalayas(terms) -> list[Job]:
     return out
 
 
+def workable(_terms, queries: list[str] | None = None) -> list[Job]:
+    """Workable's job search, limited to remote jobs that are open in Tunisia."""
+    out, seen = [], set()
+    for q in queries or ["customer support"]:
+        try:
+            data = _get("https://jobs.workable.com/api/v1/jobs",
+                        params={"query": q, "location": "Tunisia", "workplace": "remote"})
+        except Exception:
+            continue
+        for j in data.get("jobs", []):
+            if j.get("id") in seen or j.get("workplace") != "remote":
+                continue
+            seen.add(j.get("id"))
+            loc = j.get("location") or {}
+            if (loc.get("countryName") or "").lower() != "tunisia":
+                continue
+            desc = clean("\n".join(str(j.get(k) or "") for k in ("description", "requirementsSection", "benefitsSection")))
+            emp = (j.get("employmentType") or "").replace("_", " ")
+            out.append(Job(
+                id=f"workable-{j['id']}", title=j["title"], company=(j.get("company") or {}).get("title", ""),
+                url=j.get("url", ""), description=f"Employment type: {emp}\n{desc}",
+                location="Tunisia (remote)", source="Workable", kind=detect_kind(j["title"], emp),
+                work_mode="remote", posted=_dt(j.get("created")),
+            ))
+    return out
+
+
 def rss(feeds: list[str]) -> list[Job]:
     """Fellowship / scholarship / internship feeds (Opportunity Desk etc.)."""
     out = []
@@ -217,6 +245,7 @@ def rss(feeds: list[str]) -> list[Job]:
 
 
 SOURCES = {
+    "workable": workable,
     "remotive": remotive,
     "remoteok": remoteok,
     "arbeitnow": arbeitnow,
@@ -232,7 +261,7 @@ def fetch_all(cfg: dict, log=print) -> list[Job]:
         if name not in SOURCES:
             continue
         try:
-            got = SOURCES[name](terms)
+            got = SOURCES[name](terms, cfg.get("workable_queries")) if name == "workable" else SOURCES[name](terms)
             log(f"  {name}: {len(got)}")
             jobs += got
         except Exception as ex:  # one broken source must never stop the run

@@ -143,6 +143,46 @@ def requirements(desc: str) -> list[str]:
     return out
 
 
+OPEN_TO_TN = re.compile(r"tunisia|(?<!south )(?<!central )\bafrica(?!n republic)|\bmena\b|middle east|north africa|\bemea\b|worldwide|anywhere|global|"
+                        r"work from anywhere|all countries|international", re.I)
+CLOSED = re.compile(r"(must|need to|required to) (be )?(based|located|reside|living) in (the )?(us|usa|united states|uk|"
+                    r"united kingdom|eu|european union|canada|europe|latam|india|philippines)|"
+                    r"(eligible|authori[sz]ed|right) to work in (the )?(us|usa|united states|uk|united kingdom|eu|canada)|"
+                    r"\b(us|usa|uk|eu|canada|latam)[- ]only\b|us citizens?|green card|"
+                    r"anywhere in the (us|u\.s\.|usa|united states)|remote[ -]+\(?(us|usa|u\.s\.)\)?(?![a-z])|"
+                    r"\b(us|u\.s\.)[- ]based (candidates|applicants|employees)|(within|in) the (us|u\.s\.|united states) only|"
+                    r"\bw-2\b|\b401\(k\)", re.I)
+
+
+def tunisia(location: str, text: str) -> str:
+    """'yes' = posting is open to Tunisia, 'no' = clearly restricted elsewhere, 'check' = not stated."""
+    loc = location or ""
+    if re.search(r"tunisia", f"{loc} {text[:3000]}", re.I):
+        return "yes"
+    if CLOSED.search(text[:6000]):
+        return "no"
+    if OPEN_TO_TN.search(loc):
+        return "yes"
+    if loc.strip() and loc.strip().lower() not in ("remote", "n/a"):
+        if re.search(r"europe|\beu\b|france|germany|spain|portugal|italy|netherlands|belgium", loc, re.I):
+            return "check"  # European companies sometimes hire contractors in Tunisia
+        return "no"     # a list of countries/regions that doesn't include Tunisia
+    if re.search(r"work from anywhere|fully remote, anywhere|remote worldwide|location: anywhere", text, re.I):
+        return "yes"
+    return "check"
+
+
+def currency(salary: str, text: str) -> str:
+    s = f"{salary} {text[:6000]}"
+    if re.search(r"\$\s?\d|\busd\b|us dollars?", s, re.I):
+        return "USD"
+    if re.search(r"€\s?\d|\d\s?€|\beur\b|euros?\b", s, re.I):
+        return "EUR"
+    if re.search(r"£\s?\d|\bgbp\b", s, re.I):
+        return "GBP"
+    return ""
+
+
 def apply(r: dict) -> dict:
     """Adds the filter fields to a dashboard record (works on old records too)."""
     desc = r.get("description", "")
@@ -156,6 +196,8 @@ def apply(r: dict) -> dict:
         r["salary"] = ai["salary_or_funding"]
     if r.get("salary") and r["paid"] == "unknown":
         r["paid"] = "paid"
+    r["tunisia"] = tunisia(r.get("location", ""), text)
+    r["currency"] = currency(r.get("salary", ""), desc)
     r["exp_years"] = experience_years(text)
     r["degree"] = degree(text)
     r["languages"] = languages(text)

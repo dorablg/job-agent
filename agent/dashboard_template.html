@@ -236,10 +236,11 @@ aside.filters{position:sticky;top:70px;background:var(--panel);border:1px solid 
         <div>
           <div class="cats" id="cats"></div>
           <div class="results-head">
+            <button class="btn primary" id="queueBtn">🚀 Apply queue</button>
             <button class="btn filterbtn" id="openFilters">⚙️ Filters</button>
             <input type="search" id="q" placeholder="Search title, company, skill, country…">
             <select id="sort">
-              <option value="score">Best match</option><option value="found">Newest</option>
+              <option value="fit">Best fit for me</option><option value="score">Best match score</option><option value="found">Newest</option>
               <option value="ats">Highest ATS</option><option value="deadline">Deadline soonest</option>
             </select>
           </div>
@@ -288,7 +289,7 @@ aside.filters{position:sticky;top:70px;background:var(--panel);border:1px solid 
 
 <script>
 const BLOB = __PAYLOAD__;
-const STATUSES = {new:"New",saved:"Saved",applied:"Applied",assessment:"Assessment",interview:"Interview",offer:"Offer",rejected:"Rejected",skip:"Not interested"};
+const STATUSES = {new:"New",saved:"Saved",applied:"Applied",assessment:"Assessment",interview:"Interview",offer:"Offer",rejected:"Rejected",skip:"Not applicable"};
 const SICON = {new:"🆕",saved:"⭐",applied:"📨",assessment:"🧪",interview:"🗣",offer:"🎉",rejected:"✖",skip:"🙈"};
 const RANK = {new:0,saved:1,applied:2,assessment:3,interview:4,offer:5};
 const MAIL2STATUS = {confirmation:"applied",assessment:"assessment",interview:"interview",offer:"offer",rejection:"rejected"};
@@ -297,7 +298,7 @@ const MODELS = ["gemini-3.5-flash","gemini-3.5-flash-lite","gemini-flash-latest"
 const FLAGS = {"United States":"🇺🇸","United Kingdom":"🇬🇧","Germany":"🇩🇪","France":"🇫🇷","Tunisia":"🇹🇳","Canada":"🇨🇦","Netherlands":"🇳🇱","Spain":"🇪🇸","Italy":"🇮🇹","Portugal":"🇵🇹","Belgium":"🇧🇪","Switzerland":"🇨🇭","Austria":"🇦🇹","Ireland":"🇮🇪","Poland":"🇵🇱","Sweden":"🇸🇪","Denmark":"🇩🇰","Norway":"🇳🇴","Finland":"🇫🇮","Czechia":"🇨🇿","Romania":"🇷🇴","Greece":"🇬🇷","Hungary":"🇭🇺","Estonia":"🇪🇪","Luxembourg":"🇱🇺","Morocco":"🇲🇦","Egypt":"🇪🇬","Algeria":"🇩🇿","Nigeria":"🇳🇬","Kenya":"🇰🇪","South Africa":"🇿🇦","Ghana":"🇬🇭","Rwanda":"🇷🇼","UAE":"🇦🇪","Saudi Arabia":"🇸🇦","Qatar":"🇶🇦","Turkey":"🇹🇷","India":"🇮🇳","Japan":"🇯🇵","South Korea":"🇰🇷","China":"🇨🇳","Singapore":"🇸🇬","Australia":"🇦🇺","Brazil":"🇧🇷","Mexico":"🇲🇽","Argentina":"🇦🇷","Philippines":"🇵🇭","Taiwan":"🇹🇼","Israel":"🇮🇱","Malaysia":"🇲🇾","Worldwide":"🌍","Europe":"🇪🇺","Africa":"🌍","MENA":"🌍","Asia":"🌏","Americas":"🌎"};
 // Windows can't draw flag emojis: use a pin there
 if(/Win/i.test(navigator.platform || navigator.userAgent)) for(const k in FLAGS) if(/^[\u{1F1E6}-\u{1F1FF}]/u.test(FLAGS[k])) FLAGS[k] = "📍";
-const DEFAULT_F = {cats:[],places:[],modes:[],emp:[],paidOnly:false,exp:"any",degree:"any",langs:["English","French","Arabic"],langStrict:false,deadline:"any",posted:"any",minScore:0,minAts:0,status:"active"};
+const DEFAULT_F = {tn:"open",fits:[],cats:[],places:[],modes:[],emp:[],paidOnly:false,exp:"any",degree:"any",langs:["English","French","Arabic"],langStrict:false,deadline:"any",posted:"any",minScore:0,minAts:0,status:"active"};
 
 let D = null, track = {}, F = {...DEFAULT_F}, lastSeen = "", view = "discover", openId = null, dtab = "overview";
 const $ = s => document.querySelector(s);
@@ -308,7 +309,10 @@ function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("show")
 async function copy(text, msg){ try{ await navigator.clipboard.writeText(text); toast(msg||"Copied ✔"); }catch(e){ prompt("Copy this:", text); } }
 const days = iso => iso ? Math.ceil((new Date(iso) - new Date()) / 864e5) : null;
 const fmtDate = iso => iso ? new Date(iso).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"}) : "";
-const catVar = c => /intern/i.test(c||"") ? "ai" : /support|operation/i.test(c||"") ? "sup" : "fel";
+const catVar = c => /intern/i.test(c||"") ? "ai" : /target|support|operation/i.test(c||"") ? "sup" : "fel";
+const FITRANK = {"Excellent":3,"Very good":2,"Good":1};
+const NA_REASONS = ["Not my profile","Not open to Tunisia","Too senior / too much experience","Not paid or pay too low","Company not for me","Schedule doesn't fit my studies","Already applied elsewhere","Other"];
+let muted = [], queue = null;
 
 /* ---------- theme ---------- */
 (function(){ const t = store("theme"); if(t) document.documentElement.dataset.theme = t; })();
@@ -363,6 +367,7 @@ const L = () => D.listings;
 function init(){
   track = store("track") || {};
   F = Object.assign({...DEFAULT_F}, store("filters") || {});
+  muted = store("muted") || [];
   const cache = store("aiCache") || {};
   L().forEach(r => { if(!r.ai && cache[r.id]) r.ai = cache[r.id]; });
   lastSeen = store("lastVisit") || ""; store("lastVisit", D.generated);
@@ -370,8 +375,9 @@ function init(){
   const moved = applyMailStatuses();
   if(moved) setTimeout(() => toast(`📬 Gmail updated ${moved} application${moved>1?"s":""}`), 600);
   document.querySelectorAll("#nav button").forEach(b => b.onclick = () => go(b.dataset.view));
-  $("#q").oninput = renderCards; $("#sort").onchange = renderCards;
+  $("#q").oninput = renderCards; $("#sort").value = "fit"; $("#sort").onchange = renderCards;
   $("#openFilters").onclick = () => $("#filters").classList.add("open");
+  $("#queueBtn").onclick = startQueue;
   $("#scrim").onclick = closeDrawer;
   document.addEventListener("keydown", e => { if(e.key === "Escape") closeDrawer(); });
   renderProfile(); renderAll();
@@ -406,6 +412,10 @@ function places(r){ const p = [...(r.countries||[]), ...(r.regions||[])]; return
 function match(r, skip){
   const s = st(r.id);
   if(skip !== "cats" && F.cats.length && !F.cats.includes(r.category)) return false;
+  if(F.tn === "yes" && r.tunisia !== "yes") return false;
+  if(F.tn === "open" && r.tunisia === "no") return false;
+  if(skip !== "fits" && F.fits.length && !F.fits.includes(r.fit || "—")) return false;
+  if(r.company && muted.includes(r.company.toLowerCase())) return false;
   if(F.status === "active" && (s === "rejected" || s === "skip")) return false;
   if(!["active","all"].includes(F.status) && s !== F.status) return false;
   if(skip !== "places" && F.places.length && !places(r).some(p => F.places.includes(p))) return false;
@@ -441,6 +451,8 @@ function renderFilters(){
     <b>Filters</b><span><button class="btn small ghost" id="resetF">Reset</button><button class="btn small ghost filterbtn" id="closeF">✕</button></span></div>
   <div class="fgroup"><h4>Status</h4><select data-s="status">
     ${[["active","Active (hide rejected / not interested)"],["all","All"],...Object.entries(STATUSES)].map(([v,t]) => `<option value="${v}" ${F.status===v?"selected":""}>${t}</option>`).join("")}</select></div>
+  <div class="fgroup"><h4>🇹🇳 Open to Tunisia</h4><select data-s="tn">${[["open","Open or not stated (hide closed)"],["yes","Confirmed open to Tunisia only"],["any","Show everything"]].map(([v,t]) => `<option value="${v}" ${F.tn===v?"selected":""}>${t}</option>`).join("")}</select></div>
+  <div class="fgroup"><h4>🎯 Fit for your profile</h4>${ckList("fits", Object.entries(counts("fits", r => r.fit || "—")).sort((a,b) => (FITRANK[b[0]]||0)-(FITRANK[a[0]]||0)), v => v==="—" ? "Internships & fellowships" : `${v==="Excellent"?"🟢":v==="Very good"?"🔵":"🟡"} ${esc(v)}`)}</div>
   <div class="fgroup"><h4>💰 Pay</h4><label class="toggle">Paid only (salary, stipend or funded)<input type="checkbox" data-b="paidOnly" ${F.paidOnly?"checked":""}></label></div>
   <div class="fgroup"><h4>🌍 Country / region</h4><div class="scroll">${ckList("places", pc, v => `${FLAGS[v]||"📍"} ${esc(v)}`)}</div></div>
   <div class="fgroup"><h4>🏠 Work mode</h4>${ckList("modes", mc)}</div>
@@ -480,6 +492,9 @@ function renderCats(){
 function ringColor(s){ return s >= 65 ? "var(--good)" : s >= 45 ? "var(--warn)" : "var(--faint)"; }
 function badges(r){
   const b = [];
+  if(r.fit) b.push(`<span class="bd ${r.fit==="Excellent"?"good":r.fit==="Very good"?"acc":"warn"}">🎯 ${esc(r.fit)} fit</span>`);
+  b.push(r.tunisia==="yes" ? `<span class="bd good">✅ Open to Tunisia</span>` : r.tunisia==="no" ? `<span class="bd bad">⛔ Not open to Tunisia</span>` : `<span class="bd warn">❔ Check Tunisia eligibility</span>`);
+  if(r.currency) b.push(`<span class="bd good">💵 ${esc(r.currency)}</span>`);
   places(r).slice(0,3).forEach(p => p !== "Not specified" && b.push(`<span class="bd">${FLAGS[p]||"📍"} ${esc(p)}</span>`));
   b.push(`<span class="bd">${r.mode==="remote"?"🏠 Remote":r.mode==="hybrid"?"🏢 Hybrid":r.mode==="onsite"?"🏢 On-site":"❔ Mode not stated"}</span>`);
   if(r.employment) b.push(`<span class="bd">⏱ ${esc(r.employment)}</span>`);
@@ -496,9 +511,11 @@ function badges(r){
 function renderCards(){
   const sort = $("#sort").value;
   const rows = L().filter(r => match(r)).sort((a,b) =>
+    sort === "fit" ? ((FITRANK[b.fit]||0) - (FITRANK[a.fit]||0)) || (b.tunisia==="yes") - (a.tunisia==="yes") || b.score - a.score :
     sort === "found" ? b.found.localeCompare(a.found) : sort === "ats" ? b.ats - a.ats :
     sort === "deadline" ? ((days(a.deadline) ?? 999) < 0 ? 999 : (days(a.deadline) ?? 999)) - ((days(b.deadline) ?? 999) < 0 ? 999 : (days(b.deadline) ?? 999)) : b.score - a.score);
   $("#resultCount").textContent = `${rows.length} of ${L().length} opportunities`;
+  $("#queueBtn").textContent = `🚀 Apply queue (${readyJobs().length} ready)`;
   $("#cards").innerHTML = rows.length ? rows.map(r => {
     const s = st(r.id), cv = catVar(r.category);
     return `<article class="card ${s==="skip"||s==="rejected"?"dim":""}" data-id="${esc(r.id)}" style="--cc:var(--c-${cv})">
@@ -512,11 +529,12 @@ function renderCards(){
       </div>
       <div class="c-side">
         <span class="pill ${s}">${SICON[s]} ${STATUSES[s]}</span>
-        <button class="star ${s==="saved"?"on":""}" data-star title="Save">⭐</button>
+        <span><button class="star ${s==="saved"?"on":""}" data-star title="Save">⭐</button><button class="star" data-na title="Not applicable" style="opacity:.55">🚫</button></span>
       </div></article>`;
   }).join("") : `<div class="empty">No opportunities match these filters.<br><button class="btn small" style="margin-top:10px" onclick="F={...DEFAULT_F};store('filters',F);renderAll()">Reset filters</button></div>`;
   $("#cards").querySelectorAll(".card").forEach(c => c.onclick = e => {
     const id = c.dataset.id;
+    if(e.target.closest("[data-na]")){ e.stopPropagation(); return notApplicable(id); }
     if(e.target.closest("[data-star]")){ e.stopPropagation(); setStatus(id, st(id)==="saved"?"new":"saved"); renderAll(); toast(st(id)==="saved"?"Saved ⭐":"Removed from saved"); return; }
     openDrawer(id);
   });
@@ -524,12 +542,12 @@ function renderCards(){
 
 /* ---------- drawer ---------- */
 function openDrawer(id){ if(openId !== id) dtab = "overview"; openId = id; renderDrawer(); $("#drawer").classList.add("on"); $("#scrim").classList.add("on"); history.replaceState(null,"","#"+encodeURIComponent(id)); }
-function closeDrawer(){ openId = null; $("#drawer").classList.remove("on"); $("#scrim").classList.remove("on"); history.replaceState(null,"",location.pathname); $("#filters").classList.remove("open"); renderAll(); }
+function closeDrawer(){ queue = null; openId = null; $("#drawer").classList.remove("on"); $("#scrim").classList.remove("on"); history.replaceState(null,"",location.pathname); $("#filters").classList.remove("open"); renderAll(); }
 function renderDrawer(){
   const r = L().find(x => x.id === openId); if(!r) return;
   const s = st(r.id), ai = r.ai || null;
   $("#drawer").innerHTML = `
-  <div class="dhead">
+  <div class="dhead">${queueBar()}
     <div class="dtop">
       <div class="ring" style="--p:${Math.round(r.score)};--rc:${ringColor(r.score)}"><b>${Math.round(r.score)}</b></div>
       <div style="min-width:0">
@@ -542,6 +560,7 @@ function renderDrawer(){
     <div class="dactions">
       <button class="btn primary" data-a="apply">🚀 Apply</button>
       <a class="btn" href="${esc(r.url)}" target="_blank" rel="noopener">↗ Open posting</a>
+      <button class="btn" data-a="na">🚫 Not applicable</button>
       <select id="dstatus">${Object.entries(STATUSES).map(([k,v]) => `<option value="${k}" ${k===s?"selected":""}>${SICON[k]} ${v}</option>`).join("")}</select>
       ${D.gemini_key?`<button class="btn" data-a="gen">✨ ${ai?"Regenerate kit":"Generate apply kit"}</button>`:""}
     </div>
@@ -549,6 +568,9 @@ function renderDrawer(){
   </div>
   <div class="dbody" id="dbody">${dtab==="overview"?tabOverview(r):dtab==="kit"?tabKit(r):dtab==="cv"?tabCV(r):tabNotes(r)}</div>`;
   $("#dclose").onclick = closeDrawer;
+  $("#drawer").querySelectorAll("[data-q]").forEach(b => b.onclick = () => { const q = b.dataset.q;
+    if(q === "applied"){ setStatus(r.id, "applied"); toast("Marked as applied 📨"); queueNext(); }
+    else if(q === "skip") queueNext(); else if(q === "na") notApplicable(r.id); else { queue = null; closeDrawer(); } });
   $("#dstatus").onchange = e => { setStatus(r.id, e.target.value); renderDrawer(); renderKpis(); toast(`Marked ${STATUSES[e.target.value]}`); };
   $("#drawer").querySelectorAll("[data-t]").forEach(b => b.onclick = () => { dtab = b.dataset.t; renderDrawer(); });
   $("#drawer").querySelectorAll("[data-a]").forEach(b => b.onclick = () => action(r, b.dataset.a, b));
@@ -561,6 +583,8 @@ function genHint(r){ return D.gemini_key ? `<div class="sec" style="text-align:c
 function tabOverview(r){
   const ai = r.ai || {};
   const facts = [
+    ["Fit for your profile", r.fit || "—"], ["Open to Tunisia", r.tunisia==="yes"?"✅ Yes":r.tunisia==="no"?"⛔ No":"❔ Not stated: check before applying"],
+    ["Pay currency", r.currency || "Not stated"],
     ["Country / region", places(r).map(p => `${FLAGS[p]||"📍"} ${p}`).join(", ")],
     ["Work mode", r.mode], ["Contract", r.employment || "Not stated"],
     ["Pay", r.paid==="paid" ? (r.salary || "Paid") : r.paid==="unpaid" ? "Unpaid" : "Not stated"],
@@ -741,6 +765,7 @@ function tabNotes(r){
   return `<div class="sec"><h3>🗒 Notes</h3><textarea id="note" style="min-height:110px" placeholder="Contact person, interview date, salary discussed…">${esc(t.note||"")}</textarea></div>
   <div class="sec"><h3>📬 Emails about this application</h3>${mails.length ? mails.map(mailRow).join("") : `<p class="muted" style="margin:0">No replies linked yet.</p>`}</div>
   <div class="sec"><h3>🕑 Timeline</h3><div class="timeline">
+    ${t.na?`<div class="tl"><b>🚫 Not applicable</b><div class="muted" style="font-size:12.5px">${esc(t.na)}</div></div>`:""}
     <div class="tl"><b>Found by the agent</b><div class="muted" style="font-size:12.5px">${fmtDate(r.found)}</div></div>
     ${(t.history||[]).map(h => `<div class="tl"><b>${SICON[h.s]||""} ${STATUSES[h.s]||h.s}</b><div class="muted" style="font-size:12.5px">${fmtDate(h.at)} · by ${esc(h.by)}</div></div>`).join("")}
   </div></div>`;
@@ -758,6 +783,7 @@ async function action(r, a, btn){
   const ai = r.ai || {}, fname = `${(D.applicant||{}).first_name||"CV"}_${(D.applicant||{}).last_name||""}_${r.company||r.title}`;
   const letter = () => (track[r.id] && track[r.id].letter) ?? ai.cover_letter ?? "";
   if(a === "gen") return generate(r, btn);
+  if(a === "na") return notApplicable(r.id);
   if(a === "tabcv"){ dtab = "cv"; return renderDrawer(); }
   if(a === "copyletter") return copy(letter(), "Cover letter copied ✔");
   if(a === "letterdoc") return download(`Cover letter ${r.company||r.title}.doc`, docHtml("Cover letter", letter().split(/\n/).map(p=>`<p>${esc(p)||"&nbsp;"}</p>`).join("")), "application/msword");
@@ -776,6 +802,47 @@ async function action(r, a, btn){
     toast(l ? "Cover letter copied. Use ⚡ Fill application on the form" : "Opened. Use ⚡ Fill application on the form");
     if(RANK[st(r.id)] < RANK.applied) setTimeout(() => { if(confirm(`Did you submit your application to “${r.title}”?\nOK = mark as Applied`)){ setStatus(r.id,"applied"); renderDrawer(); renderKpis(); } }, 1800);
   }
+}
+
+/* ---------- not applicable ---------- */
+function notApplicable(id){
+  const r = L().find(x => x.id === id);
+  const box = document.createElement("div");
+  box.className = "scrim on"; box.style.zIndex = 70; box.style.display = "grid"; box.style.placeItems = "center";
+  box.innerHTML = `<div class="sec" style="width:min(420px,92vw);box-shadow:var(--shadow-lg)"><h3>🚫 Not applicable: why?</h3>
+    <p class="muted" style="margin-top:-4px;font-size:13px">${esc(r.title)}${r.company?" · "+esc(r.company):""}</p>
+    <div style="display:grid;gap:6px">${NA_REASONS.map(x => `<button class="btn" data-why="${esc(x)}" style="justify-content:flex-start">${esc(x)}</button>`).join("")}</div>
+    ${r.company?`<label class="toggle" style="margin-top:10px">Also hide every job from ${esc(r.company)}<input type="checkbox" id="muteCo"></label>`:""}
+    <div style="text-align:right;margin-top:10px"><button class="btn ghost" data-why="">Cancel</button></div></div>`;
+  document.body.appendChild(box);
+  box.onclick = e => {
+    const b = e.target.closest("[data-why]");
+    if(!b && e.target !== box) return;
+    const why = b ? b.dataset.why : "";
+    if(why){
+      setStatus(id, "skip"); setField(id, "na", why);
+      const mc = box.querySelector("#muteCo");
+      if(r.company && (why === "Company not for me" || (mc && mc.checked))){ muted = [...new Set([...muted, r.company.toLowerCase()])]; store("muted", muted); }
+      toast(`Hidden: ${why}`);
+      if(queue) queueNext(); else if(openId === id) closeDrawer(); else renderAll();
+    }
+    box.remove();
+  };
+}
+
+/* ---------- apply queue ---------- */
+function readyJobs(){ return L().filter(r => r.ai && ["new","saved"].includes(st(r.id)) && r.tunisia !== "no" && !(r.company && muted.includes(r.company.toLowerCase())))
+  .sort((a,b) => (FITRANK[b.fit]||0) - (FITRANK[a.fit]||0) || (b.tunisia==="yes") - (a.tunisia==="yes") || b.score - a.score); }
+function startQueue(){ const q = readyJobs(); if(!q.length) return toast("No ready jobs yet. Generate kits first"); queue = {ids: q.map(r => r.id), i: 0}; dtab = "kit"; openDrawer(queue.ids[0]); }
+function queueNext(){ if(!queue) return; queue.i++; if(queue.i >= queue.ids.length){ queue = null; closeDrawer(); toast("🎉 Queue finished!"); return; } dtab = "kit"; openDrawer(queue.ids[queue.i]); }
+function queueBar(){
+  if(!queue) return "";
+  return `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:var(--accent-bg);border:1px solid var(--accent);border-radius:12px;padding:8px 12px;margin-bottom:10px">
+    <b style="margin-right:auto">🚀 Apply queue · ${queue.i+1} / ${queue.ids.length}</b>
+    <button class="btn small primary" data-q="applied">✅ Applied, next</button>
+    <button class="btn small" data-q="skip">⏭ Later</button>
+    <button class="btn small" data-q="na">🚫 Not applicable</button>
+    <button class="btn small ghost" data-q="stop">Stop</button></div>`;
 }
 
 /* ---------- AI on demand ---------- */
@@ -845,6 +912,8 @@ function renderProfile(){
   $("#profile").innerHTML = `<h3>Your details (copy &amp; paste)</h3>` + Object.entries(A).map(([k,v]) =>
     `<div class="prow"><span>${esc(labels[k]||k)}</span><div style="overflow-wrap:anywhere">${esc(v)}</div><button class="btn small" data-copy="${esc(v)}">Copy</button></div>`).join("");
   $("#profile").querySelectorAll("[data-copy]").forEach(b => b.onclick = () => copy(b.dataset.copy));
+  $("#profile").insertAdjacentHTML("beforeend", `<h3 style="margin-top:18px">🚫 Hidden companies</h3>${muted.length ? muted.map(c => `<span class="bd" style="margin:0 6px 6px 0">${esc(c)} <a href="#" data-unmute="${esc(c)}">✕</a></span>`).join("") : `<span class="muted">None</span>`}`);
+  $("#profile").querySelectorAll("[data-unmute]").forEach(a => a.onclick = e => { e.preventDefault(); muted = muted.filter(x => x !== a.dataset.unmute); store("muted", muted); renderProfile(); renderAll(); });
   $("#bookmarklet").href = bookmarklet(A);
   $("#bookmarklet").onclick = e => { e.preventDefault(); toast("Drag me to your bookmarks bar ↑"); };
   $("#export").onclick = () => download("job-tracking.json", JSON.stringify({track, aiCache: store("aiCache")||{}}), "application/json");

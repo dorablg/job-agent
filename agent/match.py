@@ -5,6 +5,7 @@ import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from . import enrich
 from .sources import Job
 
 # Common skills / ATS keywords. Extend with `extra_keywords` in config.yaml.
@@ -131,6 +132,19 @@ def _score_in_category(j: Job, cat: dict, title: str, body: str) -> float | None
         return None
     if any(_has(t.lower(), title) for t in cat.get("exclude_title", [])):
         return None
+    tiers = cat.get("tiers") or {}
+    fit = ""
+    if tiers:  # title groups by fit: the best group found decides the fit label
+        for label in tiers:
+            if _count([t.lower() for t in tiers[label]], title):
+                fit = label
+                break
+        if not fit:
+            return None
+        base = {"Excellent": 100, "Very good": 85, "Good": 70}.get(fit, 70)
+        boost = min(_count([t.lower() for t in cat.get("boost_any", [])], f"{title} {body}"), 4)
+        j.fit = fit
+        return min(100, 0.6 * base + 0.4 * j.ats + boost * 3)
     must = [t.lower() for t in cat.get("must_any", [])]
     t_hits = _count(must, title)
     b_hits = 0 if cat.get("match_in") == "title" else _count(must, body)
@@ -153,13 +167,22 @@ def score_jobs(jobs: list[Job], cv_text: str, cfg: dict) -> list[Job]:
     for j in jobs:
         if not passes_filters(j, cfg):
             continue
+        full = j.title + " \n" + j.description
+        f = cfg.get("filters", {})
+        if f.get("hide_not_open_to_tunisia") and enrich.tunisia(j.location, full) == "no":
+            continue
+        yrs = enrich.experience_years(full)
+        if j.kind == "job" and yrs is not None and yrs > f.get("max_experience_years", 99):
+            continue
         title, body = j.title.lower(), f"{j.description} {' '.join(map(str, j.tags))}".lower()
         j.ats, j.matched, j.missing = ats_score(cv_text, f"{j.title} \n{body}", vocab)
-        best = None
+        best, fit = None, ""
         for cat in cats:
+            j.fit = ""
             sc = _score_in_category(j, cat, title, body)
             if sc is not None and (best is None or sc > best[0]):
-                best = (sc, cat["name"])
+                best, fit = (sc, cat["name"]), j.fit
+        j.fit = fit
         if not best:
             continue
         j.score, j.category = round(best[0], 1), best[1]

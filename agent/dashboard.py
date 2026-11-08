@@ -40,7 +40,7 @@ def save(listings: dict[str, dict]) -> None:
 
 def record(j: Job, ai: dict | None) -> dict:
     r = {
-        "id": j.id, "title": j.title, "company": j.company, "url": j.url, "category": j.category,
+        "id": j.id, "title": j.title, "company": j.company, "url": j.url, "category": j.category, "fit": j.fit,
         "kind": j.kind, "mode": j.work_mode, "employment": j.employment, "location": j.location,
         "source": j.source, "salary": j.salary, "posted": j.posted.isoformat() if j.posted else "",
         "score": j.score, "ats": j.ats, "matched": j.matched[:20], "missing": j.missing[:20],

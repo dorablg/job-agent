@@ -373,6 +373,61 @@ def rss_kind(title: str, body: str) -> str:
     return detect_kind(title, body)
 
 
+ADZUNA_COUNTRY = {"gb": "United Kingdom", "it": "Italy", "de": "Germany", "nl": "Netherlands", "es": "Spain",
+                  "be": "Belgium", "ch": "Switzerland", "at": "Austria", "pl": "Poland", "fr": "France"}
+
+
+def adzuna(_terms, opts: dict | None = None) -> list[Job]:
+    """Adzuna job search engine (free developer key). Rotates country x query pairs so each run stays small:
+    8 runs a day x `per_run` searches stays under the free limit (250 searches a day)."""
+    import os as _os
+    app_id, app_key = _os.getenv("ADZUNA_APP_ID", "").strip(), _os.getenv("ADZUNA_APP_KEY", "").strip()
+    opts = opts or {}
+    if not (app_id and app_key):
+        return []
+    pairs = [(c, q) for c in opts.get("countries", []) for q in opts.get("queries", [])]
+    if not pairs:
+        return []
+    per_run = opts.get("per_run", 28)
+    slot = int(datetime.now(timezone.utc).timestamp() // (3 * 3600))  # changes every 3 hours
+    start = (slot * per_run) % len(pairs)
+    batch = [pairs[(start + i) % len(pairs)] for i in range(min(per_run, len(pairs)))]
+    out, seen = [], set()
+    for country, q in batch:
+        try:
+            r = requests.get(f"https://api.adzuna.com/v1/api/jobs/{country}/search/1", headers=UA, timeout=TIMEOUT,
+                             params={"app_id": app_id, "app_key": app_key, "what": q, "results_per_page": 50,
+                                     "max_days_old": opts.get("max_days_old", 21), "content-type": "application/json"})
+            if r.status_code == 429:
+                break  # daily/minute limit reached: try again next run
+            data = r.json() if r.ok else {}
+        except Exception:
+            continue
+        for j in data.get("results", []):
+            jid = f"adzuna-{j.get('id')}"
+            if jid in seen:
+                continue
+            seen.add(jid)
+            area = (j.get("location") or {}).get("display_name") or ""
+            country_name = ADZUNA_COUNTRY.get(country, country.upper())
+            loc = area if country_name.lower() in area.lower() else ", ".join(x for x in (area, country_name) if x)
+            title, desc = clean(j.get("title")), clean(j.get("description"))
+            sal = ""
+            if j.get("salary_min"):
+                sal = f"{int(j['salary_min'])}" + (f"–{int(j['salary_max'])}" if j.get("salary_max") else "") + \
+                      (" GBP" if country == "gb" else " CHF" if country == "ch" else " PLN" if country == "pl" else " EUR")
+            contract = " ".join(x for x in (j.get("contract_time"), j.get("contract_type")) if x).replace("_", "-")
+            out.append(Job(
+                id=jid, title=title, company=clean((j.get("company") or {}).get("display_name", "")),
+                url=j.get("redirect_url", ""), description=(f"Contract: {contract}\n" if contract else "") + desc,
+                location=loc, source="Adzuna", kind=detect_kind(title, desc[:300]),
+                work_mode=detect_mode(f"{title} {desc[:600]}") if re.search(r"remote|hybrid", f"{title} {desc}", re.I) else "unknown",
+                posted=_dt(j.get("created")), salary=sal,
+            ))
+        time.sleep(2.6)  # free plan: max 25 searches per minute
+    return out
+
+
 def wp_search(_terms, opts: dict | None = None) -> list[Job]:
     """Searches opportunity sites (WordPress) and reads FULL posts, so real deadlines and funding details are known."""
     opts = opts or {}
@@ -436,6 +491,7 @@ SOURCES = {
     "company_boards": company_boards,
     "jobs_ac_uk": jobs_ac_uk,
     "wp_search": wp_search,
+    "adzuna": adzuna,
     "remotive": remotive,
     "remoteok": remoteok,
     "arbeitnow": arbeitnow,
@@ -454,7 +510,8 @@ def fetch_all(cfg: dict, log=print) -> list[Job]:
             continue
         try:
             extra = {"workable": cfg.get("workable_searches"), "company_boards": cfg.get("company_boards"),
-                     "jobs_ac_uk": cfg.get("jobs_ac_uk_queries"), "wp_search": cfg.get("opportunity_search")}
+                     "jobs_ac_uk": cfg.get("jobs_ac_uk_queries"), "wp_search": cfg.get("opportunity_search"),
+                     "adzuna": cfg.get("adzuna")}
             got = SOURCES[name](terms, extra[name]) if name in extra else SOURCES[name](terms)
             log(f"  {name}: {len(got)}")
             jobs += got

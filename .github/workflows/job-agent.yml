@@ -31,6 +31,8 @@ jobs:
       GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
       GMAIL_WEBAPP_URL: ${{ secrets.GMAIL_WEBAPP_URL }}
       GMAIL_WEBAPP_KEY: ${{ secrets.GMAIL_WEBAPP_KEY }}
+      ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
+      ADZUNA_APP_KEY: ${{ secrets.ADZUNA_APP_KEY }}
       DASHBOARD_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
     steps:
       - uses: actions/checkout@v4

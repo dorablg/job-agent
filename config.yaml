@@ -208,6 +208,37 @@ categories:
     boost_any: [fintech, payments, payment, paypal, banking, saas, api, french, bilingual, emea, tunisia, africa,
       usd, eur, part-time, part time, contract, worldwide, anywhere, ai, machine learning, python]
 
+  # Roles you didn't ask for but that fit your mix of CS + AI + PayPal fintech operations + languages
+  - name: "💡 Also fits you"
+    kinds: [job, internship]
+    work_modes: [onsite, hybrid, remote, unknown]
+    locations_any: *focus
+    remote_ok: [yes, check]
+    student: false
+    bonus: 8
+    match_in: title
+    tiers:
+      Excellent: [technology consultant, tech consultant, ai consultant, data consultant, digital consultant,
+        graduate consultant, junior consultant, associate consultant, analyst consultant, consulting analyst,
+        business technology analyst, digital transformation analyst, ai transformation, solutions engineer,
+        sales engineer, pre-sales engineer, presales engineer, solutions consultant, customer success engineer,
+        technical account manager, product operations, product analyst, business analyst, process analyst,
+        automation analyst, rpa developer, trust and safety analyst, trust & safety analyst, risk and controls analyst,
+        regtech, payments analyst, payments solutions, merchant onboarding, partner operations, ai product analyst,
+        prompt engineer, ai solutions]
+      Very good: [consultant, solutions analyst, implementation consultant, functional consultant, crm analyst,
+        salesforce analyst, operations analyst, program coordinator, programme coordinator, project coordinator,
+        project analyst, pmo analyst, technical writer, documentation specialist, developer advocate, community manager,
+        localization, language specialist, french speaking analyst, arabic speaking analyst, bilingual analyst,
+        quality analyst, compliance associate, vendor management analyst]
+      Good: [associate, coordinator, specialist, analyst]
+    exclude_title: [sales representative, sales specialist, enterprise sales, account executive, business development,
+      recruiter, marketing manager, triage, hospital, patient, lifecycle, sydney, melbourne, toronto, new york,
+      nurse, clinical, driver, warehouse, chef, legal counsel, lawyer, solicitor, accountant, audit, tax, actuarial,
+      underwriter, construction, surveyor, teacher, mechanical, electrical, civil, sap, oracle ebs, mainframe]
+    boost_any: [graduate, junior, entry level, entry-level, associate, trainee, analyst program, ai, data, fintech,
+      payments, saas, python, sql, french, arabic, bilingual, visa sponsorship, sponsorship, consulting, transformation]
+
   # Exchange programs where travel & accommodation are paid (anywhere in the world, if open to Tunisians)
   - name: "✈️ Fully funded exchange program"
     kinds: [event, fellowship]
@@ -285,11 +316,12 @@ categories:
 # Used to query search-capable sources (Jobicy tags, Himalayas search, Remotive).
 search_terms: [machine learning, deep learning, ai engineer, data scientist, data analyst, fintech, fraud,
   technical operations, technical support, mlops, ai trainer, quantitative, part time, part-time, freelance,
-  ai tutor, data annotation, french, arabic]
+  ai tutor, data annotation, french, arabic, solutions engineer, business analyst, consultant, product analyst]
 
 # Workable job search. Each location gets these searches; "Tunisia" = remote jobs open in Tunisia;
 # location "" = remote jobs anywhere (eligibility checked later).
-workable_common: &wq [machine learning, ai engineer, data scientist, data analyst, ai intern, machine learning intern,
+workable_common: &wq [technology consultant, graduate consultant, solutions engineer, business analyst, product analyst,
+  trust and safety, technical account manager, machine learning, ai engineer, data scientist, data analyst, ai intern, machine learning intern,
   data intern, fraud analyst, risk analyst, payments operations, technical operations, technical support, fintech,
   quantitative analyst, junior analyst, graduate]
 workable_searches:
@@ -437,7 +469,21 @@ max_ai_tailoring_per_run: 6   # new matches that get a full apply kit each run (
 max_backfill_kits_per_run: 6  # older good matches that still have no kit
 notify_when_empty: false
 
-sources: [workable, company_boards, jobs_ac_uk, wp_search, remotive, remoteok, jobicy, himalayas]
+sources: [workable, company_boards, jobs_ac_uk, wp_search, adzuna, remotive, remoteok, jobicy, himalayas]
+
+# Adzuna job search engine (needs ADZUNA_APP_ID and ADZUNA_APP_KEY; free plan ~250 searches/day).
+# Each run takes the next `per_run` (country, search) pairs, so all pairs are covered every few runs.
+# Countries Adzuna covers in your places: gb it de nl es be ch at pl (no Gulf countries).
+adzuna:
+  per_run: 28
+  max_days_old: 21
+  countries: [gb, it, nl, de, es, be, ch, at, pl]
+  queries: [machine learning, ai engineer, data scientist, junior data analyst, graduate data analyst, ai intern,
+    machine learning internship, research assistant machine learning, fraud analyst, financial crime analyst,
+    kyc analyst, payments operations, technical operations, technical support engineer, application support analyst,
+    implementation engineer, junior quantitative analyst, english speaking customer support, french speaking,
+    graduate technology consultant, junior ai consultant, solutions engineer, business analyst fintech, product analyst,
+    trust and safety analyst, technical account manager]
 
 # Deep search of opportunity sites: FULL posts (real deadlines, funding details), last 75 days.
 opportunity_search:

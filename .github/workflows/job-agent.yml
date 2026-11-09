@@ -2,7 +2,7 @@ name: job-agent
 
 on:
   schedule:
-    - cron: "0 */4 * * *"   # every 4 hours (UTC)
+    - cron: "23 */3 * * *"  # every 3 hours at :23 (UTC); on-the-hour schedules get dropped by GitHub when busy
   workflow_dispatch: {}      # "Run workflow" button for a manual run
 
 permissions:

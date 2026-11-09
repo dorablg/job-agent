@@ -83,7 +83,8 @@ def generate(job: Job, cv_text: str, cfg: dict) -> dict | None:
         return None
 
 
-STUDENT_YES = ("She IS a student: say she is currently studying for an engineering degree at a polytechnic school "
+STUDENT_YES = ("She IS a student: say she is currently studying for an engineering degree at the school named in the "
+               "profile (use its exact name, never a generic 'Polytechnic School') "
                "(alongside her Bachelor's in Computer Science) in the CV education section, the cover letter and the answers. "
                "Internships, research assistant roles and scholarships often require current student status.")
 STUDENT_NO = ("This is a JOB application: do NOT mention that she is currently a student, the polytechnic school, "

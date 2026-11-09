@@ -83,12 +83,13 @@ categories:
     match_in: title
     tiers:
       Excellent: [*fin, junior data analyst, data analyst, graduate data, graduate analyst, junior data scientist,
-        ai trainer, ai operations, graduate]
+        ai trainer, ai operations]
       Very good: [*sup, *ai]
-      Good: [operations, analyst, associate, coordinator]
+      Good: [operations analyst, operations associate, business analyst, data, analyst, graduate scheme]
     student: false
     exclude_title: [sales, account executive, account manager, business development, recruiter, marketing,
       nurse, clinical, driver, warehouse, chef, architect, legal counsel, lawyer, solicitor, accountant, security,
+      hygiene, retail, store, hospitality, construction, surveyor, teacher, care assistant, pharmac,
       actuarial, underwriter, cyber, network, devops, sre, embedded, hardware, defence, defense]
     boost_any: [junior, graduate, entry level, entry-level, associate, trainee, fintech, payments, french, arabic,
       english, visa sponsorship, sponsorship, python, sql, ai, machine learning]

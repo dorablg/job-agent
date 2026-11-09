@@ -147,7 +147,14 @@ def run(dry: bool = False) -> int:
         rank = {"Excellent": 3, "Very good": 2, "Good": 1}
         todo = sorted((r for r in listings.values() if "ai" not in r and r.get("fit")),
                       key=lambda r: (rank.get(r.get("fit"), 0), r.get("score", 0)), reverse=True)
-        for r in todo[:cfg.get("max_backfill_kits_per_run", 0)]:
+        have = {(r["title"].lower(), r.get("company", "").lower()) for r in listings.values() if "ai" in r}
+        uniq, keys = [], set()
+        for r in todo:  # the same posting can appear twice (two sources): build its kit once
+            k = (r["title"].lower(), r.get("company", "").lower())
+            if k not in have and k not in keys:
+                keys.add(k)
+                uniq.append(r)
+        for r in uniq[:cfg.get("max_backfill_kits_per_run", 0)]:
             jb = Job(id=r["id"], title=r["title"], company=r.get("company", ""), url=r["url"],
                      description=r.get("description", ""), location=r.get("location", ""), kind=r.get("kind", "job"),
                      work_mode=r.get("mode", "remote"), category=r.get("category", ""),

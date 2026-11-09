@@ -351,6 +351,22 @@ def jobs_ac_uk(_terms, queries: list[str] | None = None, max_details: int = 40) 
     return out
 
 
+EVENT_RE = re.compile(r"\b(conference|summit|forum|symposium|congress|hackathon|bootcamp|boot camp|workshop|"
+                      r"summer (school|program|programme|camp|course|institute|academy|research)|winter school|spring school|"
+                      r"exchange|study (visit|tour)|youth camp|leadership camp|leadership (program|programme)|"
+                      r"training (program|programme)|competition|challenge|festival|expo|delegation|youth assembly|"
+                      r"model united nations|innovation week|tech week)\b", re.I)
+
+
+def rss_kind(title: str, body: str) -> str:
+    """Opportunity-site posts: scholarships/fellowships stay 'fellowship'; travel programs & events become 'event'."""
+    if re.search(r"\b(scholarship|fellowship|fellows)\b", title, re.I) and not re.search(r"exchange|summer|conference", title, re.I):
+        return "fellowship"
+    if EVENT_RE.search(title):
+        return "event"
+    return detect_kind(title, body)
+
+
 def rss(feeds: list[str]) -> list[Job]:
     """Fellowship / scholarship / internship feeds (Opportunity Desk etc.)."""
     out = []
@@ -366,7 +382,7 @@ def rss(feeds: list[str]) -> list[Job]:
             out.append(Job(
                 id=f"rss-{e.get('id') or e.get('link')}", title=title, company=company, url=e.get("link", ""),
                 description=body, location="", source=name,
-                kind=detect_kind(title, body),
+                kind=detect_kind(title, body) if "weworkremotely" in feed_url else rss_kind(title, body),
                 work_mode="remote" if "weworkremotely" in feed_url else detect_mode(f"{title} {body[:800]}"),
                 posted=_dt(e.get("published") or e.get("updated")),
                 tags=[t.get("term", "") for t in e.get("tags", [])],

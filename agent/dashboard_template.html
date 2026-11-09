@@ -457,7 +457,7 @@ function renderFilters(){
     ${[["review","To review (new + saved)"],["active","All active (incl. applied)"],["all","Everything"],...Object.entries(STATUSES)].map(([v,t]) => `<option value="${v}" ${F.status===v?"selected":""}>${t}</option>`).join("")}</select></div>
   <div class="fgroup"><h4>📍 Where</h4>${ckList("focus", Object.entries(counts("focus", r => r.focus || "Other")).sort((a,b) => b[1]-a[1]), v => ({"London / UK":"🇬🇧 London / UK","Italy":"🇮🇹 Italy","Europe":"🇪🇺 Rest of Europe","Gulf":"🕌 Gulf / Middle East","Remote (Tunisia)":"🏠 Remote, open to Tunisia","Remote":"🏠 Remote (❔ check eligibility)","Other":"🌐 Other"})[v] || esc(v))}</div>
   <div class="fgroup"><h4>🇹🇳 Remote jobs: open to Tunisia</h4><select data-s="tn">${[["open","Open or not stated (hide closed)"],["yes","Confirmed open to Tunisia only"],["any","Show everything"]].map(([v,t]) => `<option value="${v}" ${F.tn===v?"selected":""}>${t}</option>`).join("")}</select></div>
-  <div class="fgroup"><h4>🎯 Fit for your profile</h4>${ckList("fits", Object.entries(counts("fits", r => r.fit || "—")).sort((a,b) => (FITRANK[b[0]]||0)-(FITRANK[a[0]]||0)), v => v==="—" ? "Scholarships & fellowships" : `${v==="Excellent"?"🟢":v==="Very good"?"🔵":"🟡"} ${esc(v)}`)}</div>
+  <div class="fgroup"><h4>🎯 Fit for your profile</h4>${ckList("fits", Object.entries(counts("fits", r => r.fit || "—")).sort((a,b) => (FITRANK[b[0]]||0)-(FITRANK[a[0]]||0)), v => v==="—" ? "Programs, events & scholarships" : `${v==="Excellent"?"🟢":v==="Very good"?"🔵":"🟡"} ${esc(v)}`)}</div>
   <div class="fgroup"><h4>💰 Pay</h4><label class="toggle">Paid only (salary, stipend or funded)<input type="checkbox" data-b="paidOnly" ${F.paidOnly?"checked":""}></label></div>
   <div class="fgroup"><h4>🌍 Country / region</h4><div class="scroll">${ckList("places", pc, v => `${FLAGS[v]||"📍"} ${esc(v)}`)}</div></div>
   <div class="fgroup"><h4>🏠 Work mode</h4>${ckList("modes", mc)}</div>
@@ -498,6 +498,7 @@ function ringColor(s){ return s >= 65 ? "var(--good)" : s >= 45 ? "var(--warn)" 
 function badges(r){
   const b = [];
   if(r.fit) b.push(`<span class="bd ${r.fit==="Excellent"?"good":r.fit==="Very good"?"acc":"warn"}">🎯 ${esc(r.fit)} fit</span>`);
+  if(r.travel) b.push(`<span class="bd good">✈️ Travel & stay covered</span>`);
   if(r.mode === "remote" && !["London / UK","Italy","Europe","Gulf"].includes(r.focus)) b.push(r.tunisia==="yes" ? `<span class="bd good">✅ Open to Tunisia</span>` : r.tunisia==="no" ? `<span class="bd bad">⛔ Not open to Tunisia</span>` : `<span class="bd warn">❔ Check Tunisia eligibility</span>`);
   if(r.currency) b.push(`<span class="bd good">💵 ${esc(r.currency)}</span>`);
   if(r.visa === "sponsor") b.push(`<span class="bd good">🛂 Visa sponsorship</span>`);
@@ -856,8 +857,8 @@ function queueBar(){
 /* ---------- AI on demand ---------- */
 async function generate(r, btn){
   const old = btn.textContent; btn.disabled = true; btn.textContent = "✨ Writing… (≈30 s)";
-  const studentRule = ["internship","fellowship"].includes(r.kind) ? (D.student_yes || "") : ((D.student_rules||{})[r.category] || D.student_no || "");
-  const prompt = D.prompt.replace("{student_rule}", studentRule).replace("{profile}", D.profile).replace("{cv}", D.cv).replace("{kind}", r.kind).replace("{category}", r.category)
+  const studentRule = ["internship","fellowship","event"].includes(r.kind) ? (D.student_yes || "") : ((D.student_rules||{})[r.category] || D.student_no || "");
+  const prompt = D.prompt.replace("{student_rule}", studentRule).replace("{kind_note}", (D.kind_notes||{})[r.kind] || "").replace("{profile}", D.profile).replace("{cv}", D.cv).replace("{kind}", r.kind).replace("{category}", r.category)
     .replace("{title}", r.title).replaceAll("{company}", r.company || "the selection committee").replace("{location}", r.location||"n/a")
     .replace("{mode}", r.mode).replace("{desc}", (r.description||"").slice(0,9000))
     .replace("{matched}", (r.matched||[]).join(", ")||"none").replace("{missing}", (r.missing||[]).join(", ")||"none");

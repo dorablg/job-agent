@@ -216,6 +216,8 @@ def apply(r: dict) -> dict:
         r["salary"] = ai["salary_or_funding"]
     if r.get("salary") and r["paid"] == "unknown":
         r["paid"] = "paid"
+    r["travel"] = bool(re.search(r"fully[- ]funded|all[- ]expenses|flights?|airfare|air tickets?|round[- ]trip|accommodation|"
+                                 r"lodging|travel (grant|support|award|costs|expenses)", text, re.I)) and r.get("kind") in ("event", "fellowship")
     r["tunisia"] = tunisia(r.get("location", ""), text)
     r["currency"] = currency(r.get("salary", ""), desc)
     r["visa"] = visa(text) if r.get("tunisia") != "yes" else ""

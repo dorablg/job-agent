@@ -66,12 +66,23 @@ def upsert(listings: dict, new: dict) -> None:
     listings[new["id"]] = new
 
 
+def _unique(rows: list[dict]) -> list[dict]:
+    """The same post often appears on two opportunity sites: show it once (keep the one with an apply kit)."""
+    best: dict = {}
+    for r in rows:
+        k = (" ".join(r.get("title", "").lower().replace("(", " ").replace(")", " ").split()), (r.get("company") or "").lower())
+        if k not in best or ("ai" in r and "ai" not in best[k]):
+            best[k] = r
+    return [r for r in rows if best.get((" ".join(r.get("title", "").lower().replace("(", " ").replace(")", " ").split()),
+                                         (r.get("company") or "").lower())) is r]
+
+
 def build(listings: dict, cv_text: str, cfg: dict, responses: list | None = None) -> Path:
     applicant_file = ROOT / "cv" / "applicant.yaml"
     applicant = yaml.safe_load(applicant_file.read_text(encoding="utf-8")) if applicant_file.exists() else {}
     payload = {
         "generated": datetime.now(timezone.utc).isoformat(),
-        "listings": [enrich.apply(dict(r)) for r in sorted(listings.values(), key=lambda r: r.get("found", ""), reverse=True)],
+        "listings": _unique([enrich.apply(dict(r)) for r in sorted(listings.values(), key=lambda r: r.get("found", ""), reverse=True)]),
         "responses": responses or [],
         "categories": [c["name"] for c in cfg.get("categories", [])],
         "applicant": applicant or {},
@@ -81,6 +92,7 @@ def build(listings: dict, cv_text: str, cfg: dict, responses: list | None = None
         "student_rules": {c["name"]: tailor.student_rule(c["name"], cfg) for c in cfg.get("categories", [])},
         "student_no": tailor.STUDENT_NO,
         "student_yes": tailor.STUDENT_YES,
+        "kind_notes": tailor.KIND_NOTES,
         # lets the page write cover letters on demand; only readable after entering the password
         "gemini_key": os.getenv("GEMINI_API_KEY", ""),
     }

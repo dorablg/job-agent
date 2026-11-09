@@ -24,7 +24,7 @@ from .sources import Job, fetch_all
 ROOT = Path(__file__).resolve().parent.parent
 STATE = ROOT / "state" / "seen.json"
 OUT = ROOT / "output"
-KIND_ICON = {"job": "💼", "internship": "🎓", "fellowship": "🌍"}
+KIND_ICON = {"job": "💼", "internship": "🎓", "fellowship": "🌍", "event": "✈️"}
 
 
 def load_env():

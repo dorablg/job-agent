@@ -17,6 +17,8 @@ profile: ""
 #   boost_any:      each one found raises the score
 #   bonus:          points added to this category's score (decides which category wins)
 #   student:        true = CVs/letters say you're a student; false = they never mention your studies
+#   requires:       several conditions, each {any: [...], min: N} (e.g. fully funded AND about tech/AI)
+#   employment:     only these contract types (part-time includes freelance / contract hours)
 #                   (internships always say you're a student)
 # (lists written as *name reuse the word lists defined just below)
 # ---------------------------------------------------------------------------------------------
@@ -50,6 +52,20 @@ titles_techops: &ops [technical operations, tech ops, technical support, product
 titles_support: &sup [customer support, customer service, customer success, customer experience, customer care,
   support specialist, support analyst, support associate, operations analyst, operations associate,
   operations specialist, client operations, back office, implementation]
+funding_words: &funding [fully funded, fully-funded, all expenses, all-expenses, expenses covered, costs covered,
+  travel grant, travel grants, travel support, travel award, travel scholarship, travel bursary, flight, flights, airfare,
+  air ticket, air tickets, airline ticket, round-trip, return ticket, accommodation, lodging, hotel, visa fee, visa fees,
+  per diem, daily allowance, stipend, funded, covered]
+tech_words: &tech [ai, artificial intelligence, machine learning, deep learning, data, data science, technology, tech,
+  digital, innovation, stem, computer, computing, software, coding, programming, cyber, cybersecurity, fintech, blockchain,
+  startup, startups, entrepreneurship, robotics, internet governance, ict, engineering, science, quantum, cloud, google,
+  microsoft, open source, hackathon]
+not_for_you: &notforyou [us citizens, american citizens, americans only, canadians, canadian citizens, eu citizens only,
+  nigerian, nigerians, kenyan, kenyans, ghanaian, ghanaians, pakistani, pakistanis, indian students, indians, south african,
+  south africans, sadc, ecowas, west african, west africa, east african, east africa, sub-saharan, latin american,
+  caribbean, asean, filipino, indonesian, bangladeshi, nepali, sri lankan, zimbabwean, ugandan, rwandan, tanzanian,
+  ethiopian, zambian, malawian, cameroonian, egyptian students only, turkish citizens, saudi nationals, emirati, how to,
+  tips, ways to, list of, currently open, top, best]
 finance_words: &finance [fintech, payments, payment, bank, banking, trading, credit, lending, fraud, financial, finance,
   insurance, insurtech, wealth, investment, crypto, blockchain, risk, aml, kyc, neobank, card, card issuing, treasury]
 
@@ -191,6 +207,61 @@ categories:
     boost_any: [fintech, payments, payment, paypal, banking, saas, api, french, bilingual, emea, tunisia, africa,
       usd, eur, part-time, part time, contract, worldwide, anywhere, ai, machine learning, python]
 
+  # Exchange programs where travel & accommodation are paid (anywhere in the world, if open to Tunisians)
+  - name: "✈️ Fully funded exchange program"
+    kinds: [event, fellowship]
+    work_modes: [onsite, hybrid, remote, unknown]
+    match_in: title
+    must_any: [exchange, study visit, study tour, summer school, summer program, summer programme, summer research,
+      summer institute, summer academy, winter school, spring school, visiting, mobility, youth program, youth programme,
+      leadership program, leadership programme, leadership camp, youth camp, delegation, academy]
+    requires:
+      - {any: *funding, min: 1}
+    exclude_title: *notforyou
+    student: true
+    bonus: 25
+    boost_any: [fully funded, fully-funded, flight, flights, airfare, accommodation, stipend, visa, all expenses,
+      ai, technology, stem, data, innovation, leadership, international, africa, arab, mena, tunisia, women, youth]
+
+  # Tech & AI conferences, summits, summer schools, hackathons, bootcamps with travel / stay covered
+  - name: "🎤 Funded tech & AI conference / event"
+    kinds: [event]
+    work_modes: [onsite, hybrid, remote, unknown]
+    match_in: title
+    must_any: [conference, summit, forum, symposium, congress, hackathon, bootcamp, boot camp, workshop, school, camp,
+      challenge, competition, training, week, festival, expo, assembly, retreat, meetup, convention]
+    requires:
+      - {any: *funding, min: 1}
+      - {any: *tech, min: 2}
+    exclude_title: *notforyou
+    student: true
+    bonus: 25
+    boost_any: [fully funded, fully-funded, travel grant, flight, flights, airfare, accommodation, hotel, visa,
+      ai, artificial intelligence, machine learning, deep learning, data science, fintech, women in tech, women in ai,
+      google, microsoft, nvidia, mena, arab, africa, tunisia, international]
+
+  # Part-time / freelance / contract work you can do remotely from Tunisia alongside your studies
+  - name: "⏰ Part-time remote job"
+    kinds: [job, internship]
+    work_modes: [remote]
+    tunisia_ok: [yes, check]
+    employment: [part-time]
+    student: false
+    bonus: 22
+    match_in: title
+    tiers:
+      Excellent: [ai trainer, ai tutor, ai evaluator, llm evaluator, ai data, data annotation, data labeling, annotator,
+        prompt engineer, prompt writer, ai content, rater, search evaluator, ads evaluator, machine learning, data scientist,
+        data analyst, python, technical support, customer support, chat support, payments, fraud, kyc]
+      Very good: [support, customer service, customer success, qa tester, quality assurance, tester, transcription,
+        transcriber, translator, translation, localization, french, arabic, bilingual, tutor, teaching assistant,
+        coding instructor, research assistant, content moderator, trust and safety, operations]
+      Good: [assistant, analyst, associate, specialist, writer, reviewer, moderator]
+    exclude_title: [sales, cold caller, telemarketing, appointment setter, recruiter, nurse, clinical, driver, model,
+      onlyfans, adult, crypto trader, forex, mlm, commission only, unpaid]
+    boost_any: [part-time, part time, flexible, hours per week, freelance, contract, usd, eur, hourly, per hour,
+      french, arabic, english, worldwide, anywhere, ai, python]
+
   - name: "🎓 Scholarship / fellowship (UK, Italy, Europe, Gulf)"
     kinds: [fellowship]
     work_modes: [remote, hybrid, onsite, unknown]
@@ -212,7 +283,8 @@ categories:
 
 # Used to query search-capable sources (Jobicy tags, Himalayas search, Remotive).
 search_terms: [machine learning, deep learning, ai engineer, data scientist, data analyst, fintech, fraud,
-  technical operations, technical support, mlops, ai trainer, quantitative]
+  technical operations, technical support, mlops, ai trainer, quantitative, part time, part-time, freelance,
+  ai tutor, data annotation, french, arabic]
 
 # Workable job search. Each location gets these searches; "Tunisia" = remote jobs open in Tunisia;
 # location "" = remote jobs anywhere (eligibility checked later).
@@ -250,7 +322,8 @@ workable_searches:
   - location: ""
     workplace: remote
     queries: [machine learning, ai engineer, data scientist, junior data analyst, ai trainer, llm evaluator,
-      technical operations, technical support, fintech, fraud analyst, payments operations]
+      technical operations, technical support, fintech, fraud analyst, payments operations, part time, part-time support,
+      part-time data, freelance, ai tutor, data annotation, french speaking, arabic speaking, translator, qa tester]
 
 # UK universities & research institutes (jobs.ac.uk). One search per line.
 jobs_ac_uk_queries: [research assistant machine learning, research assistant artificial intelligence,
@@ -379,3 +452,16 @@ rss_feeds:
   - https://www.scholars4dev.com/category/country/italy-scholarships/feed/
   - https://opportunitiescorners.com/category/scholarships-in-uk/feed/
   - https://weworkremotely.com/categories/remote-customer-support-jobs.rss
+  # Funded exchanges, conferences, summer schools, competitions & trainings
+  - https://opportunitydesk.org/category/training-and-conference/feed/
+  - https://opportunitiescorners.com/category/conferences/feed/
+  - https://opportunitiescorners.com/category/exchange-programs/feed/
+  - https://opportunitiescorners.com/category/competitions/feed/
+  - https://opportunitiescorners.com/category/trainings/feed/
+  - https://opportunitiescircle.com/feed/
+  - https://opportunitiescircle.com/category/exchange-programs/feed/
+  - https://opportunitiescircle.com/category/events/feed/
+  - https://opportunitiescircle.com/category/summer-course/feed/
+  - https://opportunitiescircle.com/category/competitions/feed/
+  - https://opportunitiescircle.com/category/training/feed/
+  - https://www.opportunitiesforafricans.com/category/conference/feed/

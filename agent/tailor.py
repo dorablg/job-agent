@@ -19,6 +19,7 @@ OPPORTUNITY (category: {category}; type: {kind}) — {title} at {company} ({loca
 \"\"\"{desc}\"\"\"
 
 STUDENT RULE (very important): {student_rule}
+{kind_note}
 
 Keywords from the posting already found in the CV: {matched}
 Keywords from the posting missing from the CV: {missing}
@@ -67,6 +68,7 @@ def generate(job: Job, cv_text: str, cfg: dict) -> dict | None:
         return None
     prompt = PROMPT.format(
         student_rule=student_rule(job.category, cfg, job.kind),
+        kind_note=KIND_NOTES.get(job.kind, ""),
         profile=cfg.get("profile", ""), cv=cv_text[:12000], kind=job.kind, category=job.category, title=job.title,
         company=job.company or "the selection committee", location=job.location or "n/a", mode=job.work_mode,
         desc=job.description[:9000], matched=", ".join(job.matched) or "none",
@@ -94,8 +96,21 @@ STUDY_RE = re.compile(r"polytech|engineering degree|currently (studying|enrolled
                       r"ongoing studies|my studies|alongside my studies|expected graduation|cycle d.ing", re.I)
 
 
+KIND_NOTES = {
+    "event": ("THIS IS A PROGRAM / EVENT APPLICATION (exchange, conference, summit, summer school, hackathon...), not a job. "
+              "In \"cover_letter\" write a motivation letter / statement of purpose (300-400 words): why this program, what she "
+              "will contribute, what she will learn, and how it serves her goals in AI, machine learning and fintech, plus how "
+              "she will share what she learns in Tunisia. In \"screening_answers\" answer the essay questions such programs "
+              "usually ask (motivation, leadership example, community impact, career goals, why you should be selected). "
+              "In \"boost_tips\" include practical steps: deadline, documents (CV, passport, recommendation letters), and visa."),
+    "fellowship": ("THIS IS A SCHOLARSHIP / FELLOWSHIP APPLICATION, not a job. In \"cover_letter\" write a personal statement "
+                   "(400-500 words) about her academic and career goals in AI and fintech; in \"screening_answers\" answer typical "
+                   "essay questions (leadership, networking, study plan, career plan, impact on Tunisia)."),
+}
+
+
 def is_student(category: str, cfg: dict, kind: str = "") -> bool:
-    if kind in ("internship", "fellowship"):
+    if kind in ("internship", "fellowship", "event"):
         return True
     for c in cfg.get("categories", []):
         if c.get("name") == category:

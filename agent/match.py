@@ -102,7 +102,7 @@ def passes_filters(job: Job, cfg: dict) -> bool:
     text = f"{job.title} {job.description}".lower()
     if any(_has(w.lower(), text) for w in f.get("exclude_words", [])):
         return False
-    max_age = f.get("max_age_days", 14) * (4 if job.kind == "fellowship" else 1)  # scholarships stay open for months
+    max_age = f.get("max_age_days", 14) * (4 if job.kind in ("fellowship", "event") else 1)  # scholarships stay open for months
     if job.posted and job.posted < datetime.now(timezone.utc) - timedelta(days=max_age):
         return False
     allowed = [a.lower() for a in f.get("allowed_locations", [])]
@@ -169,8 +169,14 @@ def _score_in_category(j: Job, cat: dict, title: str, body: str) -> float | None
     tn_ok = cat.get("tunisia_ok") or (["yes"] if cat.get("require_tunisia") else [])
     if tn_ok and enrich.tunisia(j.location, f"{title}\n{body}") not in tn_ok:
         return None
-    req = [t.lower() for t in cat.get("require_any", [])]
+    req = [t.lower() for t in _flat(cat.get("require_any", []))]
     if req and cat.get("tiers") and _count(req, f"{title} {body[:2500]}") < cat.get("require_min", 1):
+        return None
+    for rq in cat.get("requires", []):  # several conditions, e.g. "fully funded" AND "tech/AI topic"
+        words = [t.lower() for t in _flat(rq.get("any", []))]
+        if _count(words, f"{title} {body[:3500]}") < rq.get("min", 1):
+            return None
+    if cat.get("employment") and detect_employment(f"{title} {body[:2000]}") not in cat["employment"]:
         return None
     bonus = cat.get("bonus", 0)
     tiers = cat.get("tiers") or {}
@@ -191,12 +197,12 @@ def _score_in_category(j: Job, cat: dict, title: str, body: str) -> float | None
     b_hits = 0 if cat.get("match_in") == "title" else _count(must, body)
     if t_hits + b_hits == 0:
         return None
-    req = [t.lower() for t in cat.get("require_any", [])]
+    req = [t.lower() for t in _flat(cat.get("require_any", []))]
     if req and _count(req, f"{title} {body}") == 0:
         return None
-    boost = _count([t.lower() for t in cat.get("boost_any", [])], f"{title} {body}")
-    if j.kind == "fellowship":  # fellowships rarely list skills: judge on topics, not ATS
-        return min(100, 35 + t_hits * 10 + min(b_hits, 3) * 4 + boost * 5)
+    boost = _count([t.lower() for t in _flat(cat.get("boost_any", []))], f"{title} {body}")
+    if j.kind in ("fellowship", "event"):  # programs rarely list skills: judge on topics, not ATS
+        return min(100, 35 + t_hits * 10 + min(b_hits, 3) * 4 + boost * 5) + bonus
     relevance = min(100, t_hits * 45 + min(b_hits, 4) * 10 + boost * 8)
     return min(100, 0.55 * relevance + 0.45 * j.ats)
 
@@ -220,7 +226,7 @@ def score_jobs(jobs: list[Job], cv_text: str, cfg: dict) -> list[Job]:
         yrs = enrich.experience_years(full)
         if j.kind == "job" and yrs is not None and yrs > f.get("max_experience_years", 99):
             continue
-        if j.kind != "fellowship" and foreign_language_required(full, f.get("exclude_required_languages", [])):
+        if j.kind not in ("fellowship", "event") and foreign_language_required(full, f.get("exclude_required_languages", [])):
             continue
         m = re.search(r"(?<![a-z])(?:work|based|relocat[a-z]*) (?:in|to) ([a-z]+)", j.title.lower())
         if m and FOCUS_WORDS and m.group(1) not in FOCUS_WORDS:

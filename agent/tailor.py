@@ -1,6 +1,7 @@
 """Tailored CV, cover letter and application tips for one opportunity."""
 from __future__ import annotations
 
+import json
 import re
 from datetime import date
 from pathlib import Path
@@ -16,6 +17,8 @@ CANDIDATE CV:
 
 OPPORTUNITY (category: {category}; type: {kind}) — {title} at {company} ({location}, {mode})
 \"\"\"{desc}\"\"\"
+
+STUDENT RULE (very important): {student_rule}
 
 Keywords from the posting already found in the CV: {matched}
 Keywords from the posting missing from the CV: {missing}
@@ -52,7 +55,7 @@ Return ONLY a JSON object with these keys:
    ALL real jobs/internships from the CV, most relevant first within reverse-chronological order, bullets rewritten
    with the posting's vocabulary, action verb + result),
  "projects" (list of objects with keys "name", "bullets" — only if the CV has projects relevant to this posting, else []),
- "education" (list of objects with keys "degree", "school", "dates"; include an in-progress engineering degree if the profile says so),
+ "education" (list of objects with keys "degree", "school", "dates"; the in-progress engineering degree ONLY if the student rule allows it),
  "certifications" (list of strings, most relevant first), "languages" (list of strings),
 "cover_letter": a complete, specific, warm but professional cover letter (250-350 words) addressed to the {company} hiring team,
  signed with the candidate's name from the CV, no placeholders like [Your Name] unless the CV has no name.
@@ -63,16 +66,56 @@ def generate(job: Job, cv_text: str, cfg: dict) -> dict | None:
     if not llm.available():
         return None
     prompt = PROMPT.format(
+        student_rule=student_rule(job.category, cfg),
         profile=cfg.get("profile", ""), cv=cv_text[:12000], kind=job.kind, category=job.category, title=job.title,
         company=job.company or "the selection committee", location=job.location or "n/a", mode=job.work_mode,
         desc=job.description[:9000], matched=", ".join(job.matched) or "none",
         missing=", ".join(job.missing) or "none",
     )
     try:
-        return llm.ask_json(prompt)
+        ai = llm.ask_json(prompt)
+        if not is_student(job.category, cfg) and mentions_studies(ai):  # one retry with a sharper reminder
+            ai = llm.ask_json(prompt + "\n\nREMINDER: your previous answer mentioned her current studies. Remove every "
+                              "mention of being a student, the polytechnic, or an engineering degree in progress.")
+        return scrub_studies(ai) if not is_student(job.category, cfg) else ai
     except llm.LLMUnavailable as ex:
         print(f"    AI writing skipped: {ex}")
         return None
+
+
+STUDENT_YES = ("She IS a student: say she is currently studying for an engineering degree at a polytechnic school "
+               "(alongside her Bachelor's in Computer Science) in the CV education section, the cover letter and the answers. "
+               "Internships, research assistant roles and scholarships often require current student status.")
+STUDENT_NO = ("This is a JOB application: do NOT mention that she is currently a student, the polytechnic school, "
+              "an engineering degree in progress, studies, exams or class schedules anywhere (CV, cover letter, answers). "
+              "Present her as a Computer Science graduate with professional experience. Education = Bachelor's only.")
+STUDY_RE = re.compile(r"polytech|engineering degree|currently (studying|enrolled|pursuing)|student at|in progress|"
+                      r"ongoing studies|my studies|alongside my studies|expected graduation|cycle d.ing", re.I)
+
+
+def is_student(category: str, cfg: dict) -> bool:
+    for c in cfg.get("categories", []):
+        if c.get("name") == category:
+            return bool(c.get("student", c.get("kinds") != ["job"]))
+    return False
+
+
+def student_rule(category: str, cfg: dict) -> str:
+    return STUDENT_YES if is_student(category, cfg) else STUDENT_NO
+
+
+def mentions_studies(ai) -> bool:
+    return bool(ai) and bool(STUDY_RE.search(json.dumps(ai, ensure_ascii=False)))
+
+
+def scrub_studies(ai: dict | None) -> dict | None:
+    """Last safety net for job applications: drop in-progress studies from the CV's education list."""
+    if not ai:
+        return ai
+    cv = ai.get("ats_cv")
+    if isinstance(cv, dict) and isinstance(cv.get("education"), list):
+        cv["education"] = [e for e in cv["education"] if not STUDY_RE.search(json.dumps(e, ensure_ascii=False))]
+    return ai
 
 
 def _slug(s: str) -> str:

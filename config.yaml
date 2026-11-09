@@ -14,6 +14,9 @@ profile: ""
 #   require_tunisia: true = the posting must confirm it is open to people in Tunisia
 #   require_any:    at least one must also appear anywhere in the posting
 #   boost_any:      each one found raises the score
+#   bonus:          points added to this category's score (wins ties against other categories)
+#   remote_if_tunisia: true = remote jobs confirmed open to Tunisia also count, wherever the company is
+#   student:        true = CVs/letters for this category say you're a student; false = they never mention your studies
 # (lists written as *name reuse the word lists defined just below)
 # ---------------------------------------------------------------------------------------------
 focus_places: &focus [london, united kingdom, uk, england, italy, italia, milan, milano, rome, roma, turin, torino,
@@ -30,6 +33,36 @@ titles_support: &sup [customer support, customer service, customer success, cust
   operations associate, operations specialist, service desk, help desk, client operations, implementation]
 
 categories:
+  # Research labs, AI/ML/DL internships, AI startups and AI-in-fintech: you are presented as a student
+  - name: "🔬 AI research & startups"
+    kinds: [internship, job]
+    work_modes: [onsite, hybrid, remote, unknown]
+    locations_any: *focus
+    remote_if_tunisia: true
+    student: true
+    bonus: 15
+    match_in: title
+    tiers:
+      Excellent: [research assistant, research intern, research internship, ai intern, ai internship, machine learning intern,
+        ml intern, deep learning intern, data science intern, nlp intern, computer vision intern, applied scientist intern,
+        student researcher, research engineer intern, junior ai research, ml research intern, junior research, graduate research,
+        ai residency, ai resident, ai in fintech, machine learning internship]
+      Very good: [junior machine learning, graduate machine learning, junior ml, junior ai engineer, junior data scientist,
+        graduate data scientist, ai engineer intern, research software engineer, machine learning engineer intern,
+        quantitative research intern, research analyst, data scientist intern, ai/ml intern, ml/ai intern]
+      Good: [data scientist, machine learning engineer, ml engineer, ai engineer, research engineer, applied scientist,
+        applied ai, ai developer, llm engineer, nlp engineer, computer vision engineer, deep learning engineer,
+        ai software engineer, ml/nlp engineer, ai data scientist, ai research engineer, research scientist intern]
+    require_any: [machine learning, deep learning, artificial intelligence, ai, neural, nlp, llm, computer vision,
+      data science, reinforcement learning, generative, large language model, predictive]
+    require_min: 2   # the AI/ML topic must be clearly stated (at least 2 different terms)
+    exclude_title: [postdoc, postdoctoral, lecturer, professor, research fellow, research associate, studentship, reader,
+      faculty, security, defence, defense, sales, recruiter, marketing, mts, member of technical staff, partner, architect,
+      cfd, mechanical, civil, wind, structural, chemical, hydrodynamic, clinical trial]
+    boost_any: [fintech, finance, financial, payments, fraud, risk, credit, startup, start-up, seed, series a, early-stage,
+      founding, student, undergraduate, bachelor, summer, internship, visa sponsorship, sponsorship, ktp, python, pytorch,
+      tensorflow, lstm, time series, predictive maintenance, forecasting]
+
   - name: "🇬🇧🇮🇹 London & Italy internship"
     kinds: [internship]
     work_modes: [onsite, hybrid, remote, unknown]
@@ -39,6 +72,7 @@ categories:
       Excellent: [*ai, *fin]
       Very good: [*sup, fintech, finance, product, strategy, business analyst]
       Good: [operations, technology, software, engineering, it, research]
+    student: true
     boost_any: [fintech, payments, ai, machine learning, data, python, sql, visa sponsorship, sponsorship, graduate,
       summer, paid, salary, stipend]
 
@@ -52,6 +86,7 @@ categories:
         ai trainer, ai operations, graduate]
       Very good: [*sup, *ai]
       Good: [operations, analyst, associate, coordinator]
+    student: false
     exclude_title: [sales, account executive, account manager, business development, recruiter, marketing,
       nurse, clinical, driver, warehouse, chef, architect, legal counsel, lawyer, solicitor, accountant, security,
       actuarial, underwriter, cyber, network, devops, sre, embedded, hardware, defence, defense]
@@ -62,6 +97,7 @@ categories:
     kinds: [job, internship]
     work_modes: [remote]
     require_tunisia: true
+    student: false
     match_in: title
     tiers:
       Excellent: [technical support, saas support, product support, payment operations, payments operations,
@@ -84,10 +120,11 @@ categories:
     locations_any: [united kingdom, uk, london, england, britain, british, chevening, commonwealth, scotland,
       italy, italian, italia, milan, rome, turin, bologna, florence, padua, pisa, trento]
     locations_in: all
+    student: true
     exclude_title: [top, how to, tips, ways to, mistakes, guide, currently open, list of, best, usa, u.s, united states,
       america, american, germany, german, humboldt, japan, canada, australia, china, korea, netherlands, switzerland,
       france, spain, sweden, denmark, finland, norway, belgium, austria, ireland, singapore, taiwan, hong kong, turkey,
-      reagan-fascell, hurford, mcw]
+      reagan-fascell, hurford, mcw, research associate, us citizens, marshall]
     must_any: [fellowship, fellows, scholarship, program, programme, residency, grant]
     require_any: [fully funded, funded, paid, stipend, allowance, honorarium, salary, scholarship,
       tuition, covered, compensation]
@@ -100,7 +137,8 @@ search_terms: [technical support, customer support, payments operations, data an
 # Workable job search. London/Italy: any work mode. Tunisia: remote jobs open in Tunisia.
 workable_searches:
   - location: London
-    queries: [data analyst, machine learning, ai intern, data intern, graduate analyst, junior analyst,
+    queries: [research assistant, ai research, machine learning intern, deep learning, junior machine learning,
+      junior data scientist, ai startup, data analyst, machine learning, ai intern, data intern, graduate analyst, junior analyst,
       payments operations, fraud analyst, financial crime, kyc analyst, compliance analyst, risk analyst,
       customer support, customer success, operations analyst, internship, summer internship, graduate scheme,
       graduate programme, placement year, industrial placement, analyst intern]
@@ -113,8 +151,27 @@ workable_searches:
       product support, customer success, fraud, quality assurance, implementation, data analyst, ai operations,
       operations, back office, bilingual, french]
 
-# Company career pages (London fintech & AI, Italian tech). Only their London/UK/Italy roles are kept.
+# UK universities & research institutes (jobs.ac.uk). One search per line.
+jobs_ac_uk_queries: [research assistant machine learning, research assistant artificial intelligence,
+  research assistant deep learning, research assistant data science, research assistant nlp, machine learning intern,
+  ai intern, ktp associate machine learning, ktp associate artificial intelligence, research software engineer ai,
+  research assistant fintech, research assistant computer vision]
+
+# Company career pages (London fintech & AI startups/labs, Italian tech). Only their London/UK/Italy roles are kept.
 company_boards:
+  anthropic: greenhouse
+  isomorphiclabs: greenhouse
+  polyai: greenhouse
+  stripe: greenhouse
+  prolific: greenhouse
+  cohere: ashby
+  openai: ashby
+  causaly: ashby
+  seldon: ashby
+  granola: ashby
+  flock: ashby
+  poolside: ashby
+  lightdash: ashby
   monzo: greenhouse
   gocardless: greenhouse
   tide: greenhouse
@@ -161,10 +218,10 @@ filters:
 min_score: 45                 # 0-100; raise to get fewer, better alerts
 max_alerts_per_run: 10
 max_ai_tailoring_per_run: 8   # new matches that get a full apply kit each run (free AI quota)
-max_backfill_kits_per_run: 4  # older good matches that still have no kit
+max_backfill_kits_per_run: 8  # older good matches that still have no kit
 notify_when_empty: false
 
-sources: [workable, company_boards, remotive, remoteok, jobicy, himalayas]
+sources: [workable, company_boards, jobs_ac_uk, remotive, remoteok, jobicy, himalayas]
 
 # Fellowships / scholarships / internships RSS feeds (add any WordPress site's /feed/).
 rss_feeds:

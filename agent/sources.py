@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import html
+import json
+import time
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -275,6 +277,67 @@ def company_boards(_terms, boards: dict | None = None) -> list[Job]:
     return out
 
 
+ACADEMIC_TITLE = re.compile(r"research|machine learning|\bml\b|\bai\b|artificial intelligence|deep learning|data scien|"
+                            r"\bnlp\b|computer vision|intern|ktp|graduate|software engineer", re.I)
+ACADEMIC_SKIP = re.compile(r"faculty position|postdoc|post-doc|post doctoral|postdoctoral|lecturer|professor|reader in|chair in|studentship|"
+                           r"\bphd\b|research fellow|head of|director|manager|senior|principal|technician|administrator", re.I)
+
+
+def jobs_ac_uk(_terms, queries: list[str] | None = None, max_details: int = 40) -> list[Job]:
+    """UK university & research-institute jobs (jobs.ac.uk search + the JobPosting data on each job page)."""
+    links: dict[str, str] = {}
+    for q in queries or []:
+        try:
+            r = requests.get("https://www.jobs.ac.uk/search/", params={"keywords": q, "sortOrder": "1"},
+                             headers=UA, timeout=TIMEOUT)
+            r.raise_for_status()
+        except Exception:
+            continue
+        for href, text in re.findall(r'<a[^>]+href="(/job/[A-Z0-9]+/[^"]+)"[^>]*>(.*?)</a>', r.text, re.S):
+            title = clean(text)
+            if title and ACADEMIC_TITLE.search(title) and not ACADEMIC_SKIP.search(title):
+                links.setdefault(href, title)
+    out = []
+    for href, title in list(links.items())[:max_details]:
+        url = "https://www.jobs.ac.uk" + href
+        try:
+            page = requests.get(url, headers=UA, timeout=TIMEOUT).text
+            m = re.search(r'<script type="application/ld\+json">(.*?)</script>', page, re.S)
+            d = json.loads(m.group(1)) if m else {}
+        except Exception:
+            continue
+        if isinstance(d, list):
+            d = next((x for x in d if isinstance(x, dict) and x.get("@type") == "JobPosting"), {})
+        org = d.get("hiringOrganization") or {}
+        loc = d.get("jobLocation") or {}
+        if isinstance(loc, list):
+            loc = loc[0] if loc else {}
+        addr = (loc.get("address") or {}) if isinstance(loc, dict) else {}
+        city = addr.get("addressLocality") or addr.get("addressRegion") or ""
+        country = addr.get("addressCountry") or "United Kingdom"
+        if isinstance(country, dict):
+            country = country.get("name", "United Kingdom")
+        country = {"GB": "United Kingdom", "UK": "United Kingdom"}.get(str(country), str(country))
+        sal = d.get("baseSalary") or {}
+        salary = ""
+        if isinstance(sal, dict):
+            v = sal.get("value") or {}
+            if isinstance(v, dict) and (v.get("minValue") or v.get("value")):
+                salary = f"£{v.get('minValue') or v.get('value')}" + (f"–£{v['maxValue']}" if v.get("maxValue") else "")
+        desc = clean(d.get("description") or "")
+        deadline_txt = f"\nApplication deadline: {d['validThrough'][:10]}" if d.get("validThrough") else ""
+        out.append(Job(
+            id=f"jobsacuk-{href.split('/')[2]}", title=clean(d.get("title") or title),
+            company=clean(org.get("name") if isinstance(org, dict) else str(org)) or "University",
+            url=url, description=desc + deadline_txt, location=", ".join(x for x in (city, country) if x),
+            source="jobs.ac.uk", kind=detect_kind(title, desc[:400]),
+            work_mode=detect_mode(f"{title} {desc[:1500]}") if re.search(r"remote|hybrid", desc[:1500], re.I) else "onsite",
+            posted=_dt(d.get("datePosted")), salary=salary,
+        ))
+        time.sleep(0.4)  # be polite
+    return out
+
+
 def rss(feeds: list[str]) -> list[Job]:
     """Fellowship / scholarship / internship feeds (Opportunity Desk etc.)."""
     out = []
@@ -301,6 +364,7 @@ def rss(feeds: list[str]) -> list[Job]:
 SOURCES = {
     "workable": workable,
     "company_boards": company_boards,
+    "jobs_ac_uk": jobs_ac_uk,
     "remotive": remotive,
     "remoteok": remoteok,
     "arbeitnow": arbeitnow,
@@ -316,17 +380,23 @@ def fetch_all(cfg: dict, log=print) -> list[Job]:
         if name not in SOURCES:
             continue
         try:
-            extra = {"workable": cfg.get("workable_searches"), "company_boards": cfg.get("company_boards")}
+            extra = {"workable": cfg.get("workable_searches"), "company_boards": cfg.get("company_boards"),
+                     "jobs_ac_uk": cfg.get("jobs_ac_uk_queries")}
             got = SOURCES[name](terms, extra[name]) if name in extra else SOURCES[name](terms)
             log(f"  {name}: {len(got)}")
             jobs += got
         except Exception as ex:  # one broken source must never stop the run
             log(f"  {name}: FAILED ({ex})")
-    if cfg.get("rss_feeds"):
+    n_rss = 0
+    for feed in cfg.get("rss_feeds", []):  # one broken feed must not stop the others
         try:
-            got = rss(cfg["rss_feeds"])
-            log(f"  rss feeds: {len(got)}")
+            got = rss([feed])
+            n_rss += len(got)
             jobs += got
         except Exception as ex:
-            log(f"  rss: FAILED ({ex})")
+            log(f"  rss {feed}: FAILED ({ex})")
+    log(f"  rss feeds: {n_rss}")
+    for j in jobs:  # some boards double-escape titles ("&amp;")
+        j.title = html.unescape(html.unescape(j.title)).strip()
+        j.company = html.unescape(j.company or "").strip()
     return jobs

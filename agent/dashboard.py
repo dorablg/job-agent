@@ -78,6 +78,8 @@ def build(listings: dict, cv_text: str, cfg: dict, responses: list | None = None
         "cv": cv_text[:12000],
         "profile": cfg.get("profile", ""),
         "prompt": tailor.PROMPT,
+        "student_rules": {c["name"]: tailor.student_rule(c["name"], cfg) for c in cfg.get("categories", [])},
+        "student_no": tailor.STUDENT_NO,
         # lets the page write cover letters on demand; only readable after entering the password
         "gemini_key": os.getenv("GEMINI_API_KEY", ""),
     }

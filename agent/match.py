@@ -152,7 +152,9 @@ def _score_in_category(j: Job, cat: dict, title: str, body: str) -> float | None
     if any(_has(t.lower(), title) for t in cat.get("exclude_title", [])):
         return None
     places = [p.lower() for p in _flat(cat.get("locations_any", []))]
-    if places:
+    remote_tn = (cat.get("remote_if_tunisia") and j.work_mode == "remote"
+                 and enrich.tunisia(j.location, f"{title}\n{body}") == "yes")
+    if places and not remote_tn:
         where = f"{j.location} {title}".lower()
         if cat.get("locations_in") == "all":
             where += " " + body[:2500]
@@ -165,6 +167,10 @@ def _score_in_category(j: Job, cat: dict, title: str, body: str) -> float | None
             return None  # "... - Work in Sofia, Bulgaria" posted under Italy
     if cat.get("require_tunisia") and enrich.tunisia(j.location, f"{title}\n{body}") != "yes":
         return None
+    req = [t.lower() for t in cat.get("require_any", [])]
+    if req and cat.get("tiers") and _count(req, f"{title} {body[:2500]}") < cat.get("require_min", 1):
+        return None
+    bonus = cat.get("bonus", 0)
     tiers = cat.get("tiers") or {}
     fit = ""
     if tiers:  # title groups by fit: the best group found decides the fit label
@@ -177,7 +183,7 @@ def _score_in_category(j: Job, cat: dict, title: str, body: str) -> float | None
         base = {"Excellent": 100, "Very good": 85, "Good": 70}.get(fit, 70)
         boost = min(_count([t.lower() for t in cat.get("boost_any", [])], f"{title} {body}"), 4)
         j.fit = fit
-        return min(100, 0.6 * base + 0.4 * j.ats + boost * 3)
+        return min(100, 0.6 * base + 0.4 * j.ats + boost * 3) + bonus
     must = [t.lower() for t in cat.get("must_any", [])]
     t_hits = _count(must, title)
     b_hits = 0 if cat.get("match_in") == "title" else _count(must, body)
@@ -220,7 +226,7 @@ def score_jobs(jobs: list[Job], cv_text: str, cfg: dict) -> list[Job]:
         j.fit = fit
         if not best:
             continue
-        j.score, j.category = round(best[0], 1), best[1]
+        j.score, j.category = round(min(100, best[0]), 1), best[1]  # bonus decides the category, score stays 0-100
         j.employment = detect_employment(f"{j.title} {j.description[:1500]}")
         out.append(j)
     out.sort(key=lambda x: x.score, reverse=True)

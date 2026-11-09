@@ -6,3 +6,6 @@ __pycache__/
 # personal files: only the encrypted cv.enc is committed
 cv/*
 !cv/README.md
+
+# private Gmail bridge script (contains your secret key)
+gmail_bridge_PRIVATE.gs

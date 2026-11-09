@@ -51,7 +51,41 @@ Return ONLY JSON: {{"results": [ {{"i": <email number>, "type": one of {types}, 
 
 
 def configured() -> bool:
-    return bool(os.getenv("GMAIL_ADDRESS") and os.getenv("GMAIL_APP_PASSWORD"))
+    return bridge_configured() or bool(os.getenv("GMAIL_ADDRESS") and os.getenv("GMAIL_APP_PASSWORD"))
+
+
+def bridge_configured() -> bool:
+    return bool(os.getenv("GMAIL_WEBAPP_URL", "").startswith("https://") and os.getenv("GMAIL_WEBAPP_KEY"))
+
+
+def fetch_bridge(days_first_run: int = 30) -> list[dict]:
+    """Reads job-reply emails through the Apps Script bridge running in the user's own Google account."""
+    import requests
+    seen = _load_seen()
+    days = days_first_run
+    if seen.get("last"):
+        days = max(2, (datetime.now(timezone.utc) - datetime.fromisoformat(seen["last"])).days + 2)
+    r = requests.get(os.environ["GMAIL_WEBAPP_URL"], params={"key": os.environ["GMAIL_WEBAPP_KEY"], "days": days},
+                     timeout=90, allow_redirects=True)
+    r.raise_for_status()
+    data = r.json()
+    if data.get("error"):
+        raise RuntimeError(f"bridge said: {data['error']}")
+    known, out = set(seen.get("ids", [])), []
+    for m in data.get("emails", []):
+        mid = (m.get("msgid") or "").strip()
+        key = hashlib.sha1((mid or f"{m.get('date')}{m.get('subject')}").encode()).hexdigest()[:16]
+        if key in known:
+            continue
+        known.add(key)
+        if not JOBISH.search(f"{m.get('from', '')} {m.get('subject', '')} {m.get('body', '')[:3000]}"):
+            continue
+        out.append({"key": key, "msgid": mid, "from": m.get("from", ""), "subject": m.get("subject", ""),
+                    "date": m.get("date") or datetime.now(timezone.utc).isoformat(), "body": m.get("body", "")[:2500]})
+    seen["ids"] = list(known)[-3000:]
+    seen["last"] = datetime.now(timezone.utc).isoformat()
+    SEEN.write_text(json.dumps(seen), encoding="utf-8")
+    return out
 
 
 def _dec(v) -> str:
@@ -182,7 +216,7 @@ def check(listings: dict, notify=None) -> list[dict]:
     if not configured():
         return rows
     try:
-        mails = fetch()
+        mails = fetch_bridge() if bridge_configured() else fetch()
     except Exception as ex:
         print(f"Gmail: FAILED ({ex})")
         return rows

@@ -201,6 +201,13 @@ FOCUS_LOC = re.compile(r"london|united kingdom|\buk\b|england|italy|italia|milan
                        r"bologna|florence|firenze|naples|napoli|padua|padova|pisa|trento|genoa|genova|verona|bergamo", re.I)
 
 
+def set_focus(places: list[str]) -> None:
+    """Places you want on-site roles in (from config.yaml) + remote markers, for company boards and Workable."""
+    global FOCUS_LOC
+    words = [re.escape(str(p).lower()) for p in places if p] + ["remote", "anywhere", "worldwide", "global", "emea", "europe"]
+    FOCUS_LOC = re.compile(r"(?<![a-z])(" + "|".join(sorted(set(words), key=len, reverse=True)) + r")(?![a-z])", re.I)
+
+
 def workable(_terms, searches: list[dict] | None = None) -> list[Job]:
     """Workable's job search. Each search: {location, workplace (optional), queries}.
     Tunisia searches keep only remote jobs open in Tunisia; London/Italy keep jobs located there."""
@@ -208,7 +215,9 @@ def workable(_terms, searches: list[dict] | None = None) -> list[Job]:
     for srch in searches or []:
         where = srch["location"]
         for q in srch.get("queries", []):
-            params = {"query": q, "location": where}
+            params = {"query": q}
+            if where:
+                params["location"] = where
             if srch.get("workplace"):
                 params["workplace"] = srch["workplace"]
             try:
@@ -224,6 +233,10 @@ def workable(_terms, searches: list[dict] | None = None) -> list[Job]:
                     if country.lower() != "tunisia" or j.get("workplace") != "remote":
                         continue
                     location = "Tunisia (remote)"
+                elif not where:  # remote anywhere: keep, Tunisia eligibility is judged later
+                    if j.get("workplace") != "remote":
+                        continue
+                    location = ", ".join(x for x in (city, country) if x) or "Remote"
                 else:
                     location = ", ".join(x for x in (city, country) if x)
                     if not FOCUS_LOC.search(location):
@@ -374,6 +387,8 @@ SOURCES = {
 
 
 def fetch_all(cfg: dict, log=print) -> list[Job]:
+    if cfg.get("focus_places"):
+        set_focus(cfg["focus_places"])
     jobs: list[Job] = []
     terms = cfg.get("search_terms", [])
     for name in cfg.get("sources", list(SOURCES)):

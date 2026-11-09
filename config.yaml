@@ -11,34 +11,55 @@ profile: ""
 #   tiers:          title words grouped by fit for you (Excellent / Very good / Good)
 #   must_any:       (instead of tiers) at least one must appear (in the title if match_in: title)
 #   locations_any:  the location must mention one of these (locations_in: all = title/description too)
-#   require_tunisia: true = the posting must confirm it is open to people in Tunisia
-#   require_any:    at least one must also appear anywhere in the posting
+#   remote_ok:      remote jobs also count if their Tunisia eligibility is in this list (yes / check)
+#   tunisia_ok:     the posting's Tunisia eligibility must be in this list (for remote-only categories)
+#   require_any:    at least require_min of these must appear in the title or start of the posting
 #   boost_any:      each one found raises the score
-#   bonus:          points added to this category's score (wins ties against other categories)
-#   remote_if_tunisia: true = remote jobs confirmed open to Tunisia also count, wherever the company is
-#   student:        true = CVs/letters for this category say you're a student; false = they never mention your studies
+#   bonus:          points added to this category's score (decides which category wins)
+#   student:        true = CVs/letters say you're a student; false = they never mention your studies
+#                   (internships always say you're a student)
 # (lists written as *name reuse the word lists defined just below)
 # ---------------------------------------------------------------------------------------------
-focus_places: &focus [london, united kingdom, uk, england, italy, italia, milan, milano, rome, roma, turin, torino,
-  bologna, florence, firenze, naples, napoli, padua, padova, pisa, trento, genoa, genova, verona, bergamo]
+focus_places: &focus [london, united kingdom, uk, england, scotland, wales, cambridge, oxford, manchester, edinburgh,
+  bristol, leeds, birmingham, italy, italia, milan, milano, rome, roma, turin, torino, bologna, florence, firenze, naples,
+  padua, pisa, trento, genoa, verona, bergamo,
+  # rest of Europe (English-speaking roles; postings needing a language you don't speak are skipped)
+  europe, emea, germany, berlin, munich, hamburg, frankfurt, cologne, netherlands, amsterdam, rotterdam, utrecht, eindhoven,
+  the hague, ireland, dublin, cork, spain, madrid, barcelona, valencia, belgium, brussels, antwerp, ghent, switzerland,
+  zurich, geneva, lausanne, basel, austria, vienna, portugal, lisbon, porto, sweden, stockholm, denmark, copenhagen,
+  finland, helsinki, norway, oslo, estonia, tallinn, luxembourg, poland, warsaw, krakow, czech, prague, malta, cyprus,
+  greece, athens, lithuania, vilnius, latvia, riga,
+  # Gulf / Middle East
+  uae, united arab emirates, dubai, abu dhabi, qatar, doha, saudi arabia, riyadh, jeddah, bahrain, manama, kuwait,
+  oman, muscat]
 
-titles_ai_data: &ai [machine learning, ml, artificial intelligence, ai, data scientist, data science, data analyst,
-  data analytics, analytics, business intelligence, bi analyst, data engineer, nlp, llm, generative ai, research analyst,
-  quantitative analyst, ai engineer, deep learning, computer vision, insights analyst, reporting analyst]
+titles_ai: &ai [machine learning, ml, artificial intelligence, ai, deep learning, data scientist, data science, nlp, llm,
+  generative ai, computer vision, ai engineer, ml engineer, mlops, applied scientist, research engineer, ai developer,
+  prompt engineer, ai trainer, ai tutor, ai evaluator, llm evaluator, ai specialist, ai analyst, ai operations]
+titles_data: &data [data analyst, data analytics, analytics, business intelligence, bi analyst, bi developer, data engineer,
+  insights analyst, reporting analyst, product analyst, quantitative analyst, quant, research analyst, data associate]
 titles_fintech: &fin [payments operations, payment operations, payments, payment, fraud, financial crime, fincrime, kyc,
-  aml, anti-money laundering, risk analyst, risk operations, compliance analyst, compliance operations, transaction monitoring,
-  chargeback, disputes, treasury operations, finance operations, banking operations, onboarding analyst, credit analyst]
+  aml, anti-money laundering, risk analyst, risk operations, credit risk, compliance analyst, compliance operations,
+  transaction monitoring, chargeback, disputes, treasury operations, finance operations, banking operations,
+  onboarding analyst, credit analyst, trading operations, investment operations]
+titles_techops: &ops [technical operations, tech ops, technical support, production support, application support,
+  it operations, platform operations, operations engineer, implementation engineer, integration specialist,
+  integration engineer, solutions analyst, data operations, ml operations, service desk, help desk, it support,
+  systems analyst, noc, support engineer, technical specialist, technical analyst, implementation specialist,
+  onboarding specialist, product support, saas support, qa analyst, quality assurance analyst, test analyst]
 titles_support: &sup [customer support, customer service, customer success, customer experience, customer care,
-  technical support, product support, support specialist, support analyst, support associate, operations analyst,
-  operations associate, operations specialist, service desk, help desk, client operations, implementation]
+  support specialist, support analyst, support associate, operations analyst, operations associate,
+  operations specialist, client operations, back office, implementation]
+finance_words: &finance [fintech, payments, payment, bank, banking, trading, credit, lending, fraud, financial, finance,
+  insurance, insurtech, wealth, investment, crypto, blockchain, risk, aml, kyc, neobank, card, card issuing, treasury]
 
 categories:
-  # Research labs, AI/ML/DL internships, AI startups and AI-in-fintech: you are presented as a student
+  # Research labs, AI/ML/DL internships and AI startups: you are presented as a student
   - name: "🔬 AI research & startups"
     kinds: [internship, job]
     work_modes: [onsite, hybrid, remote, unknown]
     locations_any: *focus
-    remote_if_tunisia: true
+    remote_ok: [yes, check]
     student: true
     bonus: 15
     match_in: title
@@ -46,46 +67,99 @@ categories:
       Excellent: [research assistant, research intern, research internship, ai intern, ai internship, machine learning intern,
         ml intern, deep learning intern, data science intern, nlp intern, computer vision intern, applied scientist intern,
         student researcher, research engineer intern, junior ai research, ml research intern, junior research, graduate research,
-        ai residency, ai resident, ai in fintech, machine learning internship]
+        ai residency, ai resident, machine learning internship, ai research intern, working student ai,
+        working student machine learning, werkstudent ai, thesis ai, ai engineer intern, ml engineer intern]
       Very good: [junior machine learning, graduate machine learning, junior ml, junior ai engineer, junior data scientist,
-        graduate data scientist, ai engineer intern, research software engineer, machine learning engineer intern,
-        quantitative research intern, research analyst, data scientist intern, ai/ml intern, ml/ai intern]
+        graduate data scientist, research software engineer, machine learning engineer intern, data scientist intern,
+        ai/ml intern, ml/ai intern, junior deep learning, junior nlp, junior computer vision, junior applied scientist,
+        associate machine learning, associate data scientist, entry level machine learning, entry-level ai]
       Good: [data scientist, machine learning engineer, ml engineer, ai engineer, research engineer, applied scientist,
         applied ai, ai developer, llm engineer, nlp engineer, computer vision engineer, deep learning engineer,
-        ai software engineer, ml/nlp engineer, ai data scientist, ai research engineer, research scientist intern]
+        ai software engineer, ml/nlp engineer, ai data scientist, ai research engineer, research scientist intern,
+        mlops engineer, prompt engineer, generative ai engineer]
     require_any: [machine learning, deep learning, artificial intelligence, ai, neural, nlp, llm, computer vision,
       data science, reinforcement learning, generative, large language model, predictive]
     require_min: 2   # the AI/ML topic must be clearly stated (at least 2 different terms)
     exclude_title: [postdoc, postdoctoral, lecturer, professor, research fellow, research associate, studentship, reader,
       faculty, security, defence, defense, sales, recruiter, marketing, mts, member of technical staff, partner, architect,
       cfd, mechanical, civil, wind, structural, chemical, hydrodynamic, clinical trial]
-    boost_any: [fintech, finance, financial, payments, fraud, risk, credit, startup, start-up, seed, series a, early-stage,
-      founding, student, undergraduate, bachelor, summer, internship, visa sponsorship, sponsorship, ktp, python, pytorch,
-      tensorflow, lstm, time series, predictive maintenance, forecasting]
+    boost_any: [startup, start-up, seed, series a, early-stage, founding, student, undergraduate, bachelor, summer,
+      internship, visa sponsorship, sponsorship, ktp, python, pytorch, tensorflow, lstm, time series, predictive maintenance,
+      forecasting, junior, graduate, entry level]
 
-  - name: "🇬🇧🇮🇹 London & Italy internship"
+  # Machine learning, data and quant work applied to finance / fintech / banking / insurance
+  - name: "💹 AI & data in finance"
+    kinds: [internship, job]
+    work_modes: [onsite, hybrid, remote, unknown]
+    locations_any: *focus
+    remote_ok: [yes, check]
+    student: false
+    bonus: 18
+    match_in: title
+    tiers:
+      Excellent: [fraud data scientist, fraud analyst, fraud machine learning, risk data scientist, credit risk analyst,
+        credit risk modelling, quantitative analyst, quantitative researcher, quant analyst, quant researcher,
+        quantitative research intern, financial data analyst, financial data scientist, ml engineer, machine learning,
+        data scientist, ai engineer, ai, deep learning, risk analytics, fraud analytics, aml analyst, transaction monitoring]
+      Very good: [*data, risk analyst, fraud, financial crime, kyc analyst, compliance analyst, pricing analyst,
+        trading operations, payments operations, payment operations]
+      Good: [analyst, data, insights, operations analyst, operations associate]
+    require_any: *finance
+    require_min: 2   # clearly a finance / fintech employer or product
+    exclude_title: [sales, account executive, account manager, business development, recruiter, marketing, accountant,
+      auditor, tax, legal, lawyer, solicitor, actuarial, underwriter, payroll, bookkeeper, collections agent]
+    boost_any: [machine learning, ai, python, sql, fraud, risk, fintech, payments, junior, graduate, entry level,
+      associate, internship, visa sponsorship, sponsorship, french, arabic]
+
+  # Technical operations, production / application support, implementation, QA, IT ops
+  - name: "⚙️ Technical operations"
+    kinds: [job, internship]
+    work_modes: [onsite, hybrid, remote, unknown]
+    locations_any: *focus
+    remote_ok: [yes, check]
+    student: false
+    bonus: 10
+    match_in: title
+    tiers:
+      Excellent: [technical operations, tech ops, production support, application support, platform operations,
+        payment operations engineer, operations engineer, data operations, ml operations, ai operations,
+        implementation engineer, integration specialist, integration engineer, technical support engineer,
+        technical support specialist, saas support, product support specialist]
+      Very good: [technical support, product support, support engineer, it operations, it support, service desk,
+        help desk, implementation specialist, onboarding specialist, technical specialist, technical analyst,
+        solutions analyst, systems analyst, qa analyst, quality assurance analyst, test analyst, noc]
+      Good: [operations analyst, operations associate, operations specialist, back office, client operations,
+        customer support engineer, technical account]
+    exclude_title: [sales, account executive, account manager, business development, recruiter, marketing, nurse,
+      clinical, driver, warehouse, mechanical, electrical, civil, construction, plant, field service, hvac, facilities,
+      maintenance technician, security officer, defence, defense]
+    boost_any: [fintech, payments, saas, api, sql, python, linux, docker, aws, cloud, ai, junior, graduate, entry level,
+      associate, french, arabic, bilingual, visa sponsorship, sponsorship]
+
+  - name: "🎓 Internship (UK, Italy, Europe, Gulf)"
     kinds: [internship]
     work_modes: [onsite, hybrid, remote, unknown]
     locations_any: *focus
+    remote_ok: [yes, check]
     match_in: title
     tiers:
-      Excellent: [*ai, *fin]
-      Very good: [*sup, fintech, finance, product, strategy, business analyst]
-      Good: [operations, technology, software, engineering, it, research]
+      Excellent: [*ai, *fin, *data]
+      Very good: [*sup, *ops, fintech, product analyst, business analyst]
+      Good: [operations, software, research]
     student: true
     boost_any: [fintech, payments, ai, machine learning, data, python, sql, visa sponsorship, sponsorship, graduate,
       summer, paid, salary, stipend]
 
-  - name: "🇬🇧🇮🇹 London & Italy job"
+  - name: "🏢 Job (UK, Italy, Europe, Gulf)"
     kinds: [job]
-    work_modes: [onsite, hybrid, remote, unknown]
+    work_modes: [onsite, hybrid, unknown]
     locations_any: *focus
     match_in: title
     tiers:
       Excellent: [*fin, junior data analyst, data analyst, graduate data, graduate analyst, junior data scientist,
         ai trainer, ai operations]
-      Very good: [*sup, *ai]
-      Good: [operations analyst, operations associate, business analyst, data, analyst, graduate scheme]
+      Very good: [*sup, *ai, *data]
+      Good: [operations analyst, operations associate, business analyst, analyst, graduate scheme, graduate programme]
     student: false
     exclude_title: [sales, account executive, account manager, business development, recruiter, marketing,
       nurse, clinical, driver, warehouse, chef, architect, legal counsel, lawyer, solicitor, accountant, security,
@@ -94,76 +168,102 @@ categories:
     boost_any: [junior, graduate, entry level, entry-level, associate, trainee, fintech, payments, french, arabic,
       english, visa sponsorship, sponsorship, python, sql, ai, machine learning]
 
-  - name: "🎯 Remote job open to Tunisia"
+  # Remote: everything except jobs that clearly exclude Tunisia (unclear ones are shown with ❔)
+  - name: "🏠 Remote job"
     kinds: [job, internship]
     work_modes: [remote]
-    require_tunisia: true
+    tunisia_ok: [yes, check]
     student: false
     match_in: title
     tiers:
-      Excellent: [technical support, saas support, product support, payment operations, payments operations,
-        payment support, billing support, transaction operations, fintech customer support, fintech support,
-        bilingual customer support, customer support consultant, customer support specialist, support specialist,
-        service desk analyst, *fin, junior data analyst, data analyst]
+      Excellent: [*fin, technical support, saas support, product support, payment support, billing support,
+        transaction operations, fintech support, bilingual customer support, customer support specialist,
+        support specialist, service desk analyst, technical operations, junior data analyst, data analyst,
+        ai trainer, ai tutor, ai evaluator, llm evaluator, prompt engineer, ai data specialist, junior machine learning,
+        junior data scientist, junior ai engineer]
       Very good: [customer success, technical customer success, quality assurance analyst, qa analyst, support quality,
-        customer support, customer service, customer care, customer experience, *ai]
-      Good: [implementation, onboarding specialist, client delivery operations, client operations, ai trainer,
-        ai operations, operations associate, operations specialist, back office, technical operations]
+        customer support, customer service, customer care, customer experience, *ai, *data, *ops]
+      Good: [implementation, onboarding specialist, client delivery operations, client operations, operations associate,
+        operations specialist, back office]
     exclude_title: [sales, account executive, clinical, nurse, psycholog, counsellor, driver, warehouse, maximo,
-      developer, engineer ii, architect, cad, cfd, mechanical, civil, chemical, electrical, simulation]
+      engineer ii, architect, cad, cfd, mechanical, civil, chemical, electrical, simulation, appointment setter,
+      cold caller, telemarketing, recruiter]
     boost_any: [fintech, payments, payment, paypal, banking, saas, api, french, bilingual, emea, tunisia, africa,
-      usd, eur, part-time, part time, contract]
+      usd, eur, part-time, part time, contract, worldwide, anywhere, ai, machine learning, python]
 
-  - name: "🎓 UK & Italy scholarship / fellowship"
+  - name: "🎓 Scholarship / fellowship (UK, Italy, Europe, Gulf)"
     kinds: [fellowship]
     work_modes: [remote, hybrid, onsite, unknown]
     match_in: all
     locations_any: [united kingdom, uk, london, england, britain, british, chevening, commonwealth, scotland,
-      italy, italian, italia, milan, rome, turin, bologna, florence, padua, pisa, trento]
+      italy, italian, italia, europe, european, erasmus, germany, daad, netherlands, holland, ireland, irish, spain,
+      belgium, switzerland, swiss, austria, sweden, swedish, denmark, finland, norway, portugal, poland, czech, hungary,
+      stipendium hungaricum, estonia, uae, emirates, mbzuai, abu dhabi, dubai, qatar, saudi, kaust, kuwait, oman, bahrain]
     locations_in: all
     student: true
     exclude_title: [top, how to, tips, ways to, mistakes, guide, currently open, list of, best, usa, u.s, united states,
-      america, american, germany, german, humboldt, japan, canada, australia, china, korea, netherlands, switzerland,
-      france, spain, sweden, denmark, finland, norway, belgium, austria, ireland, singapore, taiwan, hong kong, turkey,
-      reagan-fascell, hurford, mcw, research associate, us citizens, marshall]
+      america, american, japan, canada, australia, china, korea, singapore, taiwan, hong kong, new zealand,
+      reagan-fascell, hurford, mcw, research associate, us citizens, marshall, sub-saharan, in-country, in-region]
     must_any: [fellowship, fellows, scholarship, program, programme, residency, grant]
     require_any: [fully funded, funded, paid, stipend, allowance, honorarium, salary, scholarship,
       tuition, covered, compensation]
-    boost_any: [united kingdom, uk, london, italy, ai, artificial intelligence, machine learning, data, technology,
-      tech, digital, stem, engineering, computer science, fintech, innovation, women, young, africa, tunisia]
+    boost_any: [ai, artificial intelligence, machine learning, data, technology, tech, digital, stem, engineering,
+      computer science, fintech, innovation, women, young, africa, tunisia, master, masters, msc, fully funded]
 
-# Used to query search-capable sources (Jobicy tags, Himalayas search).
-search_terms: [technical support, customer support, payments operations, data analyst, fraud, machine learning]
+# Used to query search-capable sources (Jobicy tags, Himalayas search, Remotive).
+search_terms: [machine learning, deep learning, ai engineer, data scientist, data analyst, fintech, fraud,
+  technical operations, technical support, mlops, ai trainer, quantitative]
 
-# Workable job search. London/Italy: any work mode. Tunisia: remote jobs open in Tunisia.
+# Workable job search. Each location gets these searches; "Tunisia" = remote jobs open in Tunisia;
+# location "" = remote jobs anywhere (eligibility checked later).
+workable_common: &wq [machine learning, ai engineer, data scientist, data analyst, ai intern, machine learning intern,
+  data intern, fraud analyst, risk analyst, payments operations, technical operations, technical support, fintech,
+  quantitative analyst, junior analyst, graduate]
 workable_searches:
   - location: London
     queries: [research assistant, ai research, machine learning intern, deep learning, junior machine learning,
       junior data scientist, ai startup, data analyst, machine learning, ai intern, data intern, graduate analyst, junior analyst,
       payments operations, fraud analyst, financial crime, kyc analyst, compliance analyst, risk analyst,
       customer support, customer success, operations analyst, internship, summer internship, graduate scheme,
-      graduate programme, placement year, industrial placement, analyst intern]
+      graduate programme, placement year, industrial placement, analyst intern, technical operations, production support,
+      application support, implementation, quantitative analyst, fraud data scientist, credit risk]
+  - {location: United Kingdom, queries: *wq}
   - location: Italy
     queries: [data analyst, machine learning, intern, internship, stage, graduate, payments, fraud, compliance,
-      customer support, customer success, operations, english speaking, french speaking]
+      customer support, customer success, operations, english speaking, french speaking, technical support, ai]
+  - {location: Germany, queries: *wq}
+  - {location: Netherlands, queries: *wq}
+  - {location: Ireland, queries: *wq}
+  - {location: Spain, queries: *wq}
+  - {location: Switzerland, queries: *wq}
+  - {location: Belgium, queries: *wq}
+  - {location: Portugal, queries: *wq}
+  - {location: Poland, queries: *wq}
+  - {location: United Arab Emirates, queries: *wq}
+  - {location: Qatar, queries: *wq}
+  - {location: Saudi Arabia, queries: *wq}
   - location: Tunisia
     workplace: remote
     queries: [technical support, customer support, saas support, payment operations, payments, billing support,
       product support, customer success, fraud, quality assurance, implementation, data analyst, ai operations,
-      operations, back office, bilingual, french]
+      operations, back office, bilingual, french, machine learning, ai, data scientist, ai trainer]
+  - location: ""
+    workplace: remote
+    queries: [machine learning, ai engineer, data scientist, junior data analyst, ai trainer, llm evaluator,
+      technical operations, technical support, fintech, fraud analyst, payments operations]
 
 # UK universities & research institutes (jobs.ac.uk). One search per line.
 jobs_ac_uk_queries: [research assistant machine learning, research assistant artificial intelligence,
   research assistant deep learning, research assistant data science, research assistant nlp, machine learning intern,
   ai intern, ktp associate machine learning, ktp associate artificial intelligence, research software engineer ai,
-  research assistant fintech, research assistant computer vision]
+  research assistant fintech, research assistant computer vision, ktp associate data science, research assistant finance]
 
-# Company career pages (London fintech & AI startups/labs, Italian tech). Only their London/UK/Italy roles are kept.
+# Company career pages (AI labs/startups, fintech). Only roles in your places (or remote) are kept.
 company_boards:
+  # AI labs & startups
   anthropic: greenhouse
   isomorphiclabs: greenhouse
   polyai: greenhouse
-  stripe: greenhouse
   prolific: greenhouse
   cohere: ashby
   openai: ashby
@@ -173,6 +273,26 @@ company_boards:
   flock: ashby
   poolside: ashby
   lightdash: ashby
+  faculty: ashby
+  wayve: ashby
+  synthesia: ashby
+  elevenlabs: ashby
+  deepl: ashby
+  alephalpha: ashby
+  langchain: ashby
+  tractable: ashby
+  n8n: ashby
+  celonis: greenhouse
+  contentful: greenhouse
+  intercom: greenhouse
+  datadog: greenhouse
+  elastic: greenhouse
+  gitlab: greenhouse
+  canonical: greenhouse
+  zapier: ashby
+  toptal: lever
+  # Fintech (UK, Europe, Gulf)
+  stripe: greenhouse
   monzo: greenhouse
   gocardless: greenhouse
   tide: greenhouse
@@ -180,7 +300,19 @@ company_boards:
   sumup: greenhouse
   complyadvantage: greenhouse
   truelayer: greenhouse
+  wise: greenhouse
+  adyen: greenhouse
+  n26: greenhouse
+  solarisbank: greenhouse
+  raisin: greenhouse
+  bitpanda: greenhouse
+  form3: greenhouse
+  ebanx: greenhouse
+  payoneer: greenhouse
+  careem: greenhouse
+  tamara: greenhouse
   zopa: lever
+  nium: lever
   musixmatch: lever
   oaknorth: ashby
   paddle: ashby
@@ -190,34 +322,43 @@ company_boards:
   trading212: ashby
   9fin: ashby
   quantexa: ashby
-  faculty: ashby
-  wayve: ashby
-  synthesia: ashby
-  elevenlabs: ashby
   satispay: ashby
   docebo: ashby
+  mollie: ashby
+  plaid: ashby
+  pleo: ashby
+  qonto: ashby
+  sardine: ashby
+  lendable: ashby
+  zilch: ashby
+  airwallex: ashby
+  ziina: ashby
 
 # Extra ATS keywords specific to your field (added to the built-in skills list).
 extra_keywords: [ros, predictive maintenance, lstm, prompt engineering, webrtc, mern, kpi, mentoring,
   customer support, customer service, technical support, client operations, disputes, kyc, aml,
   zendesk, salesforce, crm, ticketing, sla, troubleshooting, escalation, french, arabic, english,
-  financial crime, transaction monitoring, payments]
+  financial crime, transaction monitoring, payments, rag, fastapi, time series, forecasting, scikit-learn]
 
 filters:
   max_age_days: 30
   max_experience_years: 2          # skip jobs asking for 3+ years (you have ~1 year)
-  hide_not_open_to_tunisia: false  # London/Italy are on-site; remote jobs use require_tunisia instead
+  hide_not_open_to_tunisia: false  # on-site roles are judged by place; remote roles use tunisia_ok / remote_ok
   # Languages you don't speak: postings that require them (or are written in them) are skipped
   exclude_required_languages: [Italian, German, Spanish, Dutch, Portuguese, Polish, Swedish, Danish, Norwegian,
-    Japanese, Greek, Bulgarian, Romanian, Czech, Turkish, Hebrew, Russian, Finnish, Hungarian, Korean, Chinese]
-  exclude_title_words: [senior, sr, staff, principal, lead, director, head, manager, vp, phd, mba, expert, ii, iii, iv,
-    mid-level, mid level, experienced, us remote, us only, usa only, u.s. only, us-based, canada only]
+    Japanese, Greek, Bulgarian, Romanian, Czech, Turkish, Hebrew, Russian, Finnish, Hungarian, Korean, Chinese,
+    Croatian, Serbian, Slovak, Slovenian, Ukrainian, Lithuanian, Latvian, Estonian, Flemish, Swiss German, Hindi, Thai,
+    Vietnamese, Indonesian, Malay]
+  exclude_title_words: [senior, sr, staff, principal, lead, leader, director, head, manager, vp, phd, mba, expert, ii, iii,
+    iv, mid-level, mid level, experienced, mts, member of technical staff, research associate, postdoc, postdoctoral,
+    emirati, emiratis, saudi national, saudi nationals, qatari, kuwaiti, omani national, bahraini, nationals only,
+    accounting, accountant, audit, us remote, us only, usa only, u.s. only, us-based, canada only]
   exclude_words: [us citizens only, security clearance, must be located in the us, must reside in the us,
     must reside in the united states, located in the united states, us work authorization, authorized to work in the us]
   allowed_locations: []            # location is decided per category now
 
 min_score: 45                 # 0-100; raise to get fewer, better alerts
-max_alerts_per_run: 10
+max_alerts_per_run: 15
 max_ai_tailoring_per_run: 8   # new matches that get a full apply kit each run (free AI quota)
 max_backfill_kits_per_run: 8  # older good matches that still have no kit
 notify_when_empty: false

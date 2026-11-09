@@ -152,8 +152,9 @@ def _score_in_category(j: Job, cat: dict, title: str, body: str) -> float | None
     if any(_has(t.lower(), title) for t in cat.get("exclude_title", [])):
         return None
     places = [p.lower() for p in _flat(cat.get("locations_any", []))]
-    remote_tn = (cat.get("remote_if_tunisia") and j.work_mode == "remote"
-                 and enrich.tunisia(j.location, f"{title}\n{body}") == "yes")
+    tn = enrich.tunisia(j.location, f"{title}\n{body}") if j.work_mode == "remote" else ""
+    remote_ok = cat.get("remote_ok") or (["yes"] if cat.get("remote_if_tunisia") else [])
+    remote_tn = j.work_mode == "remote" and tn in remote_ok
     if places and not remote_tn:
         where = f"{j.location} {title}".lower()
         if cat.get("locations_in") == "all":
@@ -165,7 +166,8 @@ def _score_in_category(j: Job, cat: dict, title: str, body: str) -> float | None
         m = re.search(r"\b(?:work|based|relocat\w*|located) (?:in|to) ([a-z]+)", title)
         if m and not any(_has(p, m.group(1)) for p in places):
             return None  # "... - Work in Sofia, Bulgaria" posted under Italy
-    if cat.get("require_tunisia") and enrich.tunisia(j.location, f"{title}\n{body}") != "yes":
+    tn_ok = cat.get("tunisia_ok") or (["yes"] if cat.get("require_tunisia") else [])
+    if tn_ok and enrich.tunisia(j.location, f"{title}\n{body}") not in tn_ok:
         return None
     req = [t.lower() for t in cat.get("require_any", [])]
     if req and cat.get("tiers") and _count(req, f"{title} {body[:2500]}") < cat.get("require_min", 1):
@@ -199,7 +201,12 @@ def _score_in_category(j: Job, cat: dict, title: str, body: str) -> float | None
     return min(100, 0.55 * relevance + 0.45 * j.ats)
 
 
+FOCUS_WORDS: set[str] = set()
+
+
 def score_jobs(jobs: list[Job], cv_text: str, cfg: dict) -> list[Job]:
+    global FOCUS_WORDS
+    FOCUS_WORDS = {w for p in _flat(cfg.get("focus_places", [])) for w in str(p).lower().split()}
     vocab = _vocab(cfg)
     cats = cfg.get("categories", [])
     out = []
@@ -215,6 +222,9 @@ def score_jobs(jobs: list[Job], cv_text: str, cfg: dict) -> list[Job]:
             continue
         if j.kind != "fellowship" and foreign_language_required(full, f.get("exclude_required_languages", [])):
             continue
+        m = re.search(r"(?<![a-z])(?:work|based|relocat[a-z]*) (?:in|to) ([a-z]+)", j.title.lower())
+        if m and FOCUS_WORDS and m.group(1) not in FOCUS_WORDS:
+            continue  # "... - Work In Sofia, Bulgaria": relocation to a place you didn't choose
         title, body = j.title.lower(), f"{j.description} {' '.join(map(str, j.tags))}".lower()
         j.ats, j.matched, j.missing = ats_score(cv_text, f"{j.title} \n{body}", vocab)
         best, fit = None, ""

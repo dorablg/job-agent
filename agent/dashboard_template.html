@@ -413,7 +413,7 @@ function places(r){ const p = [...(r.countries||[]), ...(r.regions||[])]; return
 function match(r, skip){
   const s = st(r.id);
   if(skip !== "cats" && F.cats.length && !F.cats.includes(r.category)) return false;
-  const remoteRole = r.mode === "remote" && !["London / UK","Italy"].includes(r.focus);
+  const remoteRole = r.mode === "remote" && !["London / UK","Italy","Europe","Gulf"].includes(r.focus);
   if(remoteRole && F.tn === "yes" && r.tunisia !== "yes") return false;
   if(remoteRole && F.tn === "open" && r.tunisia === "no") return false;
   if(skip !== "fits" && F.fits.length && !F.fits.includes(r.fit || "—")) return false;
@@ -455,7 +455,7 @@ function renderFilters(){
     <b>Filters</b><span><button class="btn small ghost" id="resetF">Reset</button><button class="btn small ghost filterbtn" id="closeF">✕</button></span></div>
   <div class="fgroup"><h4>Status</h4><select data-s="status">
     ${[["review","To review (new + saved)"],["active","All active (incl. applied)"],["all","Everything"],...Object.entries(STATUSES)].map(([v,t]) => `<option value="${v}" ${F.status===v?"selected":""}>${t}</option>`).join("")}</select></div>
-  <div class="fgroup"><h4>📍 Where</h4>${ckList("focus", Object.entries(counts("focus", r => r.focus || "Other")).sort((a,b) => b[1]-a[1]), v => ({"London / UK":"🇬🇧 London / UK","Italy":"🇮🇹 Italy","Remote (Tunisia)":"🏠 Remote, open to Tunisia","Remote":"🏠 Remote (other)","Other":"🌐 Other"})[v] || esc(v))}</div>
+  <div class="fgroup"><h4>📍 Where</h4>${ckList("focus", Object.entries(counts("focus", r => r.focus || "Other")).sort((a,b) => b[1]-a[1]), v => ({"London / UK":"🇬🇧 London / UK","Italy":"🇮🇹 Italy","Europe":"🇪🇺 Rest of Europe","Gulf":"🕌 Gulf / Middle East","Remote (Tunisia)":"🏠 Remote, open to Tunisia","Remote":"🏠 Remote (❔ check eligibility)","Other":"🌐 Other"})[v] || esc(v))}</div>
   <div class="fgroup"><h4>🇹🇳 Remote jobs: open to Tunisia</h4><select data-s="tn">${[["open","Open or not stated (hide closed)"],["yes","Confirmed open to Tunisia only"],["any","Show everything"]].map(([v,t]) => `<option value="${v}" ${F.tn===v?"selected":""}>${t}</option>`).join("")}</select></div>
   <div class="fgroup"><h4>🎯 Fit for your profile</h4>${ckList("fits", Object.entries(counts("fits", r => r.fit || "—")).sort((a,b) => (FITRANK[b[0]]||0)-(FITRANK[a[0]]||0)), v => v==="—" ? "Scholarships & fellowships" : `${v==="Excellent"?"🟢":v==="Very good"?"🔵":"🟡"} ${esc(v)}`)}</div>
   <div class="fgroup"><h4>💰 Pay</h4><label class="toggle">Paid only (salary, stipend or funded)<input type="checkbox" data-b="paidOnly" ${F.paidOnly?"checked":""}></label></div>
@@ -498,7 +498,7 @@ function ringColor(s){ return s >= 65 ? "var(--good)" : s >= 45 ? "var(--warn)" 
 function badges(r){
   const b = [];
   if(r.fit) b.push(`<span class="bd ${r.fit==="Excellent"?"good":r.fit==="Very good"?"acc":"warn"}">🎯 ${esc(r.fit)} fit</span>`);
-  if(r.mode === "remote" && !["London / UK","Italy"].includes(r.focus)) b.push(r.tunisia==="yes" ? `<span class="bd good">✅ Open to Tunisia</span>` : r.tunisia==="no" ? `<span class="bd bad">⛔ Not open to Tunisia</span>` : `<span class="bd warn">❔ Check Tunisia eligibility</span>`);
+  if(r.mode === "remote" && !["London / UK","Italy","Europe","Gulf"].includes(r.focus)) b.push(r.tunisia==="yes" ? `<span class="bd good">✅ Open to Tunisia</span>` : r.tunisia==="no" ? `<span class="bd bad">⛔ Not open to Tunisia</span>` : `<span class="bd warn">❔ Check Tunisia eligibility</span>`);
   if(r.currency) b.push(`<span class="bd good">💵 ${esc(r.currency)}</span>`);
   if(r.visa === "sponsor") b.push(`<span class="bd good">🛂 Visa sponsorship</span>`);
   if(r.visa === "rtw") b.push(`<span class="bd bad">🛂 Needs right to work</span>`);
@@ -839,7 +839,7 @@ function notApplicable(id){
 }
 
 /* ---------- apply queue ---------- */
-function readyJobs(){ return L().filter(r => r.ai && ["new","saved"].includes(st(r.id)) && !(r.mode === "remote" && r.tunisia === "no" && !["London / UK","Italy"].includes(r.focus)) && !(r.company && muted.includes(r.company.toLowerCase())))
+function readyJobs(){ return L().filter(r => r.ai && ["new","saved"].includes(st(r.id)) && !(r.mode === "remote" && r.tunisia === "no" && !["London / UK","Italy","Europe","Gulf"].includes(r.focus)) && !(r.company && muted.includes(r.company.toLowerCase())))
   .sort((a,b) => (FITRANK[b.fit]||0) - (FITRANK[a.fit]||0) || (b.tunisia==="yes") - (a.tunisia==="yes") || b.score - a.score); }
 function startQueue(){ const q = readyJobs(); if(!q.length) return toast("No ready jobs yet. Generate kits first"); queue = {ids: q.map(r => r.id), i: 0}; dtab = "kit"; openDrawer(queue.ids[0]); }
 function queueNext(){ if(!queue) return; queue.i++; if(queue.i >= queue.ids.length){ queue = null; closeDrawer(); toast("🎉 Queue finished!"); return; } dtab = "kit"; openDrawer(queue.ids[queue.i]); }
@@ -856,7 +856,7 @@ function queueBar(){
 /* ---------- AI on demand ---------- */
 async function generate(r, btn){
   const old = btn.textContent; btn.disabled = true; btn.textContent = "✨ Writing… (≈30 s)";
-  const studentRule = (D.student_rules||{})[r.category] || D.student_no || "";
+  const studentRule = ["internship","fellowship"].includes(r.kind) ? (D.student_yes || "") : ((D.student_rules||{})[r.category] || D.student_no || "");
   const prompt = D.prompt.replace("{student_rule}", studentRule).replace("{profile}", D.profile).replace("{cv}", D.cv).replace("{kind}", r.kind).replace("{category}", r.category)
     .replace("{title}", r.title).replaceAll("{company}", r.company || "the selection committee").replace("{location}", r.location||"n/a")
     .replace("{mode}", r.mode).replace("{desc}", (r.description||"").slice(0,9000))

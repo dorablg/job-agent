@@ -66,7 +66,7 @@ def generate(job: Job, cv_text: str, cfg: dict) -> dict | None:
     if not llm.available():
         return None
     prompt = PROMPT.format(
-        student_rule=student_rule(job.category, cfg),
+        student_rule=student_rule(job.category, cfg, job.kind),
         profile=cfg.get("profile", ""), cv=cv_text[:12000], kind=job.kind, category=job.category, title=job.title,
         company=job.company or "the selection committee", location=job.location or "n/a", mode=job.work_mode,
         desc=job.description[:9000], matched=", ".join(job.matched) or "none",
@@ -74,10 +74,10 @@ def generate(job: Job, cv_text: str, cfg: dict) -> dict | None:
     )
     try:
         ai = llm.ask_json(prompt)
-        if not is_student(job.category, cfg) and mentions_studies(ai):  # one retry with a sharper reminder
+        if not is_student(job.category, cfg, job.kind) and mentions_studies(ai):  # one retry with a sharper reminder
             ai = llm.ask_json(prompt + "\n\nREMINDER: your previous answer mentioned her current studies. Remove every "
                               "mention of being a student, the polytechnic, or an engineering degree in progress.")
-        return scrub_studies(ai) if not is_student(job.category, cfg) else ai
+        return scrub_studies(ai) if not is_student(job.category, cfg, job.kind) else ai
     except llm.LLMUnavailable as ex:
         print(f"    AI writing skipped: {ex}")
         return None
@@ -94,15 +94,17 @@ STUDY_RE = re.compile(r"polytech|engineering degree|currently (studying|enrolled
                       r"ongoing studies|my studies|alongside my studies|expected graduation|cycle d.ing", re.I)
 
 
-def is_student(category: str, cfg: dict) -> bool:
+def is_student(category: str, cfg: dict, kind: str = "") -> bool:
+    if kind in ("internship", "fellowship"):
+        return True
     for c in cfg.get("categories", []):
         if c.get("name") == category:
             return bool(c.get("student", c.get("kinds") != ["job"]))
     return False
 
 
-def student_rule(category: str, cfg: dict) -> str:
-    return STUDENT_YES if is_student(category, cfg) else STUDENT_NO
+def student_rule(category: str, cfg: dict, kind: str = "") -> str:
+    return STUDENT_YES if is_student(category, cfg, kind) else STUDENT_NO
 
 
 def mentions_studies(ai) -> bool:

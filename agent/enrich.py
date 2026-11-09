@@ -31,6 +31,8 @@ REGIONS = {"Worldwide": ["worldwide", "anywhere", "global", "remote - anywhere",
            "Europe": ["europe", "eu ", "emea", "european"], "Africa": ["africa", "african"],
            "MENA": ["mena", "middle east", "north africa"], "Asia": ["asia", "apac"], "Americas": ["americas", "latam", "latin america"]}
 LANGS = ["English", "French", "German", "Spanish", "Arabic", "Italian", "Portuguese", "Dutch", "Polish", "Turkish",
+         "Croatian", "Serbian", "Slovak", "Slovenian", "Ukrainian", "Lithuanian", "Latvian", "Estonian", "Flemish", "Hindi",
+         "Thai", "Vietnamese", "Indonesian", "Malay",
          "Japanese", "Chinese", "Mandarin", "Korean", "Russian", "Swedish", "Danish", "Norwegian", "Greek", "Bulgarian",
          "Romanian", "Czech", "Hebrew", "Finnish", "Hungarian"]
 MONTHS = "january february march april may june july august september october november december".split()
@@ -120,7 +122,7 @@ def languages(text: str) -> list[str]:
         if re.search(rf"\b(fluent|fluency|native|proficien\w*|business[- ]level|written and spoken|speak\w*|c1|c2|b2)\b[^.\n]{{0,40}}\b{l}\b"
                      rf"|\b{l}\b[^.\n]{{0,25}}\b(speaker|fluency|fluent|proficien\w*|native|language|required|skills)\b", t):
             out.append(lang)
-        elif re.search(rf"(?<![a-z]){l}[- ]speaking", t[:300]):  # "Greek Speaking Support Specialist"
+        elif re.search(rf"(?<![a-z]){l}[- ](speaking|speakers?|market|native)", t[:300]):  # "Greek Speaking ...", "German Speakers", "Czech Market"
             out.append(lang)
     return out
 
@@ -225,6 +227,15 @@ def apply(r: dict) -> dict:
     elif re.search(r"ital|milan|rome|roma|turin|torino|bologna|florence|firenze|naples|venice|padua|pisa|trento|verona",
                    f"{r.get('location', '')} {r.get('title', '')}", re.I):
         r["focus"] = "Italy"
+    elif re.search(r"\b(uae|united arab emirates|dubai|abu dhabi|qatar|doha|saudi|riyadh|jeddah|bahrain|kuwait|oman|muscat)\b",
+                   f"{r.get('location', '')} {r.get('title', '')}", re.I) and r.get("mode") != "remote":
+        r["focus"] = "Gulf"
+    elif re.search(r"europe|\bemea\b|germany|berlin|munich|hamburg|frankfurt|cologne|netherlands|amsterdam|rotterdam|utrecht|"
+                   r"eindhoven|ireland|dublin|cork|spain|madrid|barcelona|valencia|belgium|brussels|antwerp|ghent|switzerland|"
+                   r"zurich|z\u00fcrich|geneva|lausanne|basel|austria|vienna|portugal|lisbon|porto|sweden|stockholm|denmark|"
+                   r"copenhagen|finland|helsinki|norway|oslo|estonia|tallinn|luxembourg|poland|warsaw|krakow|czech|prague|"
+                   r"malta|cyprus|greece|athens|lithuania|vilnius|latvia|riga", r.get("location", ""), re.I) and r.get("mode") != "remote":
+        r["focus"] = "Europe"
     elif r.get("mode") == "remote":
         r["focus"] = "Remote (Tunisia)" if r.get("tunisia") == "yes" else "Remote"
     else:

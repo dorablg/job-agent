@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from . import enrich
@@ -226,6 +226,12 @@ def score_jobs(jobs: list[Job], cv_text: str, cfg: dict) -> list[Job]:
         yrs = enrich.experience_years(full)
         if j.kind == "job" and yrs is not None and yrs > f.get("max_experience_years", 99):
             continue
+        dl = enrich.deadline_strict(full) or (enrich.deadline(full) if j.kind in ("fellowship", "event") else "")
+        if dl and dl < date.today().isoformat():
+            continue  # deadline passed
+        yr = re.search(r"\b(20\d\d)\b", j.title)
+        if yr and int(yr.group(1)) < date.today().year and not re.search(r"\b20\d\d\s*[/-]\s*\d{2,4}\b", j.title):
+            continue  # "... 2025" programme in 2026 = already over
         if j.kind not in ("fellowship", "event") and foreign_language_required(full, f.get("exclude_required_languages", [])):
             continue
         m = re.search(r"(?<![a-z])(?:work|based|relocat[a-z]*) (?:in|to) ([a-z]+)", j.title.lower())

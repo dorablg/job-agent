@@ -6,7 +6,7 @@ import json
 import time
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 
 import feedparser
@@ -253,6 +253,10 @@ def workable(_terms, searches: list[dict] | None = None) -> list[Job]:
     return out
 
 
+BOARDS_OK: set[str] = set()   # "ashby-monzo" ... boards that answered this run
+LIVE_IDS: set[str] = set()    # every posting id those boards still list
+
+
 def company_boards(_terms, boards: dict | None = None) -> list[Job]:
     """Jobs from company career pages (Greenhouse / Lever / Ashby), kept only in London, UK or Italy."""
     out = []
@@ -276,6 +280,8 @@ def company_boards(_terms, boards: dict | None = None) -> list[Job]:
                         for j in data.get("jobs", []) if j.get("isListed", True)]
         except Exception:
             continue
+        BOARDS_OK.add(f"{ats}-{company}")
+        LIVE_IDS.update(f"{ats}-{company}-{r[0]}" for r in rows)
         name = {"trading212": "Trading 212", "complyadvantage": "ComplyAdvantage", "gocardless": "GoCardless",
                 "oaknorth": "OakNorth", "truelayer": "TrueLayer", "elevenlabs": "ElevenLabs", "sumup": "SumUp",
                 "9fin": "9fin"}.get(company, company.title())
@@ -367,6 +373,41 @@ def rss_kind(title: str, body: str) -> str:
     return detect_kind(title, body)
 
 
+def wp_search(_terms, opts: dict | None = None) -> list[Job]:
+    """Searches opportunity sites (WordPress) and reads FULL posts, so real deadlines and funding details are known."""
+    opts = opts or {}
+    after = (datetime.now(timezone.utc) - timedelta(days=opts.get("days", 75))).strftime("%Y-%m-%dT00:00:00")
+    out, seen = [], set()
+    for site in opts.get("sites", []):
+        for q in opts.get("queries", []):
+            try:
+                r = requests.get(site.rstrip("/") + "/wp-json/wp/v2/posts", headers=UA, timeout=TIMEOUT,
+                                 params={"search": q, "per_page": opts.get("per_query", 30), "after": after,
+                                         "_fields": "id,link,date,title,content"})
+                posts = r.json() if r.ok else []
+            except Exception:
+                continue
+            if not isinstance(posts, list):
+                continue
+            for p in posts:
+                link = p.get("link", "")
+                if not link or link in seen:
+                    continue
+                seen.add(link)
+                title = clean((p.get("title") or {}).get("rendered", ""))
+                body = clean((p.get("content") or {}).get("rendered", ""))[:9000]
+                if re.match(r"^\d+\s+\w+", title) or re.search(r"\b(how to|tips|currently open|list of)\b", title, re.I):
+                    continue  # round-up / advice articles, not an opportunity
+                out.append(Job(
+                    id=f"wp-{link}", title=title, company="", url=link, description=body,
+                    location="", source=re.sub(r"^https?://(www\.)?", "", site).split("/")[0],
+                    kind=rss_kind(title, body), work_mode=detect_mode(f"{title} {body[:800]}"),
+                    posted=_dt(p.get("date")),
+                ))
+            time.sleep(0.2)
+    return out
+
+
 def rss(feeds: list[str]) -> list[Job]:
     """Fellowship / scholarship / internship feeds (Opportunity Desk etc.)."""
     out = []
@@ -394,6 +435,7 @@ SOURCES = {
     "workable": workable,
     "company_boards": company_boards,
     "jobs_ac_uk": jobs_ac_uk,
+    "wp_search": wp_search,
     "remotive": remotive,
     "remoteok": remoteok,
     "arbeitnow": arbeitnow,
@@ -412,7 +454,7 @@ def fetch_all(cfg: dict, log=print) -> list[Job]:
             continue
         try:
             extra = {"workable": cfg.get("workable_searches"), "company_boards": cfg.get("company_boards"),
-                     "jobs_ac_uk": cfg.get("jobs_ac_uk_queries")}
+                     "jobs_ac_uk": cfg.get("jobs_ac_uk_queries"), "wp_search": cfg.get("opportunity_search")}
             got = SOURCES[name](terms, extra[name]) if name in extra else SOURCES[name](terms)
             log(f"  {name}: {len(got)}")
             jobs += got

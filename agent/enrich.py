@@ -82,7 +82,60 @@ def _parse_date(s: str) -> str:
     return ""
 
 
+_MONTHS = {m[:3]: i + 1 for i, m in enumerate(MONTHS)}
+
+
+def _ymd(day: int, month: int, year: int | None) -> str:
+    from datetime import date as _d
+    today = _d.today()
+    if year is None:  # "Deadline: Nov. 2" -> this year, or next year if that was long ago
+        year = today.year
+        try:
+            if (today - _d(year, month, day)).days > 120:
+                year += 1
+        except ValueError:
+            return ""
+    try:
+        return _d(year, month, day).isoformat()
+    except ValueError:
+        return ""
+
+
+def deadline_strict(text: str) -> str:
+    """Finds 'Deadline: December 5, 2026', '8th January 2027', 'Nov. 2', 'Dec 2026', ISO dates. '' if unknown."""
+    for m in re.finditer(r"(?:application\s+)?(?:deadline|apply by|applications? (?:close|closes|due)|closing date|due date|"
+                         r"submission deadline|last date)\s*(?:is|on|:|–|-|—)?\s*(?:\w+day,?\s*)?([^\n|]{0,40})", text, re.I):
+        s = m.group(1).strip()
+        if re.match(r"(unspecified|varies|rolling|open|tba|tbc|ongoing|n/?a)", s, re.I):
+            continue
+        d = re.match(r"(\d{4})-(\d{2})-(\d{2})", s)
+        if d:
+            return _ymd(int(d.group(3)), int(d.group(2)), int(d.group(1)))
+        d = re.match(r"(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?([A-Za-z]{3,9})\.?,?\s*(\d{4})?", s)
+        if d and d.group(2)[:3].lower() in _MONTHS:
+            return _ymd(int(d.group(1)), _MONTHS[d.group(2)[:3].lower()], int(d.group(3)) if d.group(3) else None)
+        d = re.match(r"([A-Za-z]{3,9})\.?\s+(\d{1,2})(?!\d)(?:st|nd|rd|th)?,?\s*(\d{4})?", s)
+        if d and d.group(1)[:3].lower() in _MONTHS:
+            return _ymd(int(d.group(2)), _MONTHS[d.group(1)[:3].lower()], int(d.group(3)) if d.group(3) else None)
+        d = re.match(r"([A-Za-z]{3,9})\.?\s+(\d{4})", s)  # "Dec 2026" -> end of that month
+        if d and d.group(1)[:3].lower() in _MONTHS:
+            import calendar
+            mo, yr = _MONTHS[d.group(1)[:3].lower()], int(d.group(2))
+            return _ymd(calendar.monthrange(yr, mo)[1], mo, yr)
+        d = re.match(r"(\d{1,2})/(\d{1,2})/(\d{4})", s)
+        if d:
+            return _ymd(int(d.group(1)), int(d.group(2)), int(d.group(3)))
+    return ""
+
+
 def deadline(text: str) -> str:
+    strict = deadline_strict(text)
+    if strict:
+        return strict
+    return _deadline_loose(text)
+
+
+def _deadline_loose(text: str) -> str:
     m = re.search(r"(?:deadline|apply by|applications? (?:close|closes|due)|closing date|submit .{0,30}? by|due date)"
                   r"[^0-9a-z]{0,25}(?:is|on|:)?\s*(?:\w+day,?\s*)?"
                   r"(\d{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]{3,9},?\s+\d{4}|[A-Za-z]{3,9}\s+\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4}|\d{4}-\d{2}-\d{2})",

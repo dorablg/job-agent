@@ -56,15 +56,16 @@ funding_words: &funding [fully funded, fully-funded, all expenses, all-expenses,
   travel grant, travel grants, travel support, travel award, travel scholarship, travel bursary, flight, flights, airfare,
   air ticket, air tickets, airline ticket, round-trip, return ticket, accommodation, lodging, hotel, visa fee, visa fees,
   per diem, daily allowance, stipend, funded, covered]
-tech_words: &tech [ai, artificial intelligence, machine learning, deep learning, data, data science, technology, tech,
-  digital, innovation, stem, computer, computing, software, coding, programming, cyber, cybersecurity, fintech, blockchain,
-  startup, startups, entrepreneurship, robotics, internet governance, ict, engineering, science, quantum, cloud, google,
-  microsoft, open source, hackathon]
+tech_words: &tech [ai, artificial intelligence, machine learning, deep learning, data science, technology, tech,
+  computer science, computing, software, coding, programming, cyber, cybersecurity, fintech, blockchain, startup,
+  startups, tech entrepreneurship, robotics, internet governance, ict, quantum, cloud, google, microsoft, nvidia,
+  open source, hackathon, stem, digital innovation, digital transformation, developer, developers]
 not_for_you: &notforyou [us citizens, american citizens, americans only, canadians, canadian citizens, eu citizens only,
   nigerian, nigerians, kenyan, kenyans, ghanaian, ghanaians, pakistani, pakistanis, indian students, indians, south african,
   south africans, sadc, ecowas, west african, west africa, east african, east africa, sub-saharan, latin american,
   caribbean, asean, filipino, indonesian, bangladeshi, nepali, sri lankan, zimbabwean, ugandan, rwandan, tanzanian,
-  ethiopian, zambian, malawian, cameroonian, egyptian students only, turkish citizens, saudi nationals, emirati, how to,
+  ethiopian, zambian, malawian, cameroonian, egyptian students only, turkish citizens, saudi nationals, emirati,
+  secondary school, high school, journalism, journalist, journalists, media fellowship, film, filmmakers, artists, how to,
   tips, ways to, list of, currently open, top, best]
 finance_words: &finance [fintech, payments, payment, bank, banking, trading, credit, lending, fraud, financial, finance,
   insurance, insurtech, wealth, investment, crypto, blockchain, risk, aml, kyc, neobank, card, card issuing, treasury]
@@ -430,13 +431,24 @@ filters:
     must reside in the united states, located in the united states, us work authorization, authorized to work in the us]
   allowed_locations: []            # location is decided per category now
 
-min_score: 45                 # 0-100; raise to get fewer, better alerts
+min_score: 40                 # 0-100; raise to get fewer, better alerts
 max_alerts_per_run: 15
 max_ai_tailoring_per_run: 6   # new matches that get a full apply kit each run (free AI quota)
 max_backfill_kits_per_run: 6  # older good matches that still have no kit
 notify_when_empty: false
 
-sources: [workable, company_boards, jobs_ac_uk, remotive, remoteok, jobicy, himalayas]
+sources: [workable, company_boards, jobs_ac_uk, wp_search, remotive, remoteok, jobicy, himalayas]
+
+# Deep search of opportunity sites: FULL posts (real deadlines, funding details), last 75 days.
+opportunity_search:
+  days: 75
+  per_query: 30
+  sites: [https://opportunitydesk.org, https://opportunitiescorners.com, https://www.opportunitiesforafricans.com,
+    https://opportunitiescircle.com]
+  queries: [fully funded conference, travel grant, fully funded exchange, exchange program, summer school, winter school,
+    summer program, hackathon, bootcamp, youth summit, leadership program, artificial intelligence, machine learning,
+    data science, technology, fintech, women in tech, startup, innovation, digital, fully funded fellowship,
+    fully funded scholarship, internship, virtual internship, remote, part-time, competition, training program]
 
 # Fellowships / scholarships / internships RSS feeds (add any WordPress site's /feed/).
 rss_feeds:

@@ -298,7 +298,7 @@ const MODELS = ["gemini-3.5-flash","gemini-3.5-flash-lite","gemini-flash-latest"
 const FLAGS = {"United States":"🇺🇸","United Kingdom":"🇬🇧","Germany":"🇩🇪","France":"🇫🇷","Tunisia":"🇹🇳","Canada":"🇨🇦","Netherlands":"🇳🇱","Spain":"🇪🇸","Italy":"🇮🇹","Portugal":"🇵🇹","Belgium":"🇧🇪","Switzerland":"🇨🇭","Austria":"🇦🇹","Ireland":"🇮🇪","Poland":"🇵🇱","Sweden":"🇸🇪","Denmark":"🇩🇰","Norway":"🇳🇴","Finland":"🇫🇮","Czechia":"🇨🇿","Romania":"🇷🇴","Greece":"🇬🇷","Hungary":"🇭🇺","Estonia":"🇪🇪","Luxembourg":"🇱🇺","Morocco":"🇲🇦","Egypt":"🇪🇬","Algeria":"🇩🇿","Nigeria":"🇳🇬","Kenya":"🇰🇪","South Africa":"🇿🇦","Ghana":"🇬🇭","Rwanda":"🇷🇼","UAE":"🇦🇪","Saudi Arabia":"🇸🇦","Qatar":"🇶🇦","Turkey":"🇹🇷","India":"🇮🇳","Japan":"🇯🇵","South Korea":"🇰🇷","China":"🇨🇳","Singapore":"🇸🇬","Australia":"🇦🇺","Brazil":"🇧🇷","Mexico":"🇲🇽","Argentina":"🇦🇷","Philippines":"🇵🇭","Taiwan":"🇹🇼","Israel":"🇮🇱","Malaysia":"🇲🇾","Worldwide":"🌍","Europe":"🇪🇺","Africa":"🌍","MENA":"🌍","Asia":"🌏","Americas":"🌎"};
 // Windows can't draw flag emojis: use a pin there
 if(/Win/i.test(navigator.platform || navigator.userAgent)) for(const k in FLAGS) if(/^[\u{1F1E6}-\u{1F1FF}]/u.test(FLAGS[k])) FLAGS[k] = "📍";
-const DEFAULT_F = {focus:[],tn:"open",fits:[],cats:[],places:[],modes:[],emp:[],paidOnly:false,exp:"any",degree:"any",langs:["English","French","Arabic"],langStrict:false,deadline:"any",posted:"any",minScore:0,minAts:0,status:"review"};
+const DEFAULT_F = {focus:[],tn:"open",fits:[],cats:[],places:[],modes:[],emp:[],paidOnly:false,exp:"any",degree:"any",langs:["English","French","Arabic"],langStrict:false,deadline:"open",posted:"any",minScore:0,minAts:0,status:"review"};
 
 let D = null, track = {}, F = {...DEFAULT_F}, lastSeen = "", view = "discover", openId = null, dtab = "overview";
 const $ = s => document.querySelector(s);
@@ -367,7 +367,7 @@ const L = () => D.listings;
 function init(){
   track = store("track") || {};
   F = Object.assign({...DEFAULT_F}, store("filters") || {});
-  if(store("filtersV") !== 3){ F = {...DEFAULT_F}; store("filters", F); store("filtersV", 3); }
+  if(store("filtersV") !== 4){ F = {...DEFAULT_F}; store("filters", F); store("filtersV", 4); }
   muted = store("muted") || [];
   const cache = store("aiCache2") || {};
   L().forEach(r => { if(!r.ai && cache[r.id]) r.ai = cache[r.id]; });

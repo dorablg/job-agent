@@ -165,6 +165,18 @@ def run(dry: bool = False) -> int:
                 upd["ai"] = dashboard.record(jb, ai)["ai"]
                 listings[r["id"]] = upd
                 print(f"  kit backfilled: {r['title'][:60]}")
+        # keep the website fresh: remove anything past its deadline, and jobs the company has taken down
+        from datetime import date as _date
+        from . import enrich, sources as _src
+        today, removed = _date.today().isoformat(), 0
+        for k in list(listings):
+            r = listings[k]
+            dl = enrich.apply(dict(r)).get("deadline") or ""
+            board = "-".join(k.split("-")[:2])
+            if (dl and dl < today) or (board in _src.BOARDS_OK and k not in _src.LIVE_IDS):
+                del listings[k]
+                removed += 1
+        print(f"Removed {removed} expired or closed listings")
         dashboard.save(listings)
         notify = (lambda text, link: telegram.send_text(text, url=link, button="📧 Open in Gmail")) if send else None
         responses = gmail.check(listings, notify)

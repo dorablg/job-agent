@@ -359,8 +359,8 @@ filters:
 
 min_score: 45                 # 0-100; raise to get fewer, better alerts
 max_alerts_per_run: 15
-max_ai_tailoring_per_run: 8   # new matches that get a full apply kit each run (free AI quota)
-max_backfill_kits_per_run: 8  # older good matches that still have no kit
+max_ai_tailoring_per_run: 6   # new matches that get a full apply kit each run (free AI quota)
+max_backfill_kits_per_run: 6  # older good matches that still have no kit
 notify_when_empty: false
 
 sources: [workable, company_boards, jobs_ac_uk, remotive, remoteok, jobicy, himalayas]

@@ -137,9 +137,40 @@ ITALIAN = re.compile(r"\b(della|delle|degli|nella|sono|esperienza|lavoro|azienda
                      r"offriamo|siamo|cerchiamo|stiamo|ruolo|sede)\b", re.I)
 
 
+STOPWORDS = {
+    "Italian": "il lo la gli le di del della delle degli dei per con che una uno nel nella sono siamo esperienza lavoro "
+               "azienda requisiti offriamo cerchiamo ruolo sede anche come delle presso nostro nostra attività",
+    "German": "der die das und mit für wir sind ist eine einen nicht auf bei oder sie ihre zur zum von als auch "
+              "unser unsere aufgaben profil erfahrung kenntnisse arbeit bieten",
+    "Dutch": "de het een en van voor met wij zijn je jouw ons onze bij als ook naar werk ervaring functie kennis bieden",
+    "Spanish": "el la los las y de del para con que una por nuestro nuestra experiencia trabajo empresa ofrecemos "
+               "buscamos requisitos puesto",
+    "Portuguese": "o a os as e de do da para com que uma por nosso nossa experiência trabalho empresa oferecemos",
+    "Polish": "i w z na do dla oraz jest się nie że jak praca doświadczenie wymagania oferujemy firma",
+}
+_STOP = {lang: set(words.split()) for lang, words in STOPWORDS.items()}
+
+
+def written_in(text: str) -> str:
+    """Language the posting is mostly written in, if it's one of the languages above (else '')."""
+    words = re.findall(r"[a-zà-ÿąćęłńóśźż]+", text[:2500].lower())
+    if len(words) < 25:
+        return ""
+    best, share = "", 0.0
+    eng = sum(1 for w in words if w in {"the", "and", "with", "for", "you", "our", "will", "are", "of", "to", "in"})
+    for lang, stop in _STOP.items():
+        hits = sum(1 for w in words if w in stop)
+        if hits / len(words) > share:
+            best, share = lang, hits / len(words)
+    return best if share > 0.12 and share * len(words) > eng * 1.3 else ""
+
+
 def foreign_language_required(text: str, banned: list[str]) -> bool:
-    """True if the posting requires a language you don't speak, or is written in Italian."""
+    """True if the posting requires a language you don't speak, or is written in one."""
     if banned and any(l in banned for l in enrich.languages(text)):
+        return True
+    lang = written_in(text)
+    if lang and lang in banned:
         return True
     return "Italian" in banned and len(ITALIAN.findall(text[:3000])) >= 6
 

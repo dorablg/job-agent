@@ -47,6 +47,8 @@ def record(j: Job, ai: dict | None) -> dict:
         "description": j.description[:6000],
         "found": datetime.now(timezone.utc).isoformat(),
     }
+    if getattr(j, "check", None):
+        r["check"] = j.check
     if ai:
         r["ai"] = {k: ai.get(k) for k in ("fit_summary", "ats_score_estimate", "keywords_to_add", "skill_gaps",
                                           "tailored_headline", "tailored_summary", "tailored_skills",

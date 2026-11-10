@@ -25,11 +25,11 @@ _GEMINI_MODELS = [m for m in [os.getenv("GEMINI_MODEL"), "gemini-3.5-flash", "ge
                                "gemini-flash-latest"] if m]
 
 
-def _gemini(prompt: str) -> str:
+def _gemini(prompt: str, models: list[str] | None = None, temperature: float = 0.6) -> str:
     last = None
-    for model in _GEMINI_MODELS:  # Google retires models often: fall through to the next one
+    for model in (models or []) + _GEMINI_MODELS:  # Google retires models often: fall through to the next one
         try:
-            return _gemini_model(prompt, model)
+            return _gemini_model(prompt, model, temperature)
         except requests.HTTPError as ex:
             last = ex
             if ex.response is None or ex.response.status_code not in (404, 400, 429, 500, 503):
@@ -39,19 +39,19 @@ def _gemini(prompt: str) -> str:
     raise last
 
 
-def _gemini_model(prompt: str, model: str) -> str:
+def _gemini_model(prompt: str, model: str, temperature: float = 0.6) -> str:
     r = requests.post(
         f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
         headers={"x-goog-api-key": os.environ["GEMINI_API_KEY"], "Content-Type": "application/json"},
         json={"contents": [{"parts": [{"text": prompt}]}],
-              "generationConfig": {"temperature": 0.6, "responseMimeType": "application/json"}},
+              "generationConfig": {"temperature": temperature, "responseMimeType": "application/json"}},
         timeout=120,
     )
     r.raise_for_status()
     return r.json()["candidates"][0]["content"]["parts"][0]["text"]
 
 
-def _groq(prompt: str) -> str:
+def _groq(prompt: str, models: list[str] | None = None, temperature: float = 0.6) -> str:
     r = requests.post(
         "https://api.groq.com/openai/v1/chat/completions",
         headers={"Authorization": f"Bearer {os.environ['GROQ_API_KEY']}"},
@@ -64,7 +64,8 @@ def _groq(prompt: str) -> str:
     return r.json()["choices"][0]["message"]["content"]
 
 
-def ask_json(prompt: str) -> dict:
+def ask_json(prompt: str, models: list[str] | None = None, temperature: float = 0.6) -> dict:
+    """models: Gemini models to try first (e.g. a lighter one for quick screening)."""
     backends = []
     if os.getenv("GEMINI_API_KEY"):
         backends.append(_gemini)
@@ -76,7 +77,7 @@ def ask_json(prompt: str) -> dict:
     for fn in backends:
         for attempt in range(3):
             try:
-                text = fn(prompt)
+                text = fn(prompt, models, temperature)
                 text = re.sub(r"^```(json)?|```$", "", text.strip(), flags=re.M).strip()
                 return json.loads(text)
             except requests.HTTPError as ex:

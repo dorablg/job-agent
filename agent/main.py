@@ -17,7 +17,7 @@ from pathlib import Path
 
 import yaml
 
-from . import dashboard, gmail, llm, tailor, telegram
+from . import dashboard, gmail, llm, screen, tailor, telegram
 from .match import find_cv, load_cv, score_jobs
 from .sources import Job, fetch_all
 
@@ -64,6 +64,10 @@ def format_card(j, ai: dict | None) -> str:
         + (f"  ·  ATS keywords <b>{j.ats:.0f}%</b>" if j.kind != "fellowship" or j.ats else "")
         + (f" → ~{e(ai.get('ats_score_estimate'))}% after tailoring" if ai and ai.get("ats_score_estimate") else ""),
     ]
+    if j.check:
+        visa = {"none": "no visa needed", "offered": "visa sponsorship offered", "needed": "visa needed",
+                "blocked": "no sponsorship"}.get(j.check.get("visa", ""), "")
+        lines.append(f"🤖 Chance <b>{j.check.get('chance', 0)}%</b> — {e(j.check.get('why', ''))}" + (f" · 🛂 {visa}" if visa else ""))
     if j.salary:
         lines.append(f"💰 {e(j.salary)}")
     if j.posted:
@@ -104,10 +108,29 @@ def run(dry: bool = False) -> int:
         fresh.append(j)
     print(f"{len(jobs)} fetched, {len(fresh)} new")
 
-    matches = score_jobs(fresh, cv_text, cfg)
+    curated_items = [j for j in jobs if j.source.startswith("Curated")]
+    matches = score_jobs([j for j in fresh if not j.source.startswith("Curated")], cv_text, cfg)
+    # AI screening: read each new match against her real profile; keep only relevant, realistic ones
+    cap = cfg.get("screen_new_per_run", 200)
+    verdicts = screen.screen([dashboard.record(j, None) for j in matches[:cap]])
+    for j in matches:
+        j.check = verdicts.get(j.id)
+    dropped = [j for j in matches if j.check is not None and not screen.passes(j.check)]
+    matches = [j for j in matches if j.check is None or screen.passes(j.check)]
+    matches.sort(key=lambda j: ((j.check or {}).get("chance", 0), j.score), reverse=True)
+    print(f"AI screening: {len(verdicts)} checked, {len(dropped)} dropped as irrelevant or out of reach")
+    if not dry:
+        for j in dropped:  # never look at them again
+            seen[j.id] = datetime.now(timezone.utc).isoformat()
+    from datetime import date as _d
+    from . import enrich as _en
+    today_iso = _d.today().isoformat()
+    curated_items = [j for j in curated_items if not ((_en.deadline_strict(j.description) or "9999") < today_iso)]
+    new_curated = [j for j in curated_items if j.id not in seen]
+    matches = new_curated + matches
     limit = cfg.get("max_alerts_per_run", 8)
     ai_limit = cfg.get("max_ai_tailoring_per_run", 5)
-    top = matches[:limit]
+    top = [j for j in matches if j.check][:limit]  # only screened ones go to Telegram
     print(f"{len(matches)} match your profile; sending top {len(top)}")
 
     send = telegram.configured() and not dry
@@ -141,12 +164,24 @@ def run(dry: bool = False) -> int:
             seen[dedupe_key(j)] = now
     if dashboard.enabled() and not dry:
         listings = dashboard.load()
-        for j in matches:  # every match goes on the website, even beyond the Telegram limit
+        for j in curated_items + matches:  # every match goes on the website, even beyond the Telegram limit
             dashboard.upsert(listings, dashboard.record(j, tailored.get(j.id)))
+        # screen older listings that were never checked; remove the ones that don't fit
+        todo_screen = [r for r in listings.values() if "check" not in r][:cfg.get("screen_backfill_per_run", 120)]
+        if todo_screen:
+            old = screen.screen(todo_screen)
+            gone = 0
+            for k, v in old.items():
+                if screen.passes(v):
+                    listings[k]["check"] = v
+                else:
+                    listings.pop(k, None)
+                    gone += 1
+            print(f"AI screening of older listings: {len(old)} checked, {gone} removed")
         # backfill: older good matches that still have no apply kit (best fit first)
         rank = {"Excellent": 3, "Very good": 2, "Good": 1}
-        todo = sorted((r for r in listings.values() if "ai" not in r and r.get("fit")),
-                      key=lambda r: (rank.get(r.get("fit"), 0), r.get("score", 0)), reverse=True)
+        todo = sorted((r for r in listings.values() if "ai" not in r and r.get("check")),
+                      key=lambda r: ((r.get("check") or {}).get("chance", 0), rank.get(r.get("fit"), 0)), reverse=True)
         have = {(r["title"].lower(), r.get("company", "").lower()) for r in listings.values() if "ai" in r}
         uniq, keys = [], set()
         for r in todo:  # the same posting can appear twice (two sources): build its kit once
@@ -173,7 +208,10 @@ def run(dry: bool = False) -> int:
             r = listings[k]
             dl = enrich.apply(dict(r)).get("deadline") or ""
             board = "-".join(k.split("-")[:2])
-            if (dl and dl < today) or (board in _src.BOARDS_OK and k not in _src.LIVE_IDS):
+            from .match import written_in
+            lang = written_in(f"{r.get('title', '')} {r.get('description', '')}")
+            foreign = lang and lang in cfg.get("filters", {}).get("exclude_required_languages", [])
+            if (dl and dl < today) or (board in _src.BOARDS_OK and k not in _src.LIVE_IDS) or foreign:
                 del listings[k]
                 removed += 1
         print(f"Removed {removed} expired or closed listings")

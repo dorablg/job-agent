@@ -34,6 +34,7 @@ class Job:
     # filled later
     category: str = ""
     fit: str = ""                # Excellent | Very good | Good (target jobs)
+    check: dict | None = None    # AI screening verdict: keep, chance, family, visa, why
     employment: str = ""         # full-time | part-time | ""
     score: float = 0.0
     ats: float = 0.0
@@ -428,6 +429,97 @@ def adzuna(_terms, opts: dict | None = None) -> list[Job]:
     return out
 
 
+def curated(_terms, items: list | None = None) -> list[Job]:
+    """Hand-picked programs found by web research (volunteer calls, ambassador programs, AI schools...).
+    They stay listed until their deadline passes; 'rolling' ones stay until removed from config.yaml."""
+    out = []
+    for it in items or []:
+        dl = str(it.get("deadline", "")).strip()
+        desc = it.get("description", "") + (f"\nDeadline: {dl}" if re.match(r"\d{4}-\d{2}-\d{2}", dl) else
+                                            f"\nApplication window: {dl or 'rolling'} (check the official page).")
+        j = Job(id="curated-" + re.sub(r"[^a-z0-9]+", "-", it["title"].lower()).strip("-")[:60], title=it["title"],
+                company=it.get("org", ""), url=it["url"], description=desc, location=it.get("location", "Online"),
+                source="Curated (web research)", kind=it.get("kind", "event"),
+                work_mode=it.get("mode", "remote"))
+        j.category = it.get("category", "")
+        j.fit = "Excellent"
+        j.score = 95.0
+        j.check = {"keep": True, "chance": int(it.get("chance", 70)), "family": it.get("family", "event"),
+                   "visa": it.get("visa", "none"), "why": it.get("why", "")}
+        out.append(j)
+    return out
+
+
+def devpost(_terms, opts: dict | None = None) -> list[Job]:
+    """Open & upcoming hackathons on Devpost (most are online, so joinable from Tunisia)."""
+    opts = opts or {}
+    out, seen = [], set()
+    for theme in opts.get("themes", [""]):
+        for page in range(1, opts.get("pages", 2) + 1):
+            params = {"status[]": ["upcoming", "open"], "per_page": 50, "page": page, "order_by": "deadline"}
+            if theme:
+                params["themes[]"] = theme
+            try:
+                hs = _get("https://devpost.com/api/hackathons", params=params).get("hackathons", [])
+            except Exception:
+                break
+            for h in hs:
+                if h.get("id") in seen:
+                    continue
+                seen.add(h.get("id"))
+                dates = h.get("submission_period_dates", "")  # "Oct 01 - Nov 12, 2026"
+                m = re.search(r"-\s*([A-Za-z]{3})\s+(\d{1,2}),\s*(\d{4})", dates) or re.search(r"([A-Za-z]{3})\s+(\d{1,2}),\s*(\d{4})", dates)
+                end = f"{m.group(2)} {m.group(1)} {m.group(3)}" if m else ""
+                loc = (h.get("displayed_location") or {}).get("location", "Online")
+                themes = ", ".join(t.get("name", "") for t in h.get("themes") or [])
+                prize = clean(str(h.get("prize_amount", "")))
+                desc = (f"Hackathon by {h.get('organization_name') or 'Devpost'}. Themes: {themes}. Prizes: {prize}. "
+                        f"Submission period: {dates}. Registrations: {h.get('registrations_count', '')}. "
+                        f"{'Online event: join from anywhere.' if 'online' in loc.lower() else 'In-person event in ' + loc + '.'} "
+                        f"Free to join. Technology / coding hackathon." + (f"\nDeadline: {end}" if end else ""))
+                out.append(Job(
+                    id=f"devpost-{h.get('id')}", title=f"{h.get('title', '')} (hackathon)", company=h.get("organization_name") or "Devpost",
+                    url=h.get("url", ""), description=desc, location=loc, source="Devpost", kind="event",
+                    work_mode="remote" if "online" in loc.lower() else "onsite", salary=prize,
+                ))
+    return out
+
+
+def gdg_events(_terms, opts: dict | None = None) -> list[Job]:
+    """Google Developer Groups events: online AI events, events of chapters in your places (incl. Tunisia)."""
+    from .match import written_in  # local import: match imports this module
+    opts = opts or {}
+    places = [p.lower() for p in opts.get("chapters", [])]
+    topic = re.compile(opts.get("topics_regex", r"\b(ai|ml|gemini|machine learning|deep learning|data|llm|genai|devfest|"
+                                                r"build with ai|tensorflow|keras|cloud|agent|fintech|hackathon)\b"), re.I)
+    out = []
+    for page in range(1, opts.get("pages", 6) + 1):
+        try:
+            d = _get("https://gdg.community.dev/api/event_slim/", params={"status": "Live", "page_size": 100, "page": page})
+        except Exception:
+            break
+        for e in d.get("results", []):
+            title, chapter = clean(e.get("title", "")), e.get("chapter_title", "")
+            desc = clean(e.get("description") or e.get("description_short") or "")[:3000]
+            virtual = (e.get("audience_type") or "").upper() == "VIRTUAL"
+            local = any(p in chapter.lower() for p in places)
+            if not (local or (virtual and topic.search(f"{title} {desc[:600]}"))):
+                continue
+            if written_in(f"{title} {desc}") and not re.search(r"tunis|sousse|sfax|monastir|bizerte|gabes|nabeul|kairouan", chapter, re.I):
+                continue  # in a language she doesn't read (Tunisian chapters write French/English/Arabic)
+            when = (e.get("start_date") or "")[:10]
+            out.append(Job(
+                id=f"gdg-{e.get('id')}", title=f"{title} — {chapter}", company=chapter, url=e.get("url") or "",
+                description=(f"Google Developer Group event ({'online' if virtual else 'in person'}), free community event. "
+                             f"{desc}\nDeadline: {when}" if when else desc),
+                location="Online" if virtual else chapter.replace("GDG", "").strip(), source="GDG", kind="event",
+                work_mode="remote" if virtual else "onsite", posted=_dt(e.get("start_date")),
+            ))
+        if not d.get("next"):
+            break
+    return out
+
+
 def wp_search(_terms, opts: dict | None = None) -> list[Job]:
     """Searches opportunity sites (WordPress) and reads FULL posts, so real deadlines and funding details are known."""
     opts = opts or {}
@@ -492,6 +584,9 @@ SOURCES = {
     "jobs_ac_uk": jobs_ac_uk,
     "wp_search": wp_search,
     "adzuna": adzuna,
+    "devpost": devpost,
+    "curated": curated,
+    "gdg_events": gdg_events,
     "remotive": remotive,
     "remoteok": remoteok,
     "arbeitnow": arbeitnow,
@@ -511,7 +606,8 @@ def fetch_all(cfg: dict, log=print) -> list[Job]:
         try:
             extra = {"workable": cfg.get("workable_searches"), "company_boards": cfg.get("company_boards"),
                      "jobs_ac_uk": cfg.get("jobs_ac_uk_queries"), "wp_search": cfg.get("opportunity_search"),
-                     "adzuna": cfg.get("adzuna")}
+                     "adzuna": cfg.get("adzuna"), "devpost": cfg.get("devpost"), "curated": cfg.get("curated"),
+                     "gdg_events": cfg.get("gdg_events")}
             got = SOURCES[name](terms, extra[name]) if name in extra else SOURCES[name](terms)
             log(f"  {name}: {len(got)}")
             jobs += got

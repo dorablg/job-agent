@@ -120,7 +120,7 @@ categories:
         data scientist, ai engineer, ai, deep learning, risk analytics, fraud analytics, aml analyst, transaction monitoring]
       Very good: [*data, risk analyst, fraud, financial crime, kyc analyst, compliance analyst, pricing analyst,
         trading operations, payments operations, payment operations]
-      Good: [analyst, data, insights, operations analyst, operations associate]
+      Good: [insights analyst, operations analyst, operations associate, data analyst]
     require_any: *finance
     require_min: 2   # clearly a finance / fintech employer or product
     exclude_title: [sales, account executive, account manager, business development, recruiter, marketing, accountant,
@@ -129,7 +129,7 @@ categories:
       associate, internship, visa sponsorship, sponsorship, french, arabic]
 
   # Technical operations, production / application support, implementation, QA, IT ops
-  - name: "⚙️ Technical operations"
+  - name: "⚙️ Tech support, back office & ticketing"
     kinds: [job, internship]
     work_modes: [onsite, hybrid, remote, unknown]
     locations_any: *focus
@@ -138,15 +138,19 @@ categories:
     bonus: 10
     match_in: title
     tiers:
-      Excellent: [technical operations, tech ops, production support, application support, platform operations,
+      Excellent: [back office, back-office, backoffice, service desk, help desk, helpdesk, ticketing, zendesk,
+        freshdesk, jira service, it service desk, case handler, case management, operations support, support operations,
+        technical customer support, technical support analyst, customer support engineer, l1 support, l2 support,
+        1st line support, 2nd line support, first line support, second line support,
+        technical operations, tech ops, production support, application support, platform operations,
         payment operations engineer, operations engineer, data operations, ml operations, ai operations,
         implementation engineer, integration specialist, integration engineer, technical support engineer,
         technical support specialist, saas support, product support specialist]
       Very good: [technical support, product support, support engineer, it operations, it support, service desk,
         help desk, implementation specialist, onboarding specialist, technical specialist, technical analyst,
         solutions analyst, systems analyst, qa analyst, quality assurance analyst, test analyst, noc]
-      Good: [operations analyst, operations associate, operations specialist, back office, client operations,
-        customer support engineer, technical account]
+      Good: [operations analyst, operations associate, operations specialist, client operations, technical account,
+        customer support, customer service, customer care]
     exclude_title: [sales, account executive, account manager, business development, recruiter, marketing, nurse,
       clinical, driver, warehouse, mechanical, electrical, civil, construction, plant, field service, hvac, facilities,
       maintenance technician, security officer, defence, defense]
@@ -176,7 +180,7 @@ categories:
       Excellent: [*fin, junior data analyst, data analyst, graduate data, graduate analyst, junior data scientist,
         ai trainer, ai operations]
       Very good: [*sup, *ai, *data]
-      Good: [operations analyst, operations associate, business analyst, analyst, graduate scheme, graduate programme]
+      Good: [operations analyst, operations associate, business analyst, graduate scheme, graduate programme]
     student: false
     exclude_title: [sales, account executive, account manager, business development, recruiter, marketing,
       nurse, clinical, driver, warehouse, chef, architect, legal counsel, lawyer, solicitor, accountant, security,
@@ -226,12 +230,10 @@ categories:
         automation analyst, rpa developer, trust and safety analyst, trust & safety analyst, risk and controls analyst,
         regtech, payments analyst, payments solutions, merchant onboarding, partner operations, ai product analyst,
         prompt engineer, ai solutions]
-      Very good: [consultant, solutions analyst, implementation consultant, functional consultant, crm analyst,
+      Very good: [solutions analyst, implementation consultant, functional consultant, crm analyst,
         salesforce analyst, operations analyst, program coordinator, programme coordinator, project coordinator,
-        project analyst, pmo analyst, technical writer, documentation specialist, developer advocate, community manager,
-        localization, language specialist, french speaking analyst, arabic speaking analyst, bilingual analyst,
-        quality analyst, compliance associate, vendor management analyst]
-      Good: [associate, coordinator, specialist, analyst]
+        developer advocate,
+        french speaking analyst, arabic speaking analyst, bilingual analyst, quality analyst, compliance associate]
     exclude_title: [sales representative, sales specialist, enterprise sales, account executive, business development,
       recruiter, marketing manager, triage, hospital, patient, lifecycle, sydney, melbourne, toronto, new york,
       nurse, clinical, driver, warehouse, chef, legal counsel, lawyer, solicitor, accountant, audit, tax, actuarial,
@@ -256,14 +258,15 @@ categories:
       ai, technology, stem, data, innovation, leadership, international, africa, arab, mena, tunisia, women, youth]
 
   # Tech & AI conferences, summits, summer schools, hackathons, bootcamps with travel / stay covered
-  - name: "🎤 Funded tech & AI conference / event"
+  # Every kind of tech & AI event: fully funded, partly funded or free; online or in person
+  - name: "🎤 Tech & AI events (funded, part-funded or free)"
     kinds: [event]
     work_modes: [onsite, hybrid, remote, unknown]
     match_in: title
     must_any: [conference, summit, forum, symposium, congress, hackathon, bootcamp, boot camp, workshop, school, camp,
-      challenge, competition, training, week, festival, expo, assembly, retreat, meetup, convention]
+      challenge, competition, training, week, festival, expo, assembly, retreat, meetup, convention, devfest, gdg,
+      build with ai, study jam, webinar, talk, session, day, night, sprint, datathon, ideathon, olympiad, cup]
     requires:
-      - {any: *funding, min: 1}
       - {any: *tech, min: 2}
     exclude_title: *notforyou
     student: true
@@ -271,6 +274,23 @@ categories:
     boost_any: [fully funded, fully-funded, travel grant, flight, flights, airfare, accommodation, hotel, visa,
       ai, artificial intelligence, machine learning, deep learning, data science, fintech, women in tech, women in ai,
       google, microsoft, nvidia, mena, arab, africa, tunisia, international]
+
+  # Volunteer at, help organize, or represent tech & AI events and communities (great for CV and network)
+  - name: "🙋 Volunteer, ambassador & organizer"
+    kinds: [event, job, internship, fellowship]
+    work_modes: [onsite, hybrid, remote, unknown]
+    match_in: title
+    must_any: [volunteer, volunteers, volunteering, ambassador, ambassadors, organizer, organiser, organizers,
+      organising committee, organizing committee, organizing team, student volunteer, community lead, campus lead,
+      chapter lead, gdg on campus, mentor, mentors, judge, judges, facilitator, call for speakers, call for volunteers,
+      student leader, club lead, captain, champion]
+    requires:
+      - {any: *tech, min: 1}
+    exclude_title: *notforyou
+    student: true
+    bonus: 30
+    boost_any: [ai, artificial intelligence, machine learning, data science, google, microsoft, aws, nvidia, hugging face,
+      neurips, icml, iclr, acl, indaba, mlh, devpost, hackathon, conference, summit, travel, funded, free registration]
 
   # Part-time / freelance / contract work you can do remotely from Tunisia alongside your studies
   - name: "⏰ Part-time remote job"
@@ -288,7 +308,7 @@ categories:
       Very good: [support, customer service, customer success, qa tester, quality assurance, tester, transcription,
         transcriber, translator, translation, localization, french, arabic, bilingual, tutor, teaching assistant,
         coding instructor, research assistant, content moderator, trust and safety, operations]
-      Good: [assistant, analyst, associate, specialist, writer, reviewer, moderator]
+      Good: [operations, reviewer, moderator]
     exclude_title: [sales, cold caller, telemarketing, appointment setter, recruiter, nurse, clinical, driver, model,
       onlyfans, adult, crypto trader, forex, mlm, commission only, unpaid]
     boost_any: [part-time, part time, flexible, hours per week, freelance, contract, usd, eur, hourly, per hour,
@@ -469,7 +489,120 @@ max_ai_tailoring_per_run: 6   # new matches that get a full apply kit each run (
 max_backfill_kits_per_run: 6  # older good matches that still have no kit
 notify_when_empty: false
 
-sources: [workable, company_boards, jobs_ac_uk, wp_search, adzuna, remotive, remoteok, jobicy, himalayas]
+sources: [curated, workable, company_boards, jobs_ac_uk, wp_search, adzuna, devpost, gdg_events, remotive, remoteok, jobicy,
+  himalayas]
+
+# Hand-picked programs from web research (Nov 2026). Dates marked "~" come from secondary sources: check the link.
+# deadline: YYYY-MM-DD (removed automatically after it) or text like "rolling" / "opens Jan 2027".
+curated:
+  - title: "MLH Fellowship Spring 2027 (remote 12-week program, stipend)"
+    org: Major League Hacking
+    url: https://fellowship.mlh.com/apply
+    deadline: 2027-01-04
+    kind: internship
+    category: "🔬 AI research & startups"
+    chance: 60
+    family: part_time
+    why: "Remote, paid, open-source projects; student CS profile fits"
+    description: "Fully remote 12-week internship alternative: work on real open-source / AI projects with mentors, stipend paid. Open to students worldwide. Deadline ~4 Jan 2027 (secondary source)."
+  - title: "EEML 2027 Machine Learning Summer School (full & partial travel grants)"
+    org: Eastern European ML Summer School
+    url: https://www.eeml.eu/
+    deadline: 2027-01-31
+    kind: event
+    category: "🎤 Tech & AI events (funded, part-funded or free)"
+    chance: 55
+    location: Europe (in person)
+    mode: onsite
+    visa: needed
+    why: "Top ML school; your AI internships + engineering studies help"
+    description: "6-day machine learning summer school in Europe, open worldwide, with full and partial travel grants/scholarships for selected students. Application deadline ~31 January 2027 (check eeml.eu)."
+  - title: "EACL 2027 Student Volunteers (free conference registration)"
+    org: EACL 2027 (NLP conference)
+    url: https://2027.eacl.org/calls/student-volunteers/
+    deadline: opens now, check page
+    category: "🙋 Volunteer, ambassador & organizer"
+    chance: 60
+    family: volunteer_organizer
+    why: "Students volunteer ~10 hours for free registration"
+    description: "Volunteer at the EACL 2027 natural language processing conference: about 10 hours of help in exchange for free registration to the main conference. Students only."
+  - title: "AAAI-27 Student Scholar Volunteer Program (free registration)"
+    org: AAAI Conference on Artificial Intelligence
+    url: https://aaai.org/conference/aaai/aaai-27/student-scholar-volunteer-program/
+    deadline: check page (AAAI-27 is Feb 2027)
+    category: "🙋 Volunteer, ambassador & organizer"
+    chance: 50
+    family: volunteer_organizer
+    why: "Major AI conference; volunteers get complimentary registration"
+    description: "Student volunteers help run AAAI-27 and receive complimentary technical program registration. Some scholarship support may be available."
+  - title: "HRI 2027 Student Volunteer program (human-robot interaction conference)"
+    org: ACM/IEEE HRI 2027
+    url: https://humanrobotinteraction.org/2027/student-volunteer/
+    deadline: check page
+    category: "🙋 Volunteer, ambassador & organizer"
+    chance: 50
+    family: volunteer_organizer
+    why: "Robotics + AI; matches your ROS / Enova Robotics experience"
+    description: "Help run the ACM/IEEE Human-Robot Interaction conference as a student volunteer (free registration). Good fit with ROS and robotics AI experience."
+  - title: "ICLR 2027 & ICML 2027 volunteers and financial assistance (watch)"
+    org: ICLR / ICML
+    url: https://iclr.cc/
+    deadline: opens early 2027
+    category: "🙋 Volunteer, ambassador & organizer"
+    chance: 45
+    family: volunteer_organizer
+    why: "Top ML conferences; volunteer + financial assistance calls"
+    description: "ICLR 2027 (registration from 23 Dec 2026) and ICML 2027 (31 Jul–6 Aug 2027) publish volunteer and financial-assistance (travel) calls for students. Check iclr.cc and icml.cc in January."
+  - title: "Deep Learning Indaba 2027 (Africa's AI gathering, travel grants)"
+    org: Deep Learning Indaba
+    url: https://deeplearningindaba.com/
+    deadline: applications usually Jan-Mar 2027
+    category: "🎤 Tech & AI events (funded, part-funded or free)"
+    chance: 60
+    location: Africa (host city TBA, ~Aug 2027)
+    mode: onsite
+    visa: none
+    why: "Built for African AI students; travel grants usually offered"
+    description: "Annual Deep Learning Indaba (expected August 2027, Africa): week of ML lectures, practicals and networking with travel and accommodation support for many selected participants. Also IndabaX Tunisia local events."
+  - title: "Microsoft Learn Student Ambassadors (apply anytime)"
+    org: Microsoft
+    url: https://mvp.microsoft.com/studentambassadors
+    deadline: rolling
+    category: "🙋 Volunteer, ambassador & organizer"
+    chance: 70
+    family: volunteer_organizer
+    why: "Student tech community program; Azure credits, certification vouchers"
+    description: "Student ambassador program: run events and share AI/cloud knowledge at your school; benefits include Azure credits, Visual Studio, free certification exams, mentorship and network."
+  - title: "Start a GDG on Campus at École Polytechnique de Sousse (organizer)"
+    org: Google Developer Groups
+    url: https://app.advocu.com/gdg/join
+    deadline: rolling (yearly cycle)
+    category: "🙋 Volunteer, ambassador & organizer"
+    chance: 65
+    family: volunteer_organizer
+    why: "Organize Google AI events; strong leadership signal on CV"
+    description: "Apply to organize a Google Developer Group on Campus: run Build with AI / Gemini study jams and hackathons, with Google support, swag and training."
+  - title: "AWS Student Builder Group organizer (start an AWS club on campus)"
+    org: Amazon Web Services
+    url: https://builder.aws.com/community/student-builder-groups
+    deadline: rolling
+    category: "🙋 Volunteer, ambassador & organizer"
+    chance: 65
+    family: volunteer_organizer
+    why: "Cloud/AI community leadership; AWS credits and training"
+    description: "Lead an AWS Student Builder Group (formerly AWS Cloud Club) at your school: organize cloud and AI workshops with AWS resources, credits and certification support."
+
+# Hackathons (Devpost): open + upcoming, all themes (filtered to tech by the event section rules)
+devpost:
+  pages: 3
+  themes: ["", "Machine Learning/AI", "Fintech"]
+
+# Google Developer Groups events: online AI events + every event of these chapters (Tunisia + your cities)
+gdg_events:
+  pages: 10
+  chapters: [tunis, sousse, sfax, monastir, bizerte, gabes, nabeul, kairouan, tunisia, london, milan, milano, rome, roma,
+    turin, torino, bologna, florence, dublin, amsterdam, berlin, munich, paris, brussels, zurich, lisbon, madrid,
+    barcelona, dubai, abu dhabi, doha, riyadh]
 
 # Adzuna job search engine (needs ADZUNA_APP_ID and ADZUNA_APP_KEY; free plan ~250 searches/day).
 # Each run takes the next `per_run` (country, search) pairs, so all pairs are covered every few runs.
@@ -494,7 +627,10 @@ opportunity_search:
   queries: [fully funded conference, travel grant, fully funded exchange, exchange program, summer school, winter school,
     summer program, hackathon, bootcamp, youth summit, leadership program, artificial intelligence, machine learning,
     data science, technology, fintech, women in tech, startup, innovation, digital, fully funded fellowship,
-    fully funded scholarship, internship, virtual internship, remote, part-time, competition, training program]
+    fully funded scholarship, internship, virtual internship, remote, part-time, competition, training program,
+    call for volunteers, volunteer, ambassador program, campus ambassador, student ambassador, organizing committee,
+    conference, summit, ai for good, ai in healthcare, climate ai, ai in agriculture, ai in education, data science competition,
+    virtual conference, online event, free training, google, microsoft, aws, nvidia, partially funded, travel support]
 
 # Fellowships / scholarships / internships RSS feeds (add any WordPress site's /feed/).
 rss_feeds:

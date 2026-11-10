@@ -497,6 +497,9 @@ function renderCats(){
 function ringColor(s){ return s >= 65 ? "var(--good)" : s >= 45 ? "var(--warn)" : "var(--faint)"; }
 function badges(r){
   const b = [];
+  if(r.check) b.push(`<span class="bd ${r.check.chance>=70?"good":r.check.chance>=50?"acc":"warn"}" title="${esc(r.check.why||"")}">🤖 ${r.check.chance}% chance</span>`);
+  if(r.check && r.check.visa==="offered") b.push(`<span class="bd good">🛂 Sponsorship offered</span>`);
+  if(r.check && r.check.visa==="needed") b.push(`<span class="bd warn">🛂 Visa needed</span>`);
   if(r.fit) b.push(`<span class="bd ${r.fit==="Excellent"?"good":r.fit==="Very good"?"acc":"warn"}">🎯 ${esc(r.fit)} fit</span>`);
   if(r.travel) b.push(`<span class="bd good">✈️ Travel & stay covered</span>`);
   if(r.mode === "remote" && !["London / UK","Italy","Europe","Gulf"].includes(r.focus)) b.push(r.tunisia==="yes" ? `<span class="bd good">✅ Open to Tunisia</span>` : r.tunisia==="no" ? `<span class="bd bad">⛔ Not open to Tunisia</span>` : `<span class="bd warn">❔ Check Tunisia eligibility</span>`);
@@ -519,7 +522,7 @@ function badges(r){
 function renderCards(){
   const sort = $("#sort").value;
   const rows = L().filter(r => match(r)).sort((a,b) =>
-    sort === "fit" ? ((FITRANK[b.fit]||0) - (FITRANK[a.fit]||0)) || (b.tunisia==="yes") - (a.tunisia==="yes") || b.score - a.score :
+    sort === "fit" ? (((b.check||{}).chance||0) - ((a.check||{}).chance||0)) || ((FITRANK[b.fit]||0) - (FITRANK[a.fit]||0)) || (b.tunisia==="yes") - (a.tunisia==="yes") || b.score - a.score :
     sort === "found" ? b.found.localeCompare(a.found) : sort === "ats" ? b.ats - a.ats :
     sort === "deadline" ? ((days(a.deadline) ?? 999) < 0 ? 999 : (days(a.deadline) ?? 999)) - ((days(b.deadline) ?? 999) < 0 ? 999 : (days(b.deadline) ?? 999)) : b.score - a.score);
   $("#resultCount").textContent = `${rows.length} of ${L().length} opportunities`;
@@ -606,7 +609,7 @@ function tabOverview(r){
       `<div class="req"><span>${q.met==="yes"?"✅":q.met==="partial"?"⚠️":"❌"}</span><div>${esc(q.requirement)}<small>${esc(q.evidence||"")}</small></div></div>` : `<div class="req"><span>•</span><div>${esc(q)}</div></div>`).join("")
     : (r.requirements||[]).length ? (r.requirements||[]).map(q => `<div class="req"><span>•</span><div>${esc(q)}</div></div>`).join("") + `<p class="muted" style="font-size:12.5px;margin-bottom:0">Generate the apply kit to check each requirement against your CV.</p>` : `<p class="muted">The posting doesn't list requirements clearly. Open the posting to read them.</p>`;
   const tips = ai.boost_tips ? list(ai.boost_tips) : (r.tips || []);
-  return `${ai.fit_summary?`<div class="sec" style="border-color:var(--accent);background:var(--accent-bg)"><b>🧠 Fit</b><p style="margin:6px 0 0">${esc(ai.fit_summary)}</p></div>`:""}
+  return `${r.check?`<div class="sec"><b>🤖 Realistic chance: ${r.check.chance}%</b><p class="muted" style="margin:4px 0 0">${esc(r.check.why||"")}</p></div>`:""}${ai.fit_summary?`<div class="sec" style="border-color:var(--accent);background:var(--accent-bg)"><b>🧠 Fit</b><p style="margin:6px 0 0">${esc(ai.fit_summary)}</p></div>`:""}
   <div class="sec"><h3>Key facts</h3><div class="facts">${facts.map(([k,v]) => `<div class="fact"><span>${k}</span><b>${esc(v)}</b></div>`).join("")}</div></div>
   <div class="sec"><h3>Requirements ${ai.key_requirements?"vs your CV":""}</h3>${reqs}</div>
   ${(r.matched||[]).length||(r.missing||[]).length?`<div class="sec"><h3>ATS keywords</h3>

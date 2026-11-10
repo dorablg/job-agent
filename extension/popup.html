@@ -1,0 +1,18 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+body{width:300px;margin:0;padding:14px;font:13.5px/1.45 system-ui,Segoe UI,Arial;color:#14181f}
+h1{font-size:15px;margin:0 0 8px}
+button{width:100%;padding:10px;border:0;border-radius:10px;font-weight:700;cursor:pointer;font-size:14px}
+#go{background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff}
+#go:disabled{opacity:.6;cursor:progress}
+#msg{margin-top:10px;white-space:pre-wrap}
+a{color:#4f46e5;font-size:12.5px}
+.muted{color:#666;font-size:12.5px}
+</style></head><body>
+<h1>⚡ Flous Apply Assistant</h1>
+<p class="muted" style="margin-top:0">On the application form, click below. Flous reads the questions, writes tailored answers, fills them and attaches your tailored CV. <b>You check and click Submit.</b></p>
+<button id="go">✨ Fill this application</button>
+<div id="msg"></div>
+<p style="margin:10px 0 0;display:flex;justify-content:space-between"><a href="#" id="settings">⚙️ Settings</a><span class="muted">Shortcut: Alt+Shift+F</span></p>
+<script src="popup.js"></script>
+</body></html>

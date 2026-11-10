@@ -67,7 +67,7 @@ def generate(job: Job, cv_text: str, cfg: dict) -> dict | None:
     if not llm.available():
         return None
     prompt = PROMPT.format(
-        student_rule=student_rule(job.category, cfg, job.kind),
+        student_rule=student_rule(job.category, cfg, job.kind, job.title),
         kind_note=KIND_NOTES.get(job.kind, ""),
         profile=cfg.get("profile", ""), cv=cv_text[:12000], kind=job.kind, category=job.category, title=job.title,
         company=job.company or "the selection committee", location=job.location or "n/a", mode=job.work_mode,
@@ -76,10 +76,10 @@ def generate(job: Job, cv_text: str, cfg: dict) -> dict | None:
     )
     try:
         ai = llm.ask_json(prompt)
-        if not is_student(job.category, cfg, job.kind) and mentions_studies(ai):  # one retry with a sharper reminder
+        if not is_student(job.category, cfg, job.kind, job.title) and mentions_studies(ai):  # one retry with a sharper reminder
             ai = llm.ask_json(prompt + "\n\nREMINDER: your previous answer mentioned her current studies. Remove every "
                               "mention of being a student, the polytechnic, or an engineering degree in progress.")
-        return scrub_studies(ai) if not is_student(job.category, cfg, job.kind) else ai
+        return scrub_studies(ai) if not is_student(job.category, cfg, job.kind, job.title) else ai
     except llm.LLMUnavailable as ex:
         print(f"    AI writing skipped: {ex}")
         return None
@@ -109,8 +109,12 @@ KIND_NOTES = {
 }
 
 
-def is_student(category: str, cfg: dict, kind: str = "") -> bool:
-    if kind in ("internship", "fellowship", "event"):
+STUDENT_TITLES = re.compile(r"working student|werkstudent|student assistant|student job|student worker|"
+                            r"student researcher|student ambassador|campus|graduate intern|thesis|tirocinio|stage", re.I)
+
+
+def is_student(category: str, cfg: dict, kind: str = "", title: str = "") -> bool:
+    if kind in ("internship", "fellowship", "event") or (title and STUDENT_TITLES.search(title)):
         return True
     for c in cfg.get("categories", []):
         if c.get("name") == category:
@@ -118,8 +122,8 @@ def is_student(category: str, cfg: dict, kind: str = "") -> bool:
     return False
 
 
-def student_rule(category: str, cfg: dict, kind: str = "") -> str:
-    return STUDENT_YES if is_student(category, cfg, kind) else STUDENT_NO
+def student_rule(category: str, cfg: dict, kind: str = "", title: str = "") -> str:
+    return STUDENT_YES if is_student(category, cfg, kind, title) else STUDENT_NO
 
 
 def mentions_studies(ai) -> bool:

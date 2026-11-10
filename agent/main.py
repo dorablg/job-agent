@@ -180,7 +180,7 @@ def run(dry: bool = False) -> int:
             print(f"AI screening of older listings: {len(old)} checked, {gone} removed")
         # backfill: older good matches that still have no apply kit (best fit first)
         rank = {"Excellent": 3, "Very good": 2, "Good": 1}
-        todo = sorted((r for r in listings.values() if "ai" not in r and r.get("check")),
+        todo = sorted((r for r in listings.values() if "ai" not in r and r.get("check") and r.get("kind") != "event"),
                       key=lambda r: ((r.get("check") or {}).get("chance", 0), rank.get(r.get("fit"), 0)), reverse=True)
         have = {(r["title"].lower(), r.get("company", "").lower()) for r in listings.values() if "ai" in r}
         uniq, keys = [], set()

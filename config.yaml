@@ -487,6 +487,8 @@ min_score: 40                 # 0-100; raise to get fewer, better alerts
 max_alerts_per_run: 15
 max_ai_tailoring_per_run: 6   # new matches that get a full apply kit each run (free AI quota)
 max_backfill_kits_per_run: 6  # older good matches that still have no kit
+screen_new_per_run: 200       # new matches the AI checks each run
+screen_backfill_per_run: 200  # older listings the AI checks each run
 notify_when_empty: false
 
 sources: [curated, workable, company_boards, jobs_ac_uk, wp_search, adzuna, devpost, gdg_events, remotive, remoteok, jobicy,

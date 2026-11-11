@@ -219,6 +219,8 @@ def tunisia(location: str, text: str) -> str:
         return "yes"
     if CLOSED.search(text[:6000]):
         return "no"
+    if re.search(r"^\s*(online|virtual|remote|anywhere|worldwide)\b", loc, re.I):
+        return "yes"  # online events / programs: join from anywhere
     if OPEN_TO_TN.search(loc):
         return "yes"
     if loc.strip() and loc.strip().lower() not in ("remote", "n/a"):

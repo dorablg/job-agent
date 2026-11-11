@@ -572,7 +572,7 @@ function renderDrawer(){
     </div>
     <div class="dactions">
       <button class="btn primary" data-a="apply">🚀 Apply</button>
-      <a class="btn" href="${esc(r.url)}" target="_blank" rel="noopener">↗ Open posting</a>
+      <a class="btn" href="${esc(r.url && /^https?:\/\//.test(r.url) ? r.url : "https://www.google.com/search?q=" + encodeURIComponent(r.title+" "+(r.company||"")))}" target="_blank" rel="noopener">↗ Open posting</a>
       <button class="btn" data-a="na">🚫 Not applicable</button>
       <select id="dstatus">${Object.entries(STATUSES).map(([k,v]) => `<option value="${k}" ${k===s?"selected":""}>${SICON[k]} ${v}</option>`).join("")}</select>
       ${D.gemini_key?`<button class="btn" data-a="gen">✨ ${ai?"Regenerate kit":"Generate apply kit"}</button>`:""}
@@ -812,7 +812,8 @@ async function action(r, a, btn){
   if(a === "markapplied"){ setStatus(r.id, "applied"); renderDrawer(); renderAll(); return toast("Marked as applied 📨. Moved to My applications"); }
   if(a === "apply"){
     const l = letter(); if(l){ try{ await navigator.clipboard.writeText(l); }catch(e){} }
-    window.open(r.url, "_blank", "noopener");
+    const link = r.url && /^https?:\/\//.test(r.url) ? r.url : "https://www.google.com/search?q=" + encodeURIComponent(`${r.title} ${r.company||""} apply`);
+    window.open(link, "_blank", "noopener");
     toast(l ? "Cover letter copied. Use ⚡ Fill application on the form" : "Opened. Use ⚡ Fill application on the form");
     if(RANK[st(r.id)] < RANK.applied) setTimeout(() => { if(confirm(`Did you submit your application to “${r.title}”?\nOK = mark as Applied`)){ setStatus(r.id,"applied"); renderDrawer(); renderAll(); } }, 1800);
   }

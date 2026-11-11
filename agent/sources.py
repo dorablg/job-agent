@@ -509,7 +509,8 @@ def gdg_events(_terms, opts: dict | None = None) -> list[Job]:
                 continue  # in a language she doesn't read (Tunisian chapters write French/English/Arabic)
             when = (e.get("start_date") or "")[:10]
             out.append(Job(
-                id=f"gdg-{e.get('id')}", title=f"{title} — {chapter}", company=chapter, url=e.get("url") or "",
+                id=f"gdg-{e.get('id')}", title=f"{title} — {chapter}", company=chapter,
+                url=e.get("static_url") or e.get("custom_tickets_url") or e.get("url") or "https://gdg.community.dev/events/",
                 description=(f"Google Developer Group event ({'online' if virtual else 'in person'}), free community event. "
                              f"{desc}\nDeadline: {when}" if when else desc),
                 location="Online" if virtual else chapter.replace("GDG", "").strip(), source="GDG", kind="event",

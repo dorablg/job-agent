@@ -46,7 +46,41 @@ async function fillTab(tabId) {
            student: FLOUS.studentRule(D, listing, page).startsWith("She IS") };
 }
 
+/* ---------- swipe right on the dashboard: open the job, click its Apply button, fill the form ---------- */
+const AUTO = {};  // tabId -> {steps, title}
+const wait = ms => new Promise(r => setTimeout(r, ms));
+async function formSize(tabId) {
+  await chrome.scripting.executeScript({ target: { tabId, allFrames: true }, files: ["content.js"] });
+  const r = await chrome.scripting.executeScript({ target: { tabId, allFrames: true }, func: () => window.__flous ? window.__flous.formSize() : 0 });
+  return Math.max(0, ...r.map(x => x.result || 0));
+}
+async function autoStep(tabId) {
+  const job = AUTO[tabId]; if (!job || job.busy) return;
+  job.busy = true;
+  try {
+    await wait(1500);
+    if (await formSize(tabId) >= 3) { delete AUTO[tabId]; await fillTab(tabId); return; }
+    if (job.steps >= 3) { delete AUTO[tabId]; return; }   // give up quietly: she can click ⚡ herself
+    job.steps++;
+    const [r] = await chrome.scripting.executeScript({ target: { tabId }, func: () => window.__flous.clickApply() });
+    const res = (r && r.result) || {};
+    if (res.href) { await chrome.tabs.update(tabId, { url: res.href }); }          // onUpdated continues
+    else if (res.clicked) { await wait(3500); job.busy = false; return autoStep(tabId); }  // same-page form (SPA)
+    else { delete AUTO[tabId]; }
+  } catch (e) { delete AUTO[tabId]; }
+  finally { if (AUTO[tabId]) AUTO[tabId].busy = false; }
+}
+chrome.tabs.onUpdated.addListener((tabId, info) => { if (info.status === "complete" && AUTO[tabId]) autoStep(tabId); });
+chrome.tabs.onCreated.addListener(tab => {   // the site opened the form in a new tab: follow it
+  if (tab.openerTabId && AUTO[tab.openerTabId]) { AUTO[tab.id] = { ...AUTO[tab.openerTabId], busy: false }; delete AUTO[tab.openerTabId]; }
+});
+
 chrome.runtime.onMessage.addListener((msg, sender, reply) => {
+  if (msg.type === "autoApply") {
+    chrome.tabs.create({ url: msg.url, active: true }).then(tab => { AUTO[tab.id] = { steps: 0, title: msg.title, busy: false }; reply({ ok: true }); })
+      .catch(e => reply({ ok: false, error: String(e) }));
+    return true;
+  }
   if (msg.type === "fill") { fillTab(msg.tabId).then(r => reply({ ok: true, ...r })).catch(e => reply({ ok: false, error: String(e.message || e) })); return true; }
   if (msg.type === "reload") { CACHE = null; data().then(D => reply({ ok: true, n: (D.listings || []).length })).catch(e => reply({ ok: false, error: String(e.message || e) })); return true; }
 });

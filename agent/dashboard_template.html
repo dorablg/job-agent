@@ -177,6 +177,25 @@ aside.filters{position:sticky;top:70px;background:var(--panel);border:1px solid 
 .tl::before{content:"";position:absolute;left:-22px;top:9px;width:10px;height:10px;border-radius:50%;background:var(--accent)}
 .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(10px);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:12px;font-size:14px;opacity:0;transition:all .2s;pointer-events:none;z-index:60}
 .toast.show{opacity:1;transform:translateX(-50%)}
+/* ---------- swipe ---------- */
+.swipe-wrap{max-width:560px;margin:0 auto}
+.swipe-top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.stack{position:relative;height:min(68vh,620px);user-select:none;touch-action:pan-y}
+.scard{position:absolute;inset:0;background:var(--panel);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow-lg);
+  padding:20px 22px;overflow:auto;transition:transform .28s ease,opacity .28s ease;will-change:transform}
+.scard.back{transform:scale(.95) translateY(14px);opacity:.6;pointer-events:none}
+.scard.dragging{transition:none;cursor:grabbing}
+.stamp{position:absolute;top:22px;padding:6px 14px;border:3px solid;border-radius:10px;font-weight:900;font-size:22px;letter-spacing:.05em;opacity:0;transform:rotate(-12deg);z-index:2}
+.stamp.yes{left:20px;color:#16a34a;border-color:#16a34a}.stamp.no{right:20px;color:#dc2626;border-color:#dc2626;transform:rotate(12deg)}
+.scard .big{font-size:22px;font-weight:800;letter-spacing:-.3px;margin:6px 0 4px;line-height:1.25}
+.scard .why{margin:12px 0;padding:10px 12px;border-radius:12px;background:var(--accent-bg)}
+.swipe-btns{display:flex;justify-content:center;gap:18px;margin:16px 0 8px}
+.sbtn{width:64px;height:64px;border-radius:50%;border:2px solid var(--line);background:var(--panel);font-size:26px;cursor:pointer;box-shadow:var(--shadow)}
+.sbtn.no{color:#dc2626;border-color:#fecaca}.sbtn.yes{color:#16a34a;border-color:#bbf7d0;width:74px;height:74px;font-size:30px}.sbtn.later{color:#d97706;border-color:#fde68a}
+.sbtn:hover{transform:scale(1.06)}
+.reasons{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.reasons button{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:5px 11px;font-size:12.5px;cursor:pointer}
+.reasons button:hover{border-color:#dc2626;color:#dc2626}
 /* ---------- pipeline ---------- */
 .board{display:grid;grid-template-columns:repeat(6,minmax(210px,1fr));gap:12px;overflow-x:auto;padding-bottom:8px}
 .col{background:var(--soft);border-radius:14px;padding:10px;min-height:200px}
@@ -217,6 +236,7 @@ aside.filters{position:sticky;top:70px;background:var(--panel);border:1px solid 
   <div class="topbar"><div class="in">
     <div class="brand"><span class="logo" style="width:34px;height:34px;font-size:17px">F</span><div>Flous Job Board<small id="updated"></small></div></div>
     <nav class="nav" id="nav">
+      <button data-view="swipe">💘 Swipe</button>
       <button data-view="discover" class="on">🔎 Discover</button>
       <button data-view="pipeline">📊 My applications</button>
       <button data-view="inbox">📬 Inbox <span class="count hidden" id="inboxCount"></span></button>
@@ -249,6 +269,9 @@ aside.filters{position:sticky;top:70px;background:var(--panel);border:1px solid 
         </div>
       </div>
     </section>
+
+    <!-- SWIPE -->
+    <section id="v-swipe" class="hidden"><div class="swipe-wrap" id="swipe"></div></section>
 
     <!-- PIPELINE -->
     <section id="v-pipeline" class="hidden">
@@ -387,13 +410,14 @@ function init(){
 function go(v){
   view = v;
   document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.view === v));
-  ["discover","pipeline","inbox","profile"].forEach(x => $("#v-"+x).classList.toggle("hidden", x !== v));
+  ["swipe","discover","pipeline","inbox","profile"].forEach(x => $("#v-"+x).classList.toggle("hidden", x !== v));
   renderAll(); window.scrollTo(0,0);
 }
 function renderAll(){
   renderKpis();
   if(view === "discover"){ renderFilters(); renderCats(); renderCards(); }
   if(view === "pipeline") renderBoard();
+  if(view === "swipe") renderSwipe();
   if(view === "inbox") renderInbox();
   const nNew = (D.responses||[]).filter(m => m.date > lastSeen).length;
   $("#inboxCount").textContent = nNew; $("#inboxCount").classList.toggle("hidden", !nNew);
@@ -419,7 +443,7 @@ function match(r, skip){
   if(remoteRole && F.tn === "open" && r.tunisia === "no") return false;
   if(skip !== "fits" && F.fits.length && !F.fits.includes(r.fit || "—")) return false;
   if(r.company && muted.includes(r.company.toLowerCase())) return false;
-  if(F.status === "review" && !["new","saved"].includes(s)) return false;
+  if(skip !== "status-any" && F.status === "review" && !["new","saved"].includes(s)) return false;
   if(F.status === "active" && (s === "rejected" || s === "skip")) return false;
   if(!["review","active","all"].includes(F.status) && s !== F.status) return false;
   if(skip !== "focus" && F.focus.length && !F.focus.includes(r.focus || "Other")) return false;
@@ -887,6 +911,84 @@ async function generate(r, btn){
   }
   btn.disabled = false; btn.textContent = old; toast("AI busy (" + err + "). Try again in a minute.");
 }
+
+/* ---------- swipe ---------- */
+const SWIPE_REASONS = [["⌛ Closed / expired","Closed or expired"],["🚫 Not my field","Not my profile"],["📍 Location / visa","Not open to Tunisia"],
+  ["📈 Too senior","Too senior / too much experience"],["💸 Not paid","Not paid or pay too low"],["🏢 Company","Company not for me"]];
+let swipeUndo = null;
+function swipeQueue(){
+  return L().filter(r => st(r.id) === "new" && match(r, "status-any"))
+    .sort((a,b) => swipeRank(b) - swipeRank(a) || (b.score - a.score));
+}
+// jobs, internships, alternance first; free community events last
+function swipeRank(r){ const c = (r.check||{}).chance||0; return c + (r.kind === "event" ? -25 : 0) + (/(course|certificate|certification|webinar)/i.test(r.title) ? -30 : 0) + (/Alternance/.test(r.category) ? 10 : 0); }
+function swipeCardHTML(r, back){
+  const c = r.check || {}, ai = r.ai || {};
+  const dl = days(r.deadline);
+  return `<div class="scard ${back?"back":""}" data-id="${esc(r.id)}" style="--cc:var(--c-${catVar(r.category)})">
+    <div class="stamp yes">APPLY</div><div class="stamp no">NOPE</div>
+    <div class="c-cat">${esc(r.category)}</div>
+    <div class="big">${esc(r.title)}</div>
+    <div class="c-sub">${r.company?`<b style="color:var(--ink)">${esc(r.company)}</b> · `:""}${esc((r.location||"Location not stated").slice(0,90))}</div>
+    <div class="badges">${badges(r)}</div>
+    ${c.why?`<div class="why">🤖 <b>${c.chance}% chance</b> — ${esc(c.why)}</div>`:""}
+    ${dl!==null?`<p style="margin:6px 0"><b>⏰ Deadline:</b> ${fmtDate(r.deadline)} (${dl<0?"closed":dl+" days left"})</p>`:""}
+    ${ai.fit_summary?`<p style="margin:6px 0">🧠 ${esc(ai.fit_summary)}</p>`:""}
+    <p class="muted" style="white-space:pre-wrap;font-size:13.5px;margin-top:10px">${esc((r.description||"").slice(0,700))}${(r.description||"").length>700?"…":""}</p>
+    <button class="btn small" data-sdetails style="margin-top:6px">Full details & apply kit</button>
+  </div>`;
+}
+function renderSwipe(){
+  const q = swipeQueue(), ext = document.documentElement.dataset.flousExt === "1";
+  const top = q[0], next = q[1];
+  $("#swipe").innerHTML = `<div class="swipe-top"><b style="font-size:16px">💘 ${q.length} to review</b>
+      <span class="muted" style="font-size:12.5px;margin-left:auto">← nope · → apply · ↑ later ${ext?"· ⚡ auto-fill on":""}</span></div>
+    ${top ? `<div class="stack" id="stack">${next?swipeCardHTML(next,true):""}${swipeCardHTML(top,false)}</div>
+      <div class="swipe-btns"><button class="sbtn no" data-s="no" title="Not interested (←)">✕</button>
+        <button class="sbtn later" data-s="later" title="Save for later (↑)">⭐</button>
+        <button class="sbtn yes" data-s="yes" title="Apply (→)">✓</button></div>
+      <div class="reasons">${SWIPE_REASONS.map(([t,w]) => `<button data-reason="${esc(w)}">${t}</button>`).join("")}</div>
+      ${ext?"":`<p class="muted" style="text-align:center;font-size:12.5px">Tip: with the ⚡ Flous extension in this browser, swiping right also clicks the company's Apply button and fills the form.</p>`}
+      ${swipeUndo?`<p style="text-align:center"><button class="btn small ghost" data-undo>↺ Undo last swipe</button></p>`:""}`
+    : `<div class="empty"><div style="font-size:38px">🎉</div><b>All caught up!</b><p class="muted">New opportunities arrive every 3 hours. Loosen the filters in Discover to see more.</p></div>`}`;
+  if(!top) return;
+  const card = $("#stack .scard:not(.back)");
+  card.querySelector("[data-sdetails]").onclick = e => { e.stopPropagation(); openDrawer(top.id); };
+  $("#swipe").querySelectorAll("[data-s]").forEach(b => b.onclick = () => doSwipe(top, b.dataset.s));
+  $("#swipe").querySelectorAll("[data-reason]").forEach(b => b.onclick = () => doSwipe(top, "no", b.dataset.reason));
+  const u = $("#swipe [data-undo]"); if(u) u.onclick = () => { const x = swipeUndo; swipeUndo = null; if(x){ track[x.id] = x.prev; store("track", track); } renderAll(); };
+  // drag / swipe gesture (mouse or finger)
+  let sx = 0, sy = 0, dx = 0, dy = 0, drag = false;
+  card.onpointerdown = e => { if(e.target.closest("button")) return; drag = true; sx = e.clientX; sy = e.clientY; card.classList.add("dragging"); card.setPointerCapture(e.pointerId); };
+  card.onpointermove = e => { if(!drag) return; dx = e.clientX - sx; dy = e.clientY - sy;
+    card.style.transform = `translate(${dx}px,${Math.min(0,dy)/3}px) rotate(${dx/18}deg)`;
+    card.querySelector(".stamp.yes").style.opacity = Math.max(0, Math.min(1, dx/100));
+    card.querySelector(".stamp.no").style.opacity = Math.max(0, Math.min(1, -dx/100)); };
+  card.onpointerup = card.onpointercancel = () => { if(!drag) return; drag = false; card.classList.remove("dragging");
+    if(dx > 110) doSwipe(top, "yes"); else if(dx < -110) doSwipe(top, "no"); else if(dy < -120) doSwipe(top, "later");
+    else { card.style.transform = ""; card.querySelectorAll(".stamp").forEach(s => s.style.opacity = 0); } dx = dy = 0; };
+}
+function doSwipe(r, dir, reason){
+  const card = $("#stack .scard:not(.back)");
+  swipeUndo = { id: r.id, prev: track[r.id] ? JSON.parse(JSON.stringify(track[r.id])) : undefined };
+  if(card){ card.style.transform = dir==="yes" ? "translate(140%,0) rotate(18deg)" : dir==="no" ? "translate(-140%,0) rotate(-18deg)" : "translate(0,-140%)"; card.style.opacity = 0; }
+  if(dir === "no"){ setStatus(r.id, "skip"); setField(r.id, "na", reason || "Not interested"); toast(`Not interested${reason?": "+reason:""}`); }
+  if(dir === "later"){ setStatus(r.id, "saved"); toast("Saved for later ⭐"); }
+  if(dir === "yes"){
+    setStatus(r.id, "applied");
+    const letter = (track[r.id] && track[r.id].letter) || (r.ai && r.ai.cover_letter) || "";
+    if(letter && navigator.clipboard) navigator.clipboard.writeText(letter).catch(()=>{});
+    const link = r.url && /^https?:\/\//.test(r.url) ? r.url : "https://www.google.com/search?q=" + encodeURIComponent(`${r.title} ${r.company||""} apply`);
+    if(document.documentElement.dataset.flousExt === "1"){ window.postMessage({ flous: "apply", url: link, title: r.title }, "*"); toast("Opening… ⚡ Flous will click Apply and fill the form"); }
+    else { window.open(link, "_blank", "noopener"); toast("Opened. Use ⚡ on the form to fill it"); }
+  }
+  setTimeout(() => renderAll(), 260);
+}
+document.addEventListener("keydown", e => {
+  if(view !== "swipe" || $("#drawer").classList.contains("on") || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+  const top = swipeQueue()[0]; if(!top) return;
+  if(e.key === "ArrowRight") doSwipe(top, "yes"); if(e.key === "ArrowLeft") doSwipe(top, "no"); if(e.key === "ArrowUp") doSwipe(top, "later");
+});
 
 /* ---------- pipeline ---------- */
 function renderBoard(){

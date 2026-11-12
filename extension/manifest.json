@@ -1,14 +1,42 @@
 {
   "manifest_version": 3,
   "name": "Flous Apply Assistant",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Reads a job / internship / program application form, writes tailored answers from your profile, fills it and attaches your tailored CV. You review and click Submit.",
-  "permissions": ["storage", "activeTab", "scripting"],
-  "host_permissions": ["<all_urls>"],
-  "background": { "service_worker": "background.js" },
-  "action": { "default_title": "Fill this application", "default_popup": "popup.html" },
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Fill this application",
+    "default_popup": "popup.html"
+  },
   "options_page": "options.html",
   "commands": {
-    "fill-page": { "suggested_key": { "default": "Alt+Shift+F" }, "description": "Fill this application page" }
-  }
+    "fill-page": {
+      "suggested_key": {
+        "default": "Alt+Shift+F"
+      },
+      "description": "Fill this application page"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://dorablg.github.io/job-agent/*"
+      ],
+      "js": [
+        "bridge.js"
+      ],
+      "run_at": "document_start"
+    }
+  ]
 }

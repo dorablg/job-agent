@@ -34,6 +34,9 @@ TARGETS = """WHAT SHE WANTS (keep these):
 - Events: AI / tech conferences, summits, hackathons, summer/winter schools, bootcamps, workshops (fully funded, partly
   funded OR free; online or in person), including AI applied to other fields (health, climate, agriculture, education,
   finance), and calls for volunteers / ambassadors / organizers / student volunteers at tech & AI events.
+- Alternance / apprenticeship / work-study (mostly France, French is fine for her) and English-speaking "working
+  student" roles in tech, data, AI, support or fintech: KEEP them (she is very interested). Note in "why" that a
+  French alternance needs enrolment in a partner school / programme (she would apply via Campus France).
 - Scholarships, fellowships and exchange programs open to Tunisian / African / international students, preferably in
   CS, AI, data, engineering, fintech or general leadership/STEM.
 
@@ -41,7 +44,7 @@ REJECT:
 - Other fields (biology/chemistry/pharma lab science, marine, mechanical/electrical/networking hardware, ERP like SAP /
   PeopleSoft / Oracle EBS, legal, journalism, arts, peace studies, medicine, public-sector policy consulting, sales).
 - Senior / lead / 3+ years required, PhD-required or academic staff posts (postdoc, lecturer, visiting scholar for faculty).
-- Postings written in or requiring a language she doesn't speak (German, Italian, Dutch, ...).
+- Postings written in or requiring a language she doesn't speak (German, Italian, Dutch, ...). French is FINE.
 - Opportunities limited to nationalities she doesn't have (e.g. only Nigerians, US citizens, EU citizens, nationals).
 - Paid courses, generic advice/listicle articles, expired programs."""
 

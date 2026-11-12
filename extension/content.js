@@ -143,5 +143,26 @@
     p.querySelector("#flous-x").onclick = () => p.remove();
   }
 
-  window.__flous = { scan, fill };
+  /* Click the site's own "Apply" button (never a Submit button) to reach the application form. */
+  function clickApply() {
+    const APPLY = /^(apply|apply now|apply for (this )?(job|position|role|internship)|apply here|apply online|start (your )?application|i'?m interested|easy apply|postuler|je postule|candidater|postuler maintenant|candidature)\b/i;
+    const NOT = /filter|search|submit|send|sign in|log ?in|alert|save|share|similar/i;
+    const els = [...document.querySelectorAll('a, button, [role="button"], input[type="button"]')].filter(el => {
+      const t = (el.innerText || el.value || el.getAttribute("aria-label") || "").trim();
+      return t && t.length < 60 && APPLY.test(t) && !NOT.test(t) && visible(el);
+    });
+    if (!els.length) return { clicked: false };
+    els.sort((a, b) => (b.tagName === "A" && /apply|postul|candid/i.test(b.href || "") ? 1 : 0) - (a.tagName === "A" && /apply|postul|candid/i.test(a.href || "") ? 1 : 0));
+    const el = els[0];
+    if (el.tagName === "A" && el.href && /^https?:/.test(el.href) && (el.target === "_blank" || new URL(el.href).host !== location.host)) {
+      return { clicked: false, href: el.href };   // opens elsewhere: the extension follows it in this tab
+    }
+    el.scrollIntoView({ block: "center" });
+    el.click();
+    return { clicked: true };
+  }
+
+  const formSize = () => scan().fields.filter(f => !["file"].includes(f.type) && !/search/i.test(f.label)).length;
+
+  window.__flous = { scan, fill, clickApply, formSize };
 })();

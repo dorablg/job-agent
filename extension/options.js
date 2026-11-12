@@ -1,9 +1,14 @@
+/* Settings: the password is sent once to the background, which derives a non-extractable key and forgets the password. */
 const pw = document.getElementById("pw"), msg = document.getElementById("msg");
-chrome.storage.local.get("password").then(({ password }) => { if (password) pw.value = password; });
-document.getElementById("save").onclick = async () => {
-  await chrome.storage.local.set({ password: pw.value.trim() });
+chrome.runtime.sendMessage({ type: "reload" }, r => {
+  if (r && r.ok) { msg.textContent = `✅ Connected: ${r.n} opportunities loaded.`; pw.placeholder = "Connected (enter again only to change it)"; }
+});
+document.getElementById("save").onclick = () => {
+  const value = pw.value.trim();
+  if (!value) { msg.textContent = "Enter your dashboard password."; return; }
   msg.textContent = "Testing…";
-  chrome.runtime.sendMessage({ type: "reload" }, r => {
+  chrome.runtime.sendMessage({ type: "setPassword", password: value }, r => {
+    pw.value = "";
     msg.textContent = r && r.ok ? `✅ Connected: ${r.n} opportunities and your profile loaded. You're ready.` : "⚠️ " + ((r && r.error) || "Could not connect");
   });
 };

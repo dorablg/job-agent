@@ -22,7 +22,7 @@ const QUERY = [
 
 function doGet(e) {
   const p = (e && e.parameter) || {};
-  if (p.key !== KEY) return json_({ error: "forbidden" });
+  if (!safeEq_(p.key, KEY)) return json_({ error: "forbidden" });
   if (p.action === "track") return json_(loadTrack_());
   const days = Math.max(1, Math.min(Number(p.days) || 3, 60));
   const since = new Date(Date.now() - days * 864e5);
@@ -71,6 +71,12 @@ function sheet_() {
   return ss;
 }
 
+// Text that starts with = + - @ would run as a spreadsheet formula (a scraped job title could be "=IMPORTXML(...)").
+function cell_(v) {
+  const t = String(v == null ? "" : v).slice(0, 5000);
+  return /^[=+\-@\t\r]/.test(t) ? "'" + t : t;
+}
+
 function tab_(ss) { return ss.getSheetByName("Applications") || ss.getSheets()[0]; }
 
 function loadTrack_() {
@@ -88,13 +94,14 @@ function saveTrack_(items) {
   try {
     const ss = sheet_(), sh = tab_(ss), v = sh.getDataRange().getValues(), rowOf = {};
     for (let i = 1; i < v.length; i++) rowOf[v[i][0]] = i + 1;
-    (items || []).forEach(function (it) {
-      if (!it || !it.id) return;
+    (items || []).slice(0, 200).forEach(function (it) {
+      if (!it || typeof it.id !== "string" || it.id.length > 300) return;
       const t = it.track || {}, s = t.snap || {};
       const hist = (t.history || []).map(function (h) { return h.s + " " + String(h.at || "").slice(0, 10) + (h.by && h.by !== "you" ? " (" + h.by + ")" : ""); }).join(" → ");
-      const row = [it.id, s.title || "", s.company || "", s.category || "", s.location || "", t.status || "",
-        String(t.applied_at || "").slice(0, 10), new Date().toISOString().slice(0, 16).replace("T", " "), s.url || "",
-        t.na || "", t.note || "", hist, JSON.stringify(t).slice(0, 49000)];
+      const url = /^https?:\/\//i.test(String(s.url || "")) ? s.url : "";
+      const row = [it.id, s.title, s.company, s.category, s.location, t.status,
+        String(t.applied_at || "").slice(0, 10), new Date().toISOString().slice(0, 16).replace("T", " "), url,
+        t.na, t.note, hist].map(cell_).concat([cell_(JSON.stringify(t).slice(0, 49000))]);
       if (rowOf[it.id]) sh.getRange(rowOf[it.id], 1, 1, row.length).setValues([row]);
       else { sh.appendRow(row); rowOf[it.id] = sh.getLastRow(); }
     });
@@ -104,11 +111,20 @@ function saveTrack_(items) {
 
 function doPost(e) {
   let b = {};
+  if (e && e.postData && e.postData.contents && e.postData.contents.length > 2000000) return json_({ error: "too large" });
   try { b = JSON.parse((e && e.postData && e.postData.contents) || "{}"); } catch (x) { return json_({ error: "bad json" }); }
-  if (b.key !== KEY) return json_({ error: "forbidden" });
+  if (!safeEq_(b.key, KEY)) return json_({ error: "forbidden" });
   if (b.action === "load") return json_(loadTrack_());
   if (b.action === "save") return json_(saveTrack_(b.items));
   return json_({ error: "unknown action" });
+}
+
+// constant-time comparison of the shared secret
+function safeEq_(a, b) {
+  a = String(a || ""); b = String(b || "");
+  let d = a.length ^ b.length;
+  for (let i = 0; i < b.length; i++) d |= (a.charCodeAt(i % (a.length || 1)) || 0) ^ b.charCodeAt(i);
+  return d === 0 && b.length > 0;
 }
 
 function json_(o) {

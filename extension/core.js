@@ -5,18 +5,30 @@ var FLOUS = (function () {
 
   /* ---------- dashboard data (same encryption as the website) ---------- */
   const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
-  async function loadDashboard(password) {
-    const html = await (await fetch(DASHBOARD + "?t=" + Date.now(), { cache: "no-store" })).text();
-    const m = html.match(/const BLOB = (\{[^\n]*?\});/);
+  async function fetchBlob() {
+    const res = await fetch(DASHBOARD + "?t=" + Date.now(), { cache: "no-store", credentials: "omit" });
+    if (!res.ok) throw new Error(`Dashboard unreachable (HTTP ${res.status})`);
+    const m = (await res.text()).match(/const BLOB = (\{[^\n]*?\});/);
     if (!m) throw new Error("Could not read the dashboard page");
     const blob = JSON.parse(m[1]);
+    if (!blob.salt || !blob.iv || !blob.ct || !(blob.iter >= 100000)) throw new Error("Unexpected dashboard format");
+    return blob;
+  }
+  /* non-extractable AES key: the extension keeps this, never the password */
+  async function deriveKey(password, blob) {
     const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveKey"]);
-    const aes = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: b64(blob.salt), iterations: blob.iter, hash: "SHA-256" },
+    return crypto.subtle.deriveKey({ name: "PBKDF2", salt: b64(blob.salt), iterations: blob.iter, hash: "SHA-256" },
       key, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+  }
+  async function decryptBlob(aes, blob) {
     let plain;
     try { plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(blob.iv) }, aes, b64(blob.ct)); }
     catch (e) { throw new Error("Wrong dashboard password"); }
     return JSON.parse(new TextDecoder().decode(plain));
+  }
+  async function loadDashboard(password) {
+    const blob = await fetchBlob();
+    return decryptBlob(await deriveKey(password, blob), blob);
   }
 
   /* ---------- which listing is this page about? ---------- */
@@ -235,5 +247,5 @@ Return ONLY JSON: {"answers": [{"id": "<field id>", "value": "<text, or the exac
     return kit && kit.ats_cv ? kit : null;
   }
 
-  return { loadDashboard, matchListing, buildPrompt, ask, cvPdf, letterPdf, makePdf, studentRule, generateKit };
+  return { DASHBOARD, loadDashboard, fetchBlob, deriveKey, decryptBlob, matchListing, buildPrompt, ask, cvPdf, letterPdf, makePdf, studentRule, generateKit };
 })();

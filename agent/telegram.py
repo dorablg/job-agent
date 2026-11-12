@@ -41,7 +41,8 @@ def configured() -> bool:
 def send_text(text: str, url: str | None = None, button: str = "🚀 Apply now") -> None:
     data = {"chat_id": os.environ["TELEGRAM_CHAT_ID"], "text": text[:4096], "parse_mode": "HTML",
             "disable_web_page_preview": "true"}
-    row = [{"text": button, "url": url}] if url else []
+    # Telegram rejects the whole message if a button URL isn't http(s): only attach valid links
+    row = [{"text": button, "url": url}] if url and url.lower().startswith(("https://", "http://")) else []
     dash = os.getenv("DASHBOARD_URL", "").strip()
     if dash.startswith("http"):
         row.append({"text": "📋 Dashboard", "url": dash})

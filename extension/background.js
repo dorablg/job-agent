@@ -2,12 +2,34 @@
 importScripts("core.js");
 
 let CACHE = null;  // decrypted dashboard data, kept only while the browser is open
+
+/* The derived, non-extractable AES key lives in the extension's IndexedDB. The password is never stored. */
+const KEYS = {
+  open() { return new Promise((ok, no) => { const r = indexedDB.open("flous-ext", 1); r.onupgradeneeded = () => r.result.createObjectStore("k"); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); }); },
+  async run(mode, fn) { const db = await this.open(); return new Promise((ok, no) => { const tx = db.transaction("k", mode), q = fn(tx.objectStore("k")); tx.oncomplete = () => ok(q && q.result); tx.onerror = () => no(tx.error); }); },
+  get() { return this.run("readonly", s => s.get("site")); },
+  set(v) { return this.run("readwrite", s => s.put(v, "site")); },
+};
+async function setPassword(password) {
+  const blob = await FLOUS.fetchBlob();
+  const key = await FLOUS.deriveKey(password, blob);
+  const D = await FLOUS.decryptBlob(key, blob);          // throws "Wrong dashboard password"
+  await KEYS.set({ key, salt: blob.salt, iter: blob.iter });
+  await chrome.storage.local.remove("password");          // older versions stored it in clear
+  CACHE = D;
+  return D;
+}
 async function data() {
   if (CACHE) return CACHE;
-  const { password } = await chrome.storage.local.get("password");
-  if (!password) throw new Error("Open Settings and enter your dashboard password first.");
-  CACHE = await FLOUS.loadDashboard(password);
-  return CACHE;
+  const blob = await FLOUS.fetchBlob();
+  const saved = await KEYS.get().catch(() => null);
+  if (saved && saved.salt === blob.salt && saved.iter === blob.iter) {
+    CACHE = await FLOUS.decryptBlob(saved.key, blob);
+    return CACHE;
+  }
+  const { password } = await chrome.storage.local.get("password");   // one-time migration
+  if (password) return setPassword(password);
+  throw new Error("Open Settings and enter your dashboard password.");
 }
 
 async function fillTab(tabId) {
@@ -75,14 +97,25 @@ chrome.tabs.onCreated.addListener(tab => {   // the site opened the form in a ne
   if (tab.openerTabId && AUTO[tab.openerTabId]) { AUTO[tab.id] = { ...AUTO[tab.openerTabId], busy: false }; delete AUTO[tab.openerTabId]; }
 });
 
+const fromExtensionPage = sender => sender.id === chrome.runtime.id && !sender.tab &&
+  typeof sender.url === "string" && sender.url.startsWith(chrome.runtime.getURL(""));
+const fromDashboard = sender => sender.id === chrome.runtime.id && sender.tab &&
+  typeof sender.url === "string" && sender.url.startsWith(FLOUS.DASHBOARD);
+const isWebUrl = u => { try { return /^https?:$/.test(new URL(u).protocol); } catch (e) { return false; } };
+
 chrome.runtime.onMessage.addListener((msg, sender, reply) => {
+  const fail = e => reply({ ok: false, error: String((e && e.message) || e) });
+  // only your dashboard may ask to open + fill a page, and only a normal web page
   if (msg.type === "autoApply") {
-    chrome.tabs.create({ url: msg.url, active: true }).then(tab => { AUTO[tab.id] = { steps: 0, title: msg.title, busy: false }; reply({ ok: true }); })
-      .catch(e => reply({ ok: false, error: String(e) }));
+    if (!fromDashboard(sender) || !isWebUrl(msg.url)) return reply({ ok: false, error: "not allowed" });
+    chrome.tabs.create({ url: msg.url, active: true }).then(tab => { AUTO[tab.id] = { steps: 0, title: String(msg.title || ""), busy: false }; reply({ ok: true }); }).catch(fail);
     return true;
   }
-  if (msg.type === "fill") { fillTab(msg.tabId).then(r => reply({ ok: true, ...r })).catch(e => reply({ ok: false, error: String(e.message || e) })); return true; }
-  if (msg.type === "reload") { CACHE = null; data().then(D => reply({ ok: true, n: (D.listings || []).length })).catch(e => reply({ ok: false, error: String(e.message || e) })); return true; }
+  // everything else only from the extension's own popup / settings pages
+  if (!fromExtensionPage(sender)) return reply({ ok: false, error: "not allowed" });
+  if (msg.type === "fill") { fillTab(msg.tabId).then(r => reply({ ok: true, ...r })).catch(fail); return true; }
+  if (msg.type === "setPassword") { setPassword(String(msg.password || "")).then(D => reply({ ok: true, n: (D.listings || []).length })).catch(fail); return true; }
+  if (msg.type === "reload") { CACHE = null; data().then(D => reply({ ok: true, n: (D.listings || []).length })).catch(fail); return true; }
 });
 chrome.commands.onCommand.addListener(async cmd => {
   if (cmd !== "fill-page") return;

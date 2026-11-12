@@ -14,7 +14,7 @@ import json
 import os
 import re
 import urllib.parse
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 from email.header import decode_header, make_header
 from email.utils import parsedate_to_datetime
 from pathlib import Path
@@ -64,7 +64,7 @@ def fetch_bridge(days_first_run: int = 30) -> list[dict]:
     seen = _load_seen()
     days = days_first_run
     if seen.get("last"):
-        days = max(2, (datetime.now(timezone.utc) - datetime.fromisoformat(seen["last"])).days + 2)
+        days = max(2, (datetime.now(UTC) - datetime.fromisoformat(seen["last"])).days + 2)
     r = requests.get(os.environ["GMAIL_WEBAPP_URL"], params={"key": os.environ["GMAIL_WEBAPP_KEY"], "days": days},
                      timeout=90, allow_redirects=True)
     r.raise_for_status()
@@ -74,16 +74,16 @@ def fetch_bridge(days_first_run: int = 30) -> list[dict]:
     known, out = set(seen.get("ids", [])), []
     for m in data.get("emails", []):
         mid = (m.get("msgid") or "").strip()
-        key = hashlib.sha1((mid or f"{m.get('date')}{m.get('subject')}").encode()).hexdigest()[:16]
+        key = hashlib.sha1((mid or f"{m.get('date')}{m.get('subject')}").encode(), usedforsecurity=False).hexdigest()[:16]
         if key in known:
             continue
         known.add(key)
         if not JOBISH.search(f"{m.get('from', '')} {m.get('subject', '')} {m.get('body', '')[:3000]}"):
             continue
         out.append({"key": key, "msgid": mid, "from": m.get("from", ""), "subject": m.get("subject", ""),
-                    "date": m.get("date") or datetime.now(timezone.utc).isoformat(), "body": m.get("body", "")[:2500]})
+                    "date": m.get("date") or datetime.now(UTC).isoformat(), "body": m.get("body", "")[:2500]})
     seen["ids"] = list(known)[-3000:]
-    seen["last"] = datetime.now(timezone.utc).isoformat()
+    seen["last"] = datetime.now(UTC).isoformat()
     SEEN.write_text(json.dumps(seen), encoding="utf-8")
     return out
 
@@ -137,7 +137,7 @@ def _save_responses(rows: list[dict]) -> None:
 
 def fetch(days_first_run: int = 30, max_emails: int = 60) -> list[dict]:
     seen = _load_seen()
-    since = datetime.now(timezone.utc) - timedelta(days=days_first_run)
+    since = datetime.now(UTC) - timedelta(days=days_first_run)
     if seen.get("last"):
         since = datetime.fromisoformat(seen["last"]) - timedelta(days=1)
     M = imaplib.IMAP4_SSL("imap.gmail.com", 993)
@@ -152,7 +152,7 @@ def fetch(days_first_run: int = 30, max_emails: int = 60) -> list[dict]:
         _, hdr = M.fetch(num, "(BODY.PEEK[HEADER.FIELDS (MESSAGE-ID FROM SUBJECT DATE)])")
         h = email.message_from_bytes(hdr[0][1])
         mid = (h.get("Message-ID") or "").strip()
-        key = hashlib.sha1((mid or f"{h.get('Date')}{h.get('Subject')}").encode()).hexdigest()[:16]
+        key = hashlib.sha1((mid or f"{h.get('Date')}{h.get('Subject')}").encode(), usedforsecurity=False).hexdigest()[:16]
         if key in known:
             continue
         known.add(key)
@@ -165,13 +165,13 @@ def fetch(days_first_run: int = 30, max_emails: int = 60) -> list[dict]:
         if not JOBISH.search(f"{frm} {subj} {body[:3000]}"):
             continue
         try:
-            dt = parsedate_to_datetime(h.get("Date")).astimezone(timezone.utc).isoformat()
+            dt = parsedate_to_datetime(h.get("Date")).astimezone(UTC).isoformat()
         except Exception:
-            dt = datetime.now(timezone.utc).isoformat()
+            dt = datetime.now(UTC).isoformat()
         out.append({"key": key, "msgid": mid, "from": frm, "subject": subj, "date": dt, "body": body[:2500]})
     M.logout()
     seen["ids"] = list(known)[-3000:]
-    seen["last"] = datetime.now(timezone.utc).isoformat()
+    seen["last"] = datetime.now(UTC).isoformat()
     SEEN.write_text(json.dumps(seen), encoding="utf-8")
     return out
 

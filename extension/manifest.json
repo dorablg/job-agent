@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Flous Apply Assistant",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Reads a job / internship / program application form, writes tailored answers from your profile, fills it and attaches your tailored CV. You review and click Submit.",
   "permissions": [
     "activeTab",
@@ -20,6 +20,9 @@
     "default_popup": "popup.html"
   },
   "options_page": "options.html",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'none'"
+  },
   "commands": {
     "fill-page": {
       "suggested_key": {

@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
+<meta http-equiv="Content-Security-Policy" content="__CSP__">
+<meta name="referrer" content="no-referrer">
 <title>Flous Job Board</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%234f46e5'/><text x='50' y='68' font-size='54' text-anchor='middle' fill='white' font-family='Arial' font-weight='700'>F</text></svg>">
 <style>
@@ -381,6 +383,8 @@ const DEFAULT_F = {checked:true,focus:[],tn:"open",fits:[],cats:[],places:[],mod
 
 let D = null, track = {}, F = {...DEFAULT_F}, lastSeen = "", view = "discover", openId = null, dtab = "overview";
 const $ = s => document.querySelector(s);
+// links come from scraped sites, AI output and email: only http(s) may become clickable (blocks javascript: etc.)
+const safeUrl = u => { try{ const x = new URL(String(u || ""), location.href); return /^https?:$/.test(x.protocol) ? x.href : ""; }catch(e){ return ""; } };
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const list = v => Array.isArray(v) ? v.map(x => typeof x === "object" && x ? Object.values(x).join(" — ") : String(x)) : (v ? [String(v)] : []);
 function store(k, v){ try{ if(v===undefined) return JSON.parse(localStorage.getItem(k)); localStorage.setItem(k, JSON.stringify(v)); }catch(e){ return null; } }
@@ -400,27 +404,49 @@ $("#theme").onclick = () => { const cur = document.documentElement.dataset.theme
 
 /* ---------- decrypt ---------- */
 const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
-async function decrypt(pw){
+async function deriveKey(pw){
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveKey"]);
-  const aes = await crypto.subtle.deriveKey({name:"PBKDF2", salt:b64(BLOB.salt), iterations:BLOB.iter, hash:"SHA-256"}, key, {name:"AES-GCM", length:256}, false, ["decrypt"]);
+  // non-extractable: scripts can use it to decrypt but can never read the key bytes out
+  return crypto.subtle.deriveKey({name:"PBKDF2", salt:b64(BLOB.salt), iterations:BLOB.iter, hash:"SHA-256"}, key, {name:"AES-GCM", length:256}, false, ["decrypt"]);
+}
+async function decryptWith(aes){
   return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:"AES-GCM", iv:b64(BLOB.iv)}, aes, b64(BLOB.ct))));
 }
+/* "Keep me signed in" keeps the derived CryptoKey in IndexedDB, never the password. */
+const KEYDB = {
+  open(){ return new Promise((ok, no) => { const r = indexedDB.open("flous", 1); r.onupgradeneeded = () => r.result.createObjectStore("keys"); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); }); },
+  async run(mode, fn){ const db = await this.open(); return new Promise((ok, no) => { const tx = db.transaction("keys", mode), q = fn(tx.objectStore("keys")); tx.oncomplete = () => ok(q && q.result); tx.onerror = () => no(tx.error); }); },
+  get(){ return this.run("readonly", s => s.get("site")).catch(() => null); },
+  set(v){ return this.run("readwrite", s => s.put(v, "site")).catch(() => null); },
+  del(){ return this.run("readwrite", s => s.delete("site")).catch(() => null); },
+};
+function showApp(){ $("#lock").classList.add("hidden"); $("#app").classList.remove("hidden"); init(); }
 async function unlock(pw, remember){
   const go = $("#lkgo"); go.disabled = true; go.textContent = "Signing in…";
-  try{ D = await decrypt(pw); }catch(e){
+  let aes;
+  try{ aes = await deriveKey(pw); D = await decryptWith(aes); }catch(e){
     go.disabled = false; go.textContent = "Sign in";
-    $("#err").textContent = pw ? "That password isn't right. Try again." : ""; store("pw", null);
+    $("#err").textContent = pw ? "That password isn't right. Try again." : "";
     const f = $("#lockform"); f.classList.remove("shake"); void f.offsetWidth; f.classList.add("shake"); $("#pw").select(); return; }
-  if(remember) store("pw", pw);
-  $("#lock").classList.add("hidden"); $("#app").classList.remove("hidden");
-  init();
+  try{ localStorage.removeItem("pw"); }catch(e){}   // older versions kept the password itself: forget it
+  if(remember) await KEYDB.set({key: aes, salt: BLOB.salt, iter: BLOB.iter});
+  $("#pw").value = "";
+  showApp();
+}
+async function autoUnlock(){
+  const saved = await KEYDB.get();
+  if(saved && saved.key && saved.salt === BLOB.salt && saved.iter === BLOB.iter){
+    try{ D = await decryptWith(saved.key); return showApp(); }catch(e){ await KEYDB.del(); }
+  }
+  let legacy = null; try{ legacy = JSON.parse(localStorage.getItem("pw")); }catch(e){}
+  if(legacy) return unlock(legacy, true);   // one-time migration to the stored key
 }
 $("#lockform").onsubmit = e => { e.preventDefault(); $("#err").textContent = ""; unlock($("#pw").value, $("#remember").checked); };
 $("#pwEye").onclick = () => { const p = $("#pw"), show = p.type === "password"; p.type = show ? "text" : "password";
   $("#pwEye").textContent = show ? "🙈" : "👁"; $("#pwEye").title = show ? "Hide password" : "Show password"; p.focus(); };
 ["keydown","keyup"].forEach(ev => $("#pw").addEventListener(ev, e => { if(e.getModifierState) $("#caps").classList.toggle("hidden", !e.getModifierState("CapsLock")); }));
-$("#lockbtn").onclick = () => { try{ localStorage.removeItem("pw"); }catch(e){} location.reload(); };
-const savedPw = store("pw"); if(savedPw) unlock(savedPw, true);
+$("#lockbtn").onclick = async () => { try{ localStorage.removeItem("pw"); }catch(e){} await KEYDB.del(); location.reload(); };
+autoUnlock();
 
 /* ---------- tracking ---------- */
 const st = id => (track[id] && track[id].status) || "new";
@@ -451,7 +477,7 @@ function dbQueue(id){ if(!D || !D.db) return; dbDirty.add(id); clearTimeout(dbTi
 async function dbCall(body){
   const r = await fetch(D.db.url, {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body: JSON.stringify(Object.assign({key:D.db.key}, body))});
   const j = await r.json(); if(j.error) throw new Error(j.error);
-  if(j.sheet){ dbSheet = j.sheet; const a = $("#sheetBtn"); if(a){ a.href = dbSheet; a.classList.remove("hidden"); } }
+  if(safeUrl(j.sheet)){ dbSheet = safeUrl(j.sheet); const a = $("#sheetBtn"); if(a){ a.href = dbSheet; a.classList.remove("hidden"); } }
   return j;
 }
 async function dbPush(){
@@ -517,7 +543,7 @@ function renderTable(){
       <td>${esc(r.category||"")}</td>
       <td><select data-st="${esc(r.id)}">${Object.entries(STATUSES).filter(([k]) => k !== "new").map(([k,v]) => `<option value="${k}" ${st(r.id)===k?"selected":""}>${SICON[k]||""} ${v}</option>`).join("")}</select></td>
       <td class="nw">${fmtDate(t.applied_at)}</td><td class="nw">${r.deadline?esc(fmtDate(r.deadline)):""}</td><td class="nw">${fmtDate(lastAt(t))}</td>
-      <td>${r.url?`<a class="btn small" href="${esc(r.url)}" target="_blank" rel="noopener">Open ↗</a>`:""}</td></tr>`; }).join("")}</tbody></table></div>`
+      <td>${safeUrl(r.url)?`<a class="btn small" href="${esc(safeUrl(r.url))}" target="_blank" rel="noopener noreferrer">Open ↗</a>`:""}</td></tr>`; }).join("")}</tbody></table></div>`
     : `<div class="empty"><div style="font-size:34px">📋</div><b>Nothing tracked yet</b><p class="muted">Swipe right, save a job or mark one as applied and it shows up here.</p></div>`);
   $("#tSkip").onchange = e => { store("tSkip", e.target.checked); renderTable(); };
   $("#ptable").querySelectorAll("[data-open]").forEach(a => a.onclick = e => { e.preventDefault(); openDrawer(a.dataset.open); });
@@ -559,7 +585,7 @@ function init(){
   $("#queueBtn").onclick = startQueue;
   $("#scrim").onclick = closeDrawer;
   document.addEventListener("keydown", e => { if(e.key === "Escape") closeDrawer(); });
-  $("#dbchip").onclick = () => { if(dbSheet) window.open(dbSheet, "_blank", "noopener"); else if(dbState === "err") dbLoad(); else go("pipeline"); };
+  $("#dbchip").onclick = () => { if(safeUrl(dbSheet)) window.open(safeUrl(dbSheet), "_blank", "noopener"); else if(dbState === "err") dbLoad(); else go("pipeline"); };
   document.querySelectorAll("[data-pv]").forEach(b => b.onclick = () => { pv = b.dataset.pv; store("pv", pv); renderBoard(); });
   pv = store("pv") || "board";
   $("#csvBtn").onclick = exportCsv;
@@ -729,7 +755,8 @@ function renderCards(){
         <span class="pill ${s}">${SICON[s]} ${STATUSES[s]}</span>
         <span><button class="star ${s==="saved"?"on":""}" data-star title="Save">⭐</button><button class="star" data-na title="Not applicable" style="opacity:.55">🚫</button></span>
       </div></article>`;
-  }).join("") : `<div class="empty">No opportunities match these filters.<br><button class="btn small" style="margin-top:10px" onclick="F={...DEFAULT_F};store('filters',F);renderAll()">Reset filters</button></div>`;
+  }).join("") : `<div class="empty">No opportunities match these filters.<br><button class="btn small" style="margin-top:10px" data-reset-filters>Reset filters</button></div>`;
+  const rf = $("#cards").querySelector("[data-reset-filters]"); if(rf) rf.onclick = () => { F = {...DEFAULT_F}; store("filters", F); renderAll(); };
   $("#cards").querySelectorAll(".card").forEach(c => c.onclick = e => {
     const id = c.dataset.id;
     if(e.target.closest("[data-na]")){ e.stopPropagation(); return notApplicable(id); }
@@ -757,7 +784,7 @@ function renderDrawer(){
     </div>
     <div class="dactions">
       <button class="btn primary" data-a="apply">🚀 Apply</button>
-      <a class="btn" href="${esc(r.url && /^https?:\/\//.test(r.url) ? r.url : "https://www.google.com/search?q=" + encodeURIComponent(r.title+" "+(r.company||"")))}" target="_blank" rel="noopener">↗ Open posting</a>
+      <a class="btn" href="${esc(safeUrl(r.url) ? safeUrl(r.url) : "https://www.google.com/search?q=" + encodeURIComponent(r.title+" "+(r.company||"")))}" target="_blank" rel="noopener">↗ Open posting</a>
       <button class="btn" data-a="na">🚫 Not applicable</button>
       <select id="dstatus">${Object.entries(STATUSES).map(([k,v]) => `<option value="${k}" ${k===s?"selected":""}>${SICON[k]} ${v}</option>`).join("")}</select>
       ${D.gemini_key?`<button class="btn" data-a="gen">✨ ${ai?"Regenerate kit":"Generate apply kit"}</button>`:""}
@@ -991,13 +1018,13 @@ async function action(r, a, btn){
   if(a === "cvreset"){ if(!confirm("Undo all your edits to this CV?")) return; if(track[r.id]){ delete track[r.id].cv; delete track[r.id].kwOk; store("track", track); } return renderDrawer(); }
   if(a === "pdf"){
     const w = window.open("", "_blank"); if(!w) return toast("Allow pop-ups to save the PDF");
-    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(fname)}</title><style>${PAPER_CSS}</style></head><body>${cvHTML(cvOf(r))}<script>setTimeout(()=>print(),300)<\/script></body></html>`);
-    w.document.close(); toast("Choose “Save as PDF” in the print window"); return;
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(fname)}</title><style>${PAPER_CSS}</style></head><body>${cvHTML(cvOf(r))}</body></html>`);
+    w.document.close(); setTimeout(() => { try{ w.focus(); w.print(); }catch(e){} }, 300); toast("Choose “Save as PDF” in the print window"); return;
   }
   if(a === "markapplied"){ setStatus(r.id, "applied"); renderDrawer(); renderAll(); return toast("Marked as applied 📨. Moved to My applications"); }
   if(a === "apply"){
     const l = letter(); if(l){ try{ await navigator.clipboard.writeText(l); }catch(e){} }
-    const link = r.url && /^https?:\/\//.test(r.url) ? r.url : "https://www.google.com/search?q=" + encodeURIComponent(`${r.title} ${r.company||""} apply`);
+    const link = safeUrl(r.url) ? safeUrl(r.url) : "https://www.google.com/search?q=" + encodeURIComponent(`${r.title} ${r.company||""} apply`);
     window.open(link, "_blank", "noopener");
     toast(l ? "Cover letter copied. Use ⚡ Fill application on the form" : "Opened. Use ⚡ Fill application on the form");
     if(RANK[st(r.id)] < RANK.applied) setTimeout(() => { if(confirm(`Did you submit your application to “${r.title}”?\nOK = mark as Applied`)){ setStatus(r.id,"applied"); renderDrawer(); renderAll(); } }, 1800);
@@ -1139,8 +1166,8 @@ function doSwipe(r, dir, reason){
     setStatus(r.id, "applied");
     const letter = (track[r.id] && track[r.id].letter) || (r.ai && r.ai.cover_letter) || "";
     if(letter && navigator.clipboard) navigator.clipboard.writeText(letter).catch(()=>{});
-    const link = r.url && /^https?:\/\//.test(r.url) ? r.url : "https://www.google.com/search?q=" + encodeURIComponent(`${r.title} ${r.company||""} apply`);
-    if(document.documentElement.dataset.flousExt === "1"){ window.postMessage({ flous: "apply", url: link, title: r.title }, "*"); toast("Opening… ⚡ Flous will click Apply and fill the form"); }
+    const link = safeUrl(r.url) ? safeUrl(r.url) : "https://www.google.com/search?q=" + encodeURIComponent(`${r.title} ${r.company||""} apply`);
+    if(document.documentElement.dataset.flousExt === "1"){ window.postMessage({ flous: "apply", url: link, title: r.title }, location.origin); toast("Opening… ⚡ Flous will click Apply and fill the form"); }
     else { window.open(link, "_blank", "noopener"); toast("Opened. Use ⚡ on the form to fill it"); }
   }
   setTimeout(() => renderAll(), 260);
@@ -1181,7 +1208,7 @@ function mailRow(m){
       <div class="muted">${esc(m.summary)}</div>
       ${m.action?`<div style="margin-top:4px">👉 ${esc(m.action)}${m.due?` <span class="bd warn">⏰ ${esc(m.due)}</span>`:""}</div>`:""}
       ${r?`<div style="margin-top:6px"><a href="#" data-open="${esc(r.id)}">↳ ${esc(r.title)}</a></div>`:""}</div>
-    <div class="act"><a class="btn small" href="${esc(m.link)}" target="_blank" rel="noopener">Open in Gmail</a></div></div>`;
+    <div class="act"><a class="btn small" href="${esc(safeUrl(m.link) || "https://mail.google.com/")}" target="_blank" rel="noopener noreferrer">Open in Gmail</a></div></div>`;
 }
 function renderInbox(){
   const R = D.responses || [];

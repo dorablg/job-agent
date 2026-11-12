@@ -6,11 +6,15 @@ import json
 import time
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 from email.utils import parsedate_to_datetime
+
+from concurrent.futures import ThreadPoolExecutor
 
 import feedparser
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 UA = {"User-Agent": "Mozilla/5.0 (personal job-alert agent)"}
 TIMEOUT = 30
@@ -55,23 +59,46 @@ def _dt(value) -> datetime | None:
         return None
     try:
         if isinstance(value, (int, float)):
-            return datetime.fromtimestamp(value, tz=timezone.utc)
+            return datetime.fromtimestamp(value, tz=UTC)
         s = str(value)
         if s.isdigit():
-            return datetime.fromtimestamp(int(s), tz=timezone.utc)
+            return datetime.fromtimestamp(int(s), tz=UTC)
         try:
             d = datetime.fromisoformat(s.replace("Z", "+00:00"))
         except ValueError:
             d = parsedate_to_datetime(s)
-        return d if d.tzinfo else d.replace(tzinfo=timezone.utc)
+        return d if d.tzinfo else d.replace(tzinfo=UTC)
     except Exception:
         return None
 
 
+# One pooled, thread-safe-for-GET session: keep-alive connections + automatic retry of transient errors.
+_SESSION = requests.Session()
+_SESSION.headers.update(UA)
+_SESSION.mount("https://", HTTPAdapter(pool_connections=32, pool_maxsize=32, max_retries=Retry(
+    total=2, backoff_factor=0.8, status_forcelist=(500, 502, 503, 504), allowed_methods=frozenset({"GET"}),
+    raise_on_status=False)))
+
+
+def http_get(url: str, **kw) -> requests.Response:
+    kw.setdefault("timeout", TIMEOUT)
+    kw.pop("headers", None)  # the session already sends UA
+    return _SESSION.get(url, **kw)
+
+
 def _get(url, **kw):
-    r = requests.get(url, headers=UA, timeout=TIMEOUT, **kw)
+    r = http_get(url, **kw)
     r.raise_for_status()
     return r.json()
+
+
+def pmap(fn, items, workers: int = 8) -> list:
+    """Order-preserving parallel map for I/O-bound calls (HTTP). Exceptions propagate per item via fn."""
+    items = list(items)
+    if len(items) <= 1:
+        return [fn(x) for x in items]
+    with ThreadPoolExecutor(max_workers=min(workers, len(items))) as ex:
+        return list(ex.map(fn, items))
 
 
 def detect_kind(title: str, text: str) -> str:
@@ -213,18 +240,23 @@ def workable(_terms, searches: list[dict] | None = None) -> list[Job]:
     """Workable's job search. Each search: {location, workplace (optional), queries}.
     Tunisia searches keep only remote jobs open in Tunisia; London/Italy keep jobs located there."""
     out, seen = [], set()
-    for srch in searches or []:
+    pairs = [(srch, q) for srch in searches or [] for q in srch.get("queries", [])]
+
+    def one(pair):
+        srch, q = pair
+        params = {"query": q}
+        if srch["location"]:
+            params["location"] = srch["location"]
+        if srch.get("workplace"):
+            params["workplace"] = srch["workplace"]
+        try:
+            return _get("https://jobs.workable.com/api/v1/jobs", params=params)
+        except Exception:
+            return None
+
+    for (srch, _q), data in zip(pairs, pmap(one, pairs, workers=4), strict=True):
         where = srch["location"]
-        for q in srch.get("queries", []):
-            params = {"query": q}
-            if where:
-                params["location"] = where
-            if srch.get("workplace"):
-                params["workplace"] = srch["workplace"]
-            try:
-                data = _get("https://jobs.workable.com/api/v1/jobs", params=params)
-            except Exception:
-                continue
+        if data is not None:
             for j in data.get("jobs", []):
                 if j.get("id") in seen:
                     continue
@@ -261,7 +293,9 @@ LIVE_IDS: set[str] = set()    # every posting id those boards still list
 def company_boards(_terms, boards: dict | None = None) -> list[Job]:
     """Jobs from company career pages (Greenhouse / Lever / Ashby), kept only in London, UK or Italy."""
     out = []
-    for company, ats in (boards or {}).items():
+
+    def fetch_board(item):
+        company, ats = item
         try:
             if ats == "greenhouse":
                 data = _get(f"https://boards-api.greenhouse.io/v1/boards/{company}/jobs", params={"content": "true"})
@@ -280,6 +314,12 @@ def company_boards(_terms, boards: dict | None = None) -> list[Job]:
                          clean(j.get("descriptionPlain") or j.get("descriptionHtml") or ""), j.get("publishedAt"))
                         for j in data.get("jobs", []) if j.get("isListed", True)]
         except Exception:
+            return None
+        return rows
+
+    items = list((boards or {}).items())
+    for (company, ats), rows in zip(items, pmap(fetch_board, items, workers=12), strict=True):
+        if rows is None:
             continue
         BOARDS_OK.add(f"{ats}-{company}")
         LIVE_IDS.update(f"{ats}-{company}-{r[0]}" for r in rows)
@@ -308,7 +348,7 @@ def jobs_ac_uk(_terms, queries: list[str] | None = None, max_details: int = 40) 
     links: dict[str, str] = {}
     for q in queries or []:
         try:
-            r = requests.get("https://www.jobs.ac.uk/search/", params={"keywords": q, "sortOrder": "1"},
+            r = http_get("https://www.jobs.ac.uk/search/", params={"keywords": q, "sortOrder": "1"},
                              headers=UA, timeout=TIMEOUT)
             r.raise_for_status()
         except Exception:
@@ -318,13 +358,21 @@ def jobs_ac_uk(_terms, queries: list[str] | None = None, max_details: int = 40) 
             if title and ACADEMIC_TITLE.search(title) and not ACADEMIC_SKIP.search(title):
                 links.setdefault(href, title)
     out = []
-    for href, title in list(links.items())[:max_details]:
-        url = "https://www.jobs.ac.uk" + href
+    picked = list(links.items())[:max_details]
+
+    def details(item) -> dict | None:
         try:
-            page = requests.get(url, headers=UA, timeout=TIMEOUT).text
+            page = http_get("https://www.jobs.ac.uk" + item[0]).text
             m = re.search(r'<script type="application/ld\+json">(.*?)</script>', page, re.S)
-            d = json.loads(m.group(1)) if m else {}
+            return json.loads(m.group(1)) if m else {}
         except Exception:
+            return None
+        finally:
+            time.sleep(0.4)  # be polite (4 workers -> ~10 requests/s at most)
+
+    for (href, title), d in zip(picked, pmap(details, picked, workers=4), strict=True):
+        url = "https://www.jobs.ac.uk" + href
+        if d is None:
             continue
         if isinstance(d, list):
             d = next((x for x in d if isinstance(x, dict) and x.get("@type") == "JobPosting"), {})
@@ -354,7 +402,6 @@ def jobs_ac_uk(_terms, queries: list[str] | None = None, max_details: int = 40) 
             work_mode=detect_mode(f"{title} {desc[:1500]}") if re.search(r"remote|hybrid", desc[:1500], re.I) else "onsite",
             posted=_dt(d.get("datePosted")), salary=salary,
         ))
-        time.sleep(0.4)  # be polite
     return out
 
 
@@ -390,13 +437,13 @@ def adzuna(_terms, opts: dict | None = None) -> list[Job]:
     if not pairs:
         return []
     per_run = opts.get("per_run", 28)
-    slot = int(datetime.now(timezone.utc).timestamp() // (3 * 3600))  # changes every 3 hours
+    slot = int(datetime.now(UTC).timestamp() // (3 * 3600))  # changes every 3 hours
     start = (slot * per_run) % len(pairs)
     batch = [pairs[(start + i) % len(pairs)] for i in range(min(per_run, len(pairs)))]
     out, seen = [], set()
     for country, q in batch:
         try:
-            r = requests.get(f"https://api.adzuna.com/v1/api/jobs/{country}/search/1", headers=UA, timeout=TIMEOUT,
+            r = http_get(f"https://api.adzuna.com/v1/api/jobs/{country}/search/1", headers=UA, timeout=TIMEOUT,
                              params={"app_id": app_id, "app_key": app_key, "what": q, "results_per_page": 50,
                                      "max_days_old": opts.get("max_days_old", 21), "content-type": "application/json"})
             if r.status_code == 429:
@@ -524,19 +571,27 @@ def gdg_events(_terms, opts: dict | None = None) -> list[Job]:
 def wp_search(_terms, opts: dict | None = None) -> list[Job]:
     """Searches opportunity sites (WordPress) and reads FULL posts, so real deadlines and funding details are known."""
     opts = opts or {}
-    after = (datetime.now(timezone.utc) - timedelta(days=opts.get("days", 75))).strftime("%Y-%m-%dT00:00:00")
+    after = (datetime.now(UTC) - timedelta(days=opts.get("days", 75))).strftime("%Y-%m-%dT00:00:00")
     out, seen = [], set()
-    for site in opts.get("sites", []):
+
+    def site_posts(site: str) -> list[list]:
+        """All queries for one site, one request at a time (polite); sites themselves run in parallel."""
+        res = []
         for q in opts.get("queries", []):
             try:
-                r = requests.get(site.rstrip("/") + "/wp-json/wp/v2/posts", headers=UA, timeout=TIMEOUT,
-                                 params={"search": q, "per_page": opts.get("per_query", 30), "after": after,
-                                         "_fields": "id,link,date,title,content"})
+                r = http_get(site.rstrip("/") + "/wp-json/wp/v2/posts",
+                             params={"search": q, "per_page": opts.get("per_query", 30), "after": after,
+                                     "_fields": "id,link,date,title,content"})
                 posts = r.json() if r.ok else []
             except Exception:
-                continue
-            if not isinstance(posts, list):
-                continue
+                posts = []
+            res.append(posts if isinstance(posts, list) else [])
+            time.sleep(0.2)
+        return res
+
+    sites = list(opts.get("sites", []))
+    for site, batches in zip(sites, pmap(site_posts, sites, workers=8), strict=True):
+        for posts in batches:
             for p in posts:
                 link = p.get("link", "")
                 if not link or link in seen:
@@ -552,7 +607,6 @@ def wp_search(_terms, opts: dict | None = None) -> list[Job]:
                     kind=rss_kind(title, body), work_mode=detect_mode(f"{title} {body[:800]}"),
                     posted=_dt(p.get("date")),
                 ))
-            time.sleep(0.2)
     return out
 
 
@@ -597,31 +651,46 @@ SOURCES = {
 
 
 def fetch_all(cfg: dict, log=print) -> list[Job]:
+    """Runs every enabled source concurrently (they are I/O bound) and merges results in config order,
+    so de-duplication downstream stays deterministic. One broken source never stops the run."""
     if cfg.get("focus_places"):
         set_focus(cfg["focus_places"])
-    jobs: list[Job] = []
     terms = cfg.get("search_terms", [])
-    for name in cfg.get("sources", list(SOURCES)):
-        if name not in SOURCES:
-            continue
+    extra = {"workable": cfg.get("workable_searches"), "company_boards": cfg.get("company_boards"),
+             "jobs_ac_uk": cfg.get("jobs_ac_uk_queries"), "wp_search": cfg.get("opportunity_search"),
+             "adzuna": cfg.get("adzuna"), "devpost": cfg.get("devpost"), "curated": cfg.get("curated"),
+             "gdg_events": cfg.get("gdg_events")}
+    names = [n for n in cfg.get("sources", list(SOURCES)) if n in SOURCES]
+    feeds = list(cfg.get("rss_feeds", []))
+
+    def run_source(name):
+        t0 = time.perf_counter()
         try:
-            extra = {"workable": cfg.get("workable_searches"), "company_boards": cfg.get("company_boards"),
-                     "jobs_ac_uk": cfg.get("jobs_ac_uk_queries"), "wp_search": cfg.get("opportunity_search"),
-                     "adzuna": cfg.get("adzuna"), "devpost": cfg.get("devpost"), "curated": cfg.get("curated"),
-                     "gdg_events": cfg.get("gdg_events")}
             got = SOURCES[name](terms, extra[name]) if name in extra else SOURCES[name](terms)
-            log(f"  {name}: {len(got)}")
-            jobs += got
-        except Exception as ex:  # one broken source must never stop the run
-            log(f"  {name}: FAILED ({ex})")
-    n_rss = 0
-    for feed in cfg.get("rss_feeds", []):  # one broken feed must not stop the others
-        try:
-            got = rss([feed])
-            n_rss += len(got)
-            jobs += got
+            return got, f"  {name}: {len(got)} ({time.perf_counter() - t0:.0f}s)"
         except Exception as ex:
-            log(f"  rss {feed}: FAILED ({ex})")
+            return [], f"  {name}: FAILED ({ex})"
+
+    def run_feed(feed):
+        try:
+            return rss([feed]), None
+        except Exception as ex:
+            return [], f"  rss {feed}: FAILED ({ex})"
+
+    with ThreadPoolExecutor(max_workers=6) as ex:
+        feed_futs = [ex.submit(run_feed, f) for f in feeds]
+        results = pmap(run_source, names, workers=len(names) or 1)
+        feed_results = [f.result() for f in feed_futs]
+    jobs: list[Job] = []
+    for got, line in results:
+        log(line)
+        jobs += got
+    n_rss = 0
+    for got, err in feed_results:
+        if err:
+            log(err)
+        n_rss += len(got)
+        jobs += got
     log(f"  rss feeds: {n_rss}")
     for j in jobs:  # some boards double-escape titles ("&amp;")
         j.title = html.unescape(html.unescape(j.title)).strip()

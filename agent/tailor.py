@@ -130,13 +130,29 @@ def mentions_studies(ai) -> bool:
     return bool(ai) and bool(STUDY_RE.search(json.dumps(ai, ensure_ascii=False)))
 
 
+_SENTENCE = re.compile(r"(?<=[.!?])\s+")
+_TEXT_FIELDS = ("cover_letter", "tailored_summary", "fit_summary", "tailored_headline")
+
+
+def _drop_study_sentences(text: str) -> str:
+    return " ".join(x for x in _SENTENCE.split(text) if not STUDY_RE.search(x)).strip()
+
+
 def scrub_studies(ai: dict | None) -> dict | None:
-    """Last safety net for job applications: drop in-progress studies from the CV's education list."""
+    """Last safety net for job applications (after one AI retry): drop in-progress studies from the CV's education
+    list and remove any sentence that still mentions them from the letter and summaries."""
     if not ai:
         return ai
     cv = ai.get("ats_cv")
-    if isinstance(cv, dict) and isinstance(cv.get("education"), list):
-        cv["education"] = [e for e in cv["education"] if not STUDY_RE.search(json.dumps(e, ensure_ascii=False))]
+    if isinstance(cv, dict):
+        if isinstance(cv.get("education"), list):
+            cv["education"] = [e for e in cv["education"] if not STUDY_RE.search(json.dumps(e, ensure_ascii=False))]
+        if isinstance(cv.get("summary"), str):
+            cv["summary"] = _drop_study_sentences(cv["summary"])
+    for k in _TEXT_FIELDS:
+        if isinstance(ai.get(k), str) and STUDY_RE.search(ai[k]):
+            # keep paragraph breaks in letters: clean each paragraph separately
+            ai[k] = "\n".join(_drop_study_sentences(p) for p in ai[k].split("\n"))
     return ai
 
 
@@ -229,7 +245,8 @@ def ats_cv_docx(cv: dict, path: Path) -> None:
         heading("Professional Experience")
         for e in cv["experience"]:
             if not isinstance(e, dict):
-                bullet(e); continue
+                bullet(e)
+                continue
             p = para(f"{e.get('title', '')} — {e.get('company', '')}", bold=True, after=0)
             p.paragraph_format.space_before = Pt(4)
             para(" | ".join(x for x in (e.get("location", ""), e.get("dates", "")) if x), size=9.5, after=1, color="555555")

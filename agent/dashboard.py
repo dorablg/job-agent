@@ -1,9 +1,12 @@
 """Keeps every match (encrypted) and builds the password-protected dashboard website."""
 from __future__ import annotations
 
+import base64
+import hashlib
 import json
 import os
-from datetime import datetime, timedelta, timezone
+import re
+from datetime import datetime, timedelta, UTC
 from pathlib import Path
 
 import yaml
@@ -30,7 +33,7 @@ def load() -> dict[str, dict]:
 
 
 def save(listings: dict[str, dict]) -> None:
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=KEEP_DAYS)).isoformat()
+    cutoff = (datetime.now(UTC) - timedelta(days=KEEP_DAYS)).isoformat()
     keep = {k: v for k, v in listings.items() if v.get("found", "") >= cutoff}
     keep = dict(sorted(keep.items(), key=lambda kv: kv[1].get("found", ""), reverse=True)[:MAX_LISTINGS])
     STORE.parent.mkdir(exist_ok=True)
@@ -45,7 +48,7 @@ def record(j: Job, ai: dict | None) -> dict:
         "source": j.source, "salary": j.salary, "posted": j.posted.isoformat() if j.posted else "",
         "score": j.score, "ats": j.ats, "matched": j.matched[:20], "missing": j.missing[:20],
         "description": j.description[:6000],
-        "found": datetime.now(timezone.utc).isoformat(),
+        "found": datetime.now(UTC).isoformat(),
     }
     if getattr(j, "check", None):
         r["check"] = j.check
@@ -68,22 +71,42 @@ def upsert(listings: dict, new: dict) -> None:
     listings[new["id"]] = new
 
 
+def _dupe_key(r: dict) -> tuple[str, str]:
+    title = " ".join(r.get("title", "").lower().replace("(", " ").replace(")", " ").split())
+    return title, (r.get("company") or "").lower()
+
+
 def _unique(rows: list[dict]) -> list[dict]:
-    """The same post often appears on two opportunity sites: show it once (keep the one with an apply kit)."""
+    """The same post often appears on two opportunity sites: show it once (keep the one with an apply kit).
+    Keeps the input order."""
     best: dict = {}
     for r in rows:
-        k = (" ".join(r.get("title", "").lower().replace("(", " ").replace(")", " ").split()), (r.get("company") or "").lower())
+        k = _dupe_key(r)
         if k not in best or ("ai" in r and "ai" not in best[k]):
             best[k] = r
-    return [r for r in rows if best.get((" ".join(r.get("title", "").lower().replace("(", " ").replace(")", " ").split()),
-                                         (r.get("company") or "").lower())) is r]
+    return [r for r in rows if best[_dupe_key(r)] is r]
+
+
+# Only the page's own inline script may run (pinned by hash); data can only be sent to Gemini and your Apps Script.
+CSP = ("default-src 'none'; script-src {script}; style-src 'unsafe-inline'; img-src 'self' data: blob:; "
+       "font-src 'self' data:; connect-src https://generativelanguage.googleapis.com https://script.google.com "
+       "https://script.googleusercontent.com; base-uri 'none'; form-action 'none'; object-src 'none'; "
+       "frame-src 'none'; worker-src 'none'; manifest-src 'self'")
+_SCRIPT = re.compile(r"<script>(.*?)</script>", re.S)
+
+
+def with_csp(html: str) -> str:
+    """Fills the CSP meta tag with the SHA-256 of every inline <script> (after the payload is in place)."""
+    hashes = " ".join("'sha256-" + base64.b64encode(hashlib.sha256(m.group(1).encode("utf-8")).digest()).decode() + "'"
+                      for m in _SCRIPT.finditer(html))
+    return html.replace("__CSP__", CSP.format(script=hashes or "'none'"), 1)
 
 
 def build(listings: dict, cv_text: str, cfg: dict, responses: list | None = None) -> Path:
     applicant_file = ROOT / "cv" / "applicant.yaml"
     applicant = yaml.safe_load(applicant_file.read_text(encoding="utf-8")) if applicant_file.exists() else {}
     payload = {
-        "generated": datetime.now(timezone.utc).isoformat(),
+        "generated": datetime.now(UTC).isoformat(),
         "listings": _unique([enrich.apply(dict(r)) for r in sorted(listings.values(), key=lambda r: r.get("found", ""), reverse=True)]),
         "responses": responses or [],
         "categories": [c["name"] for c in cfg.get("categories", [])],
@@ -101,8 +124,8 @@ def build(listings: dict, cv_text: str, cfg: dict, responses: list | None = None
         "db": ({"url": os.environ["GMAIL_WEBAPP_URL"], "key": os.environ["GMAIL_WEBAPP_KEY"]}
                if os.getenv("GMAIL_WEBAPP_URL", "").startswith("https://") and os.getenv("GMAIL_WEBAPP_KEY") else None),
     }
-    blob = secure.encrypt(json.dumps(payload, ensure_ascii=False).encode("utf-8"), secure.password())
-    html = TEMPLATE.read_text(encoding="utf-8").replace("__PAYLOAD__", json.dumps(blob))
+    blob = secure.encrypt(json.dumps(payload, ensure_ascii=False).encode("utf-8"), secure.password(), salt=secure.site_salt())
+    html = with_csp(TEMPLATE.read_text(encoding="utf-8").replace("__PAYLOAD__", json.dumps(blob)))
     SITE.mkdir(exist_ok=True)
     out = SITE / "index.html"
     out.write_text(html, encoding="utf-8")

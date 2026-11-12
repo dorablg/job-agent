@@ -2,31 +2,17 @@
 from __future__ import annotations
 
 import re
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, UTC
+from functools import cache
 from pathlib import Path
 
 from . import enrich
 from .sources import Job
 
 # Common skills / ATS keywords. Extend with `extra_keywords` in config.yaml.
-SKILLS = """
-python r sql nosql java javascript typescript c++ c# go rust scala matlab julia bash linux git github docker kubernetes
-aws azure gcp google cloud terraform ci/cd airflow spark pyspark hadoop kafka dbt snowflake bigquery databricks redshift
-postgresql mysql mongodb redis elasticsearch pandas numpy scipy scikit-learn sklearn tensorflow pytorch keras jax xgboost lightgbm catboost
-machine learning deep learning data science data analysis data analytics data engineering data visualization statistics
-nlp natural language processing computer vision llm llms generative ai genai rag langchain transformers hugging face
-reinforcement learning time series forecasting anomaly detection fraud detection recommendation systems mlops feature engineering
-a/b testing experimentation hypothesis testing regression classification clustering
-tableau power bi looker excel google sheets matplotlib seaborn plotly streamlit
-fastapi flask django react node.js next.js html css rest api graphql microservices
-agile scrum jira product management project management stakeholder management communication leadership teamwork
-research publication writing presentation problem solving critical thinking
-cybersecurity security risk compliance finance fintech banking healthcare blockchain
-etl elt data warehouse data modeling data pipeline big data cloud computing devops
-""".split("\n")
+SKILLS = ["\r", "python r sql nosql java javascript typescript c++ c# go rust scala matlab julia bash linux git github docker kubernetes\r", "aws azure gcp google cloud terraform ci/cd airflow spark pyspark hadoop kafka dbt snowflake bigquery databricks redshift\r", "postgresql mysql mongodb redis elasticsearch pandas numpy scipy scikit-learn sklearn tensorflow pytorch keras jax xgboost lightgbm catboost\r", "machine learning deep learning data science data analysis data analytics data engineering data visualization statistics\r", "nlp natural language processing computer vision llm llms generative ai genai rag langchain transformers hugging face\r", "reinforcement learning time series forecasting anomaly detection fraud detection recommendation systems mlops feature engineering\r", "a/b testing experimentation hypothesis testing regression classification clustering\r", "tableau power bi looker excel google sheets matplotlib seaborn plotly streamlit\r", "fastapi flask django react node.js next.js html css rest api graphql microservices\r", "agile scrum jira product management project management stakeholder management communication leadership teamwork\r", "research publication writing presentation problem solving critical thinking\r", "cybersecurity security risk compliance finance fintech banking healthcare blockchain\r", "etl elt data warehouse data modeling data pipeline big data cloud computing devops\r", ""]
 
-_STOP = set("""a an the and or of to in for on with at by from as is are be this that it you your we our will can
-have has their they them who what which into about more than such other using use etc""".split())
+_STOP = set(["a", "an", "the", "and", "or", "of", "to", "in", "for", "on", "with", "at", "by", "from", "as", "is", "are", "be", "this", "that", "it", "you", "your", "we", "our", "will", "can", "have", "has", "their", "they", "them", "who", "what", "which", "into", "about", "more", "than", "such", "other", "using", "use", "etc"])
 
 
 def _vocab(cfg: dict) -> list[str]:
@@ -52,8 +38,16 @@ def _vocab(cfg: dict) -> list[str]:
     return sorted(words, key=len, reverse=True)
 
 
+@cache
+def _term_re(term: str) -> re.Pattern:
+    """Whole-word (optionally plural) pattern for a keyword. Compiled once: re's own cache (512 entries) is far
+    smaller than the vocabulary x category terms, and recompiling was ~90% of the scoring time."""
+    return re.compile(r"(?<![a-z0-9])" + re.escape(term) + r"s?(?![a-z0-9])")
+
+
 def _has(term: str, text: str) -> bool:
-    return re.search(r"(?<![a-z0-9])" + re.escape(term) + r"s?(?![a-z0-9])", text) is not None
+    # cheap substring test first: most terms are absent, and a regex match implies the substring is present
+    return term in text and _term_re(term).search(text) is not None
 
 
 def load_cv(path: str | Path) -> str:
@@ -103,7 +97,7 @@ def passes_filters(job: Job, cfg: dict) -> bool:
     if any(_has(w.lower(), text) for w in f.get("exclude_words", [])):
         return False
     max_age = f.get("max_age_days", 14) * (4 if job.kind in ("fellowship", "event") else 1)  # scholarships stay open for months
-    if job.posted and job.posted < datetime.now(timezone.utc) - timedelta(days=max_age):
+    if job.posted and job.posted < datetime.now(UTC) - timedelta(days=max_age):
         return False
     allowed = [a.lower() for a in f.get("allowed_locations", [])]
     loc = (job.location or "").lower()

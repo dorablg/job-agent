@@ -57,7 +57,7 @@ def _groq(prompt: str, models: list[str] | None = None, temperature: float = 0.6
         headers={"Authorization": f"Bearer {os.environ['GROQ_API_KEY']}"},
         json={"model": os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
               "messages": [{"role": "user", "content": prompt}],
-              "temperature": 0.6, "response_format": {"type": "json_object"}},
+              "temperature": temperature, "response_format": {"type": "json_object"}},
         timeout=120,
     )
     r.raise_for_status()

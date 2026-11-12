@@ -3,6 +3,7 @@ requirements. Pure text rules (free, no AI) so every listing gets them."""
 from __future__ import annotations
 
 import re
+from functools import cache
 from datetime import datetime
 
 COUNTRIES = {
@@ -35,11 +36,17 @@ LANGS = ["English", "French", "German", "Spanish", "Arabic", "Italian", "Portugu
          "Thai", "Vietnamese", "Indonesian", "Malay",
          "Japanese", "Chinese", "Mandarin", "Korean", "Russian", "Swedish", "Danish", "Norwegian", "Greek", "Bulgarian",
          "Romanian", "Czech", "Hebrew", "Finnish", "Hungarian"]
-MONTHS = "january february march april may june july august september october november december".split()
+MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"]
+
+
+@cache
+def _term_re(term: str) -> re.Pattern:
+    return re.compile(r"(?<![a-z0-9])" + re.escape(term) + r"(?![a-z0-9])")
 
 
 def _has(term: str, text: str) -> bool:
-    return re.search(r"(?<![a-z0-9])" + re.escape(term) + r"(?![a-z0-9])", text) is not None
+    # cheap substring test first: most terms are absent, and a regex match implies the substring is present
+    return term in text and _term_re(term).search(text) is not None
 
 
 def countries(location: str, title: str, text: str) -> list[str]:
@@ -173,9 +180,7 @@ def languages(text: str) -> list[str]:
     for lang in LANGS:
         l = lang.lower()
         if re.search(rf"\b(fluent|fluency|native|proficien\w*|business[- ]level|written and spoken|speak\w*|c1|c2|b2)\b[^.\n]{{0,40}}\b{l}\b"
-                     rf"|\b{l}\b[^.\n]{{0,25}}\b(speaker|fluency|fluent|proficien\w*|native|language|required|skills)\b", t):
-            out.append(lang)
-        elif re.search(rf"(?<![a-z]){l}[- ](speaking|speakers?|market|native)", t[:300]):  # "Greek Speaking ...", "German Speakers", "Czech Market"
+                     rf"|\b{l}\b[^.\n]{{0,25}}\b(speaker|fluency|fluent|proficien\w*|native|language|required|skills)\b", t) or re.search(rf"(?<![a-z]){l}[- ](speaking|speakers?|market|native)", t[:300]):
             out.append(lang)
     return out
 

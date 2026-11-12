@@ -75,3 +75,13 @@ then set `GMAIL_ADDRESS` and `GMAIL_APP_PASSWORD` (in `.env` and as GitHub secre
 - Too many alerts → raise `min_score`, or add words to `exclude_title_words`.
 - Too few → lower `min_score`, add `interests`, or add RSS feeds (most WordPress opportunity sites have `/feed/`).
 - To see the full history again, reset `state/seen.json` to `{}`.
+
+## Development
+
+```bash
+pip install -r requirements-dev.txt
+ruff check .          # lint, incl. security rules
+python -m pytest      # Python + JavaScript tests (needs Node for the JS part)
+```
+
+CI runs the same on every push; the scheduled agent also runs the tests before it touches any data. See [SECURITY.md](SECURITY.md) for the security model.

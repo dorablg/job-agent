@@ -9,3 +9,8 @@ cv/*
 
 # private Gmail bridge script (contains your secret key)
 gmail_bridge_PRIVATE.gs
+
+# local tooling
+.claude/
+.pytest_cache/
+.ruff_cache/

@@ -97,6 +97,9 @@ def build(listings: dict, cv_text: str, cfg: dict, responses: list | None = None
         "kind_notes": tailor.KIND_NOTES,
         # lets the page write cover letters on demand; only readable after entering the password
         "gemini_key": os.getenv("GEMINI_API_KEY", ""),
+        # applications database (Google Sheet) through the user's own Apps Script bridge; inside the encrypted blob
+        "db": ({"url": os.environ["GMAIL_WEBAPP_URL"], "key": os.environ["GMAIL_WEBAPP_KEY"]}
+               if os.getenv("GMAIL_WEBAPP_URL", "").startswith("https://") and os.getenv("GMAIL_WEBAPP_KEY") else None),
     }
     blob = secure.encrypt(json.dumps(payload, ensure_ascii=False).encode("utf-8"), secure.password())
     html = TEMPLATE.read_text(encoding="utf-8").replace("__PAYLOAD__", json.dumps(blob))

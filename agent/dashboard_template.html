@@ -46,12 +46,45 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 
 textarea{width:100%;min-height:200px;resize:vertical;line-height:1.55}
 input[type=range]{width:100%;accent-color:var(--accent)}
 /* ---------- lock ---------- */
-#lock{min-height:100vh;display:grid;place-items:center;padding:16px;background:radial-gradient(1200px 600px at 10% -10%,var(--accent-bg),transparent),var(--bg)}
-#lock form{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:32px;width:100%;max-width:400px;box-shadow:var(--shadow-lg)}
+#lock{min-height:100vh;display:grid;place-items:center;padding:16px;background:radial-gradient(900px 520px at 0% 0%,color-mix(in srgb,var(--accent) 20%,transparent),transparent),radial-gradient(800px 520px at 100% 100%,color-mix(in srgb,var(--accent2) 16%,transparent),transparent),var(--bg)}
+.lk{display:grid;grid-template-columns:1.1fr 1fr;width:100%;max-width:940px;background:var(--panel);border:1px solid var(--line);border-radius:24px;overflow:hidden;box-shadow:var(--shadow-lg)}
+.lk-hero{background:linear-gradient(150deg,var(--accent),var(--accent2));color:#fff;padding:40px 36px;display:flex;flex-direction:column;gap:18px}
+.lk-brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px}
+.lk-hero .logo{background:rgba(255,255,255,.2)}
+.lk-hero h2{font-size:31px;line-height:1.15;margin:10px 0 0;letter-spacing:-.02em}
+.lk-hero ul{list-style:none;padding:0;margin:0;display:grid;gap:12px;font-size:14.5px}
+.lk-hero li{display:flex;gap:10px;align-items:flex-start;opacity:.96}
+.lk-sec{margin-top:auto;font-size:12.5px;opacity:.85}
+#lockform{padding:46px 40px;display:flex;flex-direction:column;min-width:0}
+#lockform h1{margin:0 0 4px;font-size:25px;letter-spacing:-.01em}
+#lockform .lk-mlogo{display:none}
+.lk-lbl{font-size:13px;font-weight:600;margin:24px 0 6px}
+.lk-pw{position:relative}
+#lock .lk-pw input{width:100%;margin:0;padding:12px 46px 12px 13px;font-size:15px}
+.lk-pw button{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:transparent;cursor:pointer;font-size:16px;padding:6px 8px;border-radius:8px;color:var(--muted)}
+.lk-pw button:hover{background:var(--soft)}
+.lk-caps{font-size:12.5px;color:#b45309;margin-top:6px}
+.lk-rem{display:flex;gap:8px;align-items:center;font-size:13.5px;color:var(--muted);margin:16px 0 18px}
+.lk-go{width:100%;justify-content:center;padding:12px;font-size:15px}
+.lk-foot{font-size:12px;margin-top:auto;padding-top:22px}
+.shake{animation:shake .35s}
+@keyframes shake{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+@media (max-width:760px){.lk{grid-template-columns:1fr;max-width:420px}.lk-hero{display:none}#lockform .lk-mlogo{display:inline-grid;margin-bottom:16px}#lockform{padding:32px 24px}}
+/* ---------- applications database ---------- */
+.pipebar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.seg{display:inline-flex;background:var(--soft);border-radius:10px;padding:3px}
+.seg button{border:0;background:transparent;padding:6px 12px;border-radius:8px;cursor:pointer;font:inherit;font-size:13.5px;color:var(--muted)}
+.seg button.on{background:var(--panel);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
+.tbl th{text-align:left;font-size:12px;color:var(--muted);font-weight:600;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--panel2)}
+.tbl td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl tr:last-child td{border-bottom:0}
+.tbl td.nw{white-space:nowrap}
+.tbl select{padding:5px 8px;font-size:13px}
 .logo{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:800;font-size:20px}
 #lock h1{margin:14px 0 4px;font-size:22px}
-#lock input[type=password]{width:100%;margin:16px 0 10px;padding:11px 13px}
-#lock .err{color:var(--bad);min-height:1.4em;font-size:13.5px;margin-top:8px}
+#lock .err{color:var(--bad);min-height:1.4em;font-size:13.5px;margin-top:10px}
 /* ---------- shell ---------- */
 .topbar{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .topbar .in{max-width:1320px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:14px}
@@ -219,17 +252,32 @@ aside.filters{position:sticky;top:70px;background:var(--panel);border:1px solid 
 <body>
 
 <div id="lock">
-  <form id="lockform" autocomplete="off">
-    <span class="logo">F</span>
-    <h1>Flous Job Board</h1>
-    <div class="muted">Your private job search. Enter your password to unlock.</div>
-    <input type="password" id="pw" placeholder="Password" autofocus>
-    <label style="display:flex;gap:8px;align-items:center;font-size:13.5px;color:var(--muted);margin-bottom:16px">
-      <input type="checkbox" id="remember" checked> Remember on this device
-    </label>
-    <button class="btn primary" style="width:100%;justify-content:center;padding:11px">Unlock</button>
-    <div class="err" id="err"></div>
-  </form>
+  <div class="lk">
+    <section class="lk-hero">
+      <div class="lk-brand"><span class="logo">F</span> Flous</div>
+      <h2>Your private<br>career copilot.</h2>
+      <ul>
+        <li><span>🔎</span><span>Jobs, internships, alternance, programs &amp; fellowships matched to your CV every 3 hours</span></li>
+        <li><span>📝</span><span>A tailored ATS CV, cover letter and answers for each one</span></li>
+        <li><span>💘</span><span>Swipe right: the site opens and your application is filled in</span></li>
+        <li><span>📬</span><span>Replies from Gmail move your applications automatically</span></li>
+      </ul>
+      <div class="lk-sec">🔐 Everything is encrypted (AES-256). Only your password can open it.</div>
+    </section>
+    <form id="lockform" autocomplete="on">
+      <span class="logo lk-mlogo">F</span>
+      <h1>Welcome back 👋</h1>
+      <div class="muted">Sign in to your job board.</div>
+      <input type="text" name="username" value="flous" autocomplete="username" style="display:none" aria-hidden="true" tabindex="-1">
+      <label class="lk-lbl" for="pw">Password</label>
+      <div class="lk-pw"><input type="password" id="pw" name="password" autocomplete="current-password" placeholder="Enter your password" autofocus required><button type="button" id="pwEye" aria-label="Show password" title="Show password">👁</button></div>
+      <div class="lk-caps hidden" id="caps">⇪ Caps Lock is on</div>
+      <label class="lk-rem"><input type="checkbox" id="remember" checked> Keep me signed in on this device</label>
+      <button class="btn primary lk-go" id="lkgo">Sign in</button>
+      <div class="err" id="err" role="alert"></div>
+      <div class="muted lk-foot">🔐 Private board. Nothing here can be read without your password.</div>
+    </form>
+  </div>
 </div>
 
 <div id="app" class="hidden">
@@ -242,6 +290,7 @@ aside.filters{position:sticky;top:70px;background:var(--panel);border:1px solid 
       <button data-view="inbox">📬 Inbox <span class="count hidden" id="inboxCount"></span></button>
       <button data-view="profile">⚡ Autofill &amp; profile</button>
     </nav>
+    <button class="btn ghost small" id="dbchip" title="">💾</button>
     <button class="btn ghost small" id="theme" title="Switch light/dark">🌓</button>
     <button class="btn ghost small" id="lockbtn" title="Lock and forget password on this device">🔒</button>
   </div></div>
@@ -275,8 +324,15 @@ aside.filters{position:sticky;top:70px;background:var(--panel);border:1px solid 
 
     <!-- PIPELINE -->
     <section id="v-pipeline" class="hidden">
-      <p class="muted" style="margin-top:0">Drag cards between columns, or change the status inside a job. Gmail replies move them for you.</p>
+      <div class="pipebar">
+        <div class="seg"><button data-pv="board">🗂 Board</button><button data-pv="table">📋 Table</button></div>
+        <span class="muted" id="dbnote" style="font-size:12.5px"></span><span style="flex:1"></span>
+        <button class="btn small" id="csvBtn">⬇ Export CSV</button>
+        <a class="btn small hidden" id="sheetBtn" target="_blank" rel="noopener">📗 Open Google Sheet</a>
+      </div>
+      <p class="muted" id="pipehint" style="margin-top:0">Drag cards between columns, or change the status inside a job. Gmail replies move them for you.</p>
       <div class="board" id="board"></div>
+      <div id="ptable" class="hidden"></div>
     </section>
 
     <!-- INBOX -->
@@ -350,12 +406,19 @@ async function decrypt(pw){
   return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:"AES-GCM", iv:b64(BLOB.iv)}, aes, b64(BLOB.ct))));
 }
 async function unlock(pw, remember){
-  try{ D = await decrypt(pw); }catch(e){ $("#err").textContent = "Wrong password."; store("pw", null); return; }
+  const go = $("#lkgo"); go.disabled = true; go.textContent = "Signing in…";
+  try{ D = await decrypt(pw); }catch(e){
+    go.disabled = false; go.textContent = "Sign in";
+    $("#err").textContent = pw ? "That password isn't right. Try again." : ""; store("pw", null);
+    const f = $("#lockform"); f.classList.remove("shake"); void f.offsetWidth; f.classList.add("shake"); $("#pw").select(); return; }
   if(remember) store("pw", pw);
   $("#lock").classList.add("hidden"); $("#app").classList.remove("hidden");
   init();
 }
-$("#lockform").onsubmit = e => { e.preventDefault(); $("#err").textContent = "Unlocking…"; unlock($("#pw").value, $("#remember").checked); };
+$("#lockform").onsubmit = e => { e.preventDefault(); $("#err").textContent = ""; unlock($("#pw").value, $("#remember").checked); };
+$("#pwEye").onclick = () => { const p = $("#pw"), show = p.type === "password"; p.type = show ? "text" : "password";
+  $("#pwEye").textContent = show ? "🙈" : "👁"; $("#pwEye").title = show ? "Hide password" : "Show password"; p.focus(); };
+["keydown","keyup"].forEach(ev => $("#pw").addEventListener(ev, e => { if(e.getModifierState) $("#caps").classList.toggle("hidden", !e.getModifierState("CapsLock")); }));
 $("#lockbtn").onclick = () => { try{ localStorage.removeItem("pw"); }catch(e){} location.reload(); };
 const savedPw = store("pw"); if(savedPw) unlock(savedPw, true);
 
@@ -366,9 +429,100 @@ function setStatus(id, s, by){
   if(t.status === s) return;
   t.status = s; t[s+"_at"] = new Date().toISOString();
   (t.history = t.history || []).push({s, at:t[s+"_at"], by: by||"you"});
-  store("track", track);
+  touch(id); store("track", track);
 }
-function setField(id, k, v){ track[id] = Object.assign(track[id] || {}, {[k]:v}); store("track", track); }
+function setField(id, k, v){ track[id] = Object.assign(track[id] || {}, {[k]:v}); touch(id); store("track", track); }
+
+/* ---------- applications database: a Google Sheet in your Drive (through your Gmail bridge) ---------- */
+let dbState = "off", dbSheet = "", dbDirty = new Set(), dbTimer = null, pv = "board";
+const lastAt = t => { let m = (t && t.updated) || ""; for(const h of (t && t.history) || []) if((h.at||"") > m) m = h.at; return m; };
+function snapOf(id){
+  const r = (D && D.listings || []).find(x => x.id === id); if(!r || r.ghost) return null;
+  return {title:r.title||"", company:r.company||r.source||"", category:r.category||"", location:r.location||"", url:r.url||"",
+    deadline:r.deadline||"", kind:r.kind||"job", mode:r.mode||"", description:String(r.description||"").slice(0,1500)};
+}
+function touch(id){
+  const t = track[id]; if(!t) return;
+  t.updated = new Date().toISOString();
+  if(!t.snap){ const s = snapOf(id); if(s) t.snap = s; }
+  dbQueue(id);
+}
+function dbQueue(id){ if(!D || !D.db) return; dbDirty.add(id); clearTimeout(dbTimer); dbTimer = setTimeout(dbPush, 2000); }
+async function dbCall(body){
+  const r = await fetch(D.db.url, {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body: JSON.stringify(Object.assign({key:D.db.key}, body))});
+  const j = await r.json(); if(j.error) throw new Error(j.error);
+  if(j.sheet){ dbSheet = j.sheet; const a = $("#sheetBtn"); if(a){ a.href = dbSheet; a.classList.remove("hidden"); } }
+  return j;
+}
+async function dbPush(){
+  if(!D.db || !dbDirty.size) return;
+  const ids = [...dbDirty].filter(id => track[id]); dbDirty.clear(); setDb("sync");
+  try{
+    for(let i = 0; i < ids.length; i += 60) await dbCall({action:"save", items: ids.slice(i, i+60).map(id => ({id, track: track[id]}))});
+    setDb("ok");
+  }catch(e){ ids.forEach(id => dbDirty.add(id)); setDb("err", e.message); clearTimeout(dbTimer); dbTimer = setTimeout(dbPush, 60000); }
+}
+async function dbLoad(){
+  if(!D.db){ setDb("off"); return; }
+  setDb("sync");
+  try{
+    const j = await dbCall({action:"load"}), remote = j.track || {};
+    let pulled = 0;
+    for(const [id, t] of Object.entries(remote)) if(!track[id] || lastAt(t) > lastAt(track[id])){ track[id] = t; pulled++; }
+    for(const id in track){
+      const t = track[id];
+      if((t.status || "new") === "new" && !t.note && !t.cv && !t.letter) continue;
+      if(!remote[id] || lastAt(t) > lastAt(remote[id])){ if(!t.snap){ const s = snapOf(id); if(s) t.snap = s; } dbDirty.add(id); }
+    }
+    store("track", track); addGhosts(); setDb("ok");
+    if(pulled){ renderAll(); toast(`☁️ Loaded ${pulled} application${pulled>1?"s":""} from your Google Sheet`); }
+    dbPush();
+  }catch(e){ setDb("err", e.message); }
+}
+// applications whose listing has expired or closed stay visible, from the copy saved when you acted on them
+function addGhosts(){
+  const have = new Set(L().map(r => r.id));
+  for(const [id, t] of Object.entries(track)){
+    if(have.has(id) || !t.snap || ["new","skip"].includes(t.status || "new")) continue;
+    D.listings.push(Object.assign({id, ghost:true, source:"saved", score:0, fit:"", found:"", countries:[], regions:[]}, t.snap));
+  }
+}
+function setDb(s, msg){
+  dbState = s; const b = $("#dbchip"); if(!b) return;
+  const M = {off:["💾","Saved on this device only. Connect Google (see My applications) to keep a copy in a Google Sheet."],
+    sync:["⏳","Saving to your Google Sheet…"], ok:["☁️","Saved in your Google Sheet. Click to open it."],
+    err:["⚠️",`Couldn't reach your Google Sheet (${msg||"offline"}). Your changes are kept here and will be retried.`]};
+  b.textContent = M[s][0]; b.title = M[s][1];
+  const n = $("#dbnote"); if(n) n.textContent = M[s][1];
+}
+function trackedRows(withSkip){
+  return L().filter(r => st(r.id) !== "new" && (withSkip || st(r.id) !== "skip"))
+    .sort((a,b) => lastAt(track[b.id]).localeCompare(lastAt(track[a.id])));
+}
+function exportCsv(){
+  const head = ["Title","Company","Category","Location","Status","Applied on","Deadline","Last update","Link","Notes","Not-interested reason"];
+  const q = v => `"${String(v ?? "").replace(/"/g,'""')}"`;
+  const lines = [head.map(q).join(",")].concat(trackedRows(true).map(r => { const t = track[r.id] || {};
+    return [r.title, r.company||r.source, r.category, r.location, STATUSES[st(r.id)], (t.applied_at||"").slice(0,10), r.deadline||"", lastAt(t).slice(0,10), r.url, t.note, t.na].map(q).join(","); }));
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["\ufeff" + lines.join("\n")], {type:"text/csv;charset=utf-8"}));
+  a.download = `my-applications-${new Date().toISOString().slice(0,10)}.csv`; a.click();
+}
+function renderTable(){
+  const showSkip = !!store("tSkip");
+  const rows = trackedRows(showSkip);
+  $("#ptable").innerHTML = `<label class="muted" style="font-size:13px;display:flex;gap:6px;align-items:center;margin-bottom:8px"><input type="checkbox" id="tSkip" ${showSkip?"checked":""}> Also show the ones I marked "not interested"</label>` +
+    (rows.length ? `<div class="tblwrap"><table class="tbl"><thead><tr><th>Opportunity</th><th>Category</th><th>Status</th><th>Applied</th><th>Deadline</th><th>Updated</th><th></th></tr></thead><tbody>${rows.map(r => { const t = track[r.id] || {};
+      return `<tr><td><a href="#" data-open="${esc(r.id)}"><b>${esc(r.title)}</b></a><div class="muted">${esc(r.company||r.source||"")}${r.location?" · "+esc(r.location):""}${r.ghost?' · <span class="bd">listing closed</span>':""}</div>${t.na&&st(r.id)==="skip"?`<div class="muted" style="font-size:12px">🙈 ${esc(t.na)}</div>`:""}</td>
+      <td>${esc(r.category||"")}</td>
+      <td><select data-st="${esc(r.id)}">${Object.entries(STATUSES).filter(([k]) => k !== "new").map(([k,v]) => `<option value="${k}" ${st(r.id)===k?"selected":""}>${SICON[k]||""} ${v}</option>`).join("")}</select></td>
+      <td class="nw">${fmtDate(t.applied_at)}</td><td class="nw">${r.deadline?esc(fmtDate(r.deadline)):""}</td><td class="nw">${fmtDate(lastAt(t))}</td>
+      <td>${r.url?`<a class="btn small" href="${esc(r.url)}" target="_blank" rel="noopener">Open ↗</a>`:""}</td></tr>`; }).join("")}</tbody></table></div>`
+    : `<div class="empty"><div style="font-size:34px">📋</div><b>Nothing tracked yet</b><p class="muted">Swipe right, save a job or mark one as applied and it shows up here.</p></div>`);
+  $("#tSkip").onchange = e => { store("tSkip", e.target.checked); renderTable(); };
+  $("#ptable").querySelectorAll("[data-open]").forEach(a => a.onclick = e => { e.preventDefault(); openDrawer(a.dataset.open); });
+  $("#ptable").querySelectorAll("[data-st]").forEach(s => s.onchange = () => { setStatus(s.dataset.st, s.value); renderAll(); toast("Status updated ✔"); });
+}
 function applyMailStatuses(){
   let changed = 0;
   for(const m of D.responses || []){
@@ -389,6 +543,7 @@ function applyMailStatuses(){
 const L = () => D.listings;
 function init(){
   track = store("track") || {};
+  addGhosts();
   F = Object.assign({...DEFAULT_F}, store("filters") || {});
   if(store("filtersV") !== 5){ F = {...DEFAULT_F}; store("filters", F); store("filtersV", 5); }
   muted = store("muted") || [];
@@ -404,7 +559,12 @@ function init(){
   $("#queueBtn").onclick = startQueue;
   $("#scrim").onclick = closeDrawer;
   document.addEventListener("keydown", e => { if(e.key === "Escape") closeDrawer(); });
+  $("#dbchip").onclick = () => { if(dbSheet) window.open(dbSheet, "_blank", "noopener"); else if(dbState === "err") dbLoad(); else go("pipeline"); };
+  document.querySelectorAll("[data-pv]").forEach(b => b.onclick = () => { pv = b.dataset.pv; store("pv", pv); renderBoard(); });
+  pv = store("pv") || "board";
+  $("#csvBtn").onclick = exportCsv;
   renderProfile(); renderAll();
+  dbLoad();
   const hash = decodeURIComponent(location.hash.slice(1)); if(hash && L().some(r => r.id === hash)) openDrawer(hash);
 }
 function go(v){
@@ -435,6 +595,7 @@ function renderKpis(){
 /* ---------- filters ---------- */
 function places(r){ const p = [...(r.countries||[]), ...(r.regions||[])]; return p.length ? p : ["Not specified"]; }
 function match(r, skip){
+  if(r.ghost) return false;  // closed listings only live in My applications
   const s = st(r.id);
   if(skip !== "cats" && F.cats.length && !F.cats.includes(r.category)) return false;
   if(F.checked && !r.check) return false;  // only opportunities the AI has checked for you
@@ -992,6 +1153,10 @@ document.addEventListener("keydown", e => {
 
 /* ---------- pipeline ---------- */
 function renderBoard(){
+  document.querySelectorAll("[data-pv]").forEach(b => b.classList.toggle("on", b.dataset.pv === pv));
+  $("#board").classList.toggle("hidden", pv !== "board"); $("#ptable").classList.toggle("hidden", pv !== "table");
+  $("#pipehint").classList.toggle("hidden", pv !== "board");
+  if(pv === "table") return renderTable();
   const cols = ["saved","applied","assessment","interview","offer","rejected"];
   $("#board").innerHTML = cols.map(c => {
     const rows = L().filter(r => st(r.id) === c);

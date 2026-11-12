@@ -30,7 +30,8 @@ def no_network(monkeypatch):
 
     monkeypatch.setattr(requests.Session, "request", blocked)
     for var in ("GEMINI_API_KEY", "GROQ_API_KEY", "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID",
-                "GMAIL_WEBAPP_URL", "GMAIL_WEBAPP_KEY", "GMAIL_ADDRESS", "GMAIL_APP_PASSWORD"):
+                "GMAIL_WEBAPP_URL", "GMAIL_WEBAPP_KEY", "GMAIL_ADDRESS", "GMAIL_APP_PASSWORD", "DASHBOARD_URL",
+                "DASHBOARD_SALT"):
         monkeypatch.delenv(var, raising=False)
 
 

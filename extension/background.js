@@ -97,7 +97,8 @@ chrome.tabs.onCreated.addListener(tab => {   // the site opened the form in a ne
   if (tab.openerTabId && AUTO[tab.openerTabId]) { AUTO[tab.id] = { ...AUTO[tab.openerTabId], busy: false }; delete AUTO[tab.openerTabId]; }
 });
 
-const fromExtensionPage = sender => sender.id === chrome.runtime.id && !sender.tab &&
+// the settings page may run in its own tab, so check the page address (chrome-extension://<this id>/...)
+const fromExtensionPage = sender => sender.id === chrome.runtime.id &&
   typeof sender.url === "string" && sender.url.startsWith(chrome.runtime.getURL(""));
 const fromDashboard = sender => sender.id === chrome.runtime.id && sender.tab &&
   typeof sender.url === "string" && sender.url.startsWith(FLOUS.DASHBOARD);

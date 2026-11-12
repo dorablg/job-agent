@@ -99,4 +99,4 @@ def test_telegram_only_attaches_web_links(monkeypatch):
     monkeypatch.setattr(telegram, "_call", lambda m, d=None, files=None: calls.append(d))
     telegram.send_text("hi", url="javascript:alert(1)")
     telegram.send_text("hi", url="https://ok.example")
-    assert "reply_markup" not in calls[0] and "https://ok.example" in calls[1]["reply_markup"]
+    assert "javascript:" not in json.dumps(calls[0]) and "https://ok.example" in calls[1]["reply_markup"]

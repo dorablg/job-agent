@@ -9,6 +9,7 @@ document.getElementById("save").onclick = () => {
   msg.textContent = "Testing…";
   chrome.runtime.sendMessage({ type: "setPassword", password: value }, r => {
     pw.value = "";
-    msg.textContent = r && r.ok ? `✅ Connected: ${r.n} opportunities and your profile loaded. You're ready.` : "⚠️ " + ((r && r.error) || "Could not connect");
+    const why = (r && r.error) || (chrome.runtime.lastError && chrome.runtime.lastError.message) || "Could not connect";
+    msg.textContent = r && r.ok ? `✅ Connected: ${r.n} opportunities and your profile loaded. You're ready.` : "⚠️ " + why;
   });
 };

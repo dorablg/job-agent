@@ -51,7 +51,8 @@ jobs:
           git config user.email "job-agent-bot@users.noreply.github.com"
           git add state/
           git diff --cached --quiet || git commit -m "update job state"
-          git push
+          # code may have changed while this run was working: replay the state commit on top, then push
+          for i in 1 2 3; do git pull --rebase -X theirs origin main && git push && break; sleep 10; done
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

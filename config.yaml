@@ -71,6 +71,15 @@ finance_words: &finance [fintech, payments, payment, bank, banking, trading, cre
   insurance, insurtech, wealth, investment, crypto, blockchain, risk, aml, kyc, neobank, card, card issuing, treasury]
 
 categories:
+  # Master's programmes that include paid work (placement year, co-op, alternance, Werkstudent, internships).
+  # Filled from the curated list below (researched Nov 2026). You are presented as a student.
+  - name: "🎓 Study + work programs"
+    kinds: [fellowship]
+    work_modes: [onsite, hybrid, remote, unknown]
+    match_in: title
+    must_any: [__curated_only__]
+    student: true
+
   # Alternance / apprenticeship / work-study: work part of the week while studying (France mainly; English
   # "working student" roles in Germany / Netherlands). You are presented as a student.
   - name: "🎓💼 Alternance & work-study"
@@ -623,6 +632,294 @@ curated:
     family: volunteer_organizer
     why: "Cloud/AI community leadership; AWS credits and training"
     description: "Lead an AWS Student Builder Group (formerly AWS Cloud Club) at your school: organize cloud and AI workshops with AWS resources, credits and certification support."
+
+  # ---- Study + work programmes (Nov 2026 research) ----
+  - title: "MSc Data Science with placement — City St George's, University of London (London)"
+    org: "City St George's, University of London"
+    url: https://www.citystgeorges.ac.uk/prospective-students/courses/postgraduate/data-science
+    deadline: "rolling (apply early: popular)"
+    kind: fellowship
+    category: "🎓 Study + work programs"
+    chance: 70
+    location: "London, United Kingdom"
+    mode: onsite
+    visa: needed
+    family: scholarship
+    why: "Master's with paid work built in; student visa needed"
+    description: "London master's with a placement option: study 1 year, then up to a year of paid work in a company. International fee 2027/28: £22,430. Student visa allows part-time work in term; the Graduate visa then gives 2 years to work in the UK."
+  - title: "MSc Data Science and Analytics with Placement (27 months) — Brunel University of London"
+    org: "Brunel University of London"
+    url: https://www.postgraduatesearch.com/courses/search/postgraduate/brunel-university-of-london/data-science-and-analytics-with-placement-27-months-msc/59083597
+    deadline: "rolling (Sep 2027 start)"
+    kind: fellowship
+    category: "🎓 Study + work programs"
+    chance: 70
+    location: "London (Uxbridge), United Kingdom"
+    mode: onsite
+    visa: needed
+    family: scholarship
+    why: "Master's with paid work built in; student visa needed"
+    description: "27-month MSc including a paid industry placement, starting September 2027, in west London. Good fit for your Python / ML background."
+  - title: "MSc Data Science with Placement Year — University of Greenwich (London)"
+    org: "University of Greenwich"
+    url: https://www.gre.ac.uk/postgraduate-courses/engsci/data-science-with-placement-year-msc
+    deadline: "rolling"
+    kind: fellowship
+    category: "🎓 Study + work programs"
+    chance: 72
+    location: "London, United Kingdom"
+    mode: onsite
+    visa: needed
+    family: scholarship
+    why: "Master's with paid work built in; student visa needed"
+    description: "London MSc with a full placement year in industry. Greenwich admits international students with a CS bachelor's; check the January and September intakes."
+  - title: "MSc Data Science (placement option) — University of Roehampton (London)"
+    org: "University of Roehampton"
+    url: https://www.roehampton.ac.uk/study/postgraduate-taught-courses/data-science/
+    deadline: "rolling"
+    kind: fellowship
+    category: "🎓 Study + work programs"
+    chance: 72
+    location: "London, United Kingdom"
+    mode: onsite
+    visa: needed
+    family: scholarship
+    why: "Master's with paid work built in; student visa needed"
+    description: "London MSc. International fees September 2027: £19,549 (standard) / £23,549 (longer route with placement). One of the more affordable London options."
+  - title: "MSc Data Science with Professional Placement — Coventry University (UK)"
+    org: "Coventry University"
+    url: https://www.coventry.ac.uk/course-structure/pg/ees/data-science-msc/
+    deadline: "rolling (several intakes a year)"
+    kind: fellowship
+    category: "🎓 Study + work programs"
+    chance: 72
+    location: "Coventry, United Kingdom"
+    mode: onsite
+    visa: needed
+    family: scholarship
+    why: "Master's with paid work built in; student visa needed"
+    description: "MSc with a professional placement route, several intakes per year (useful if you want to start sooner than September)."
+  - title: "MSc Data Science with a Placement Year 2027/28 — University of East Anglia (UK)"
+    org: "University of East Anglia"
+    url: https://www.uea.ac.uk/course/postgraduate/msc-data-science-with-a-placement-year
+    deadline: "rolling"
+    kind: fellowship
+    category: "🎓 Study + work programs"
+    chance: 68
+    location: "Norwich, United Kingdom"
+    mode: onsite
+    visa: needed
+    family: scholarship
+    why: "Master's with paid work built in; student visa needed"
+    description: "MSc with an integrated UK industry placement year, 2027/28 entry."
+  - title: "MS in Data Science with co-op — Northeastern University (Boston, USA)"
+    org: "Northeastern University"
+    url: https://graduate.northeastern.edu/programs/ms-data-science/master-of-science-in-data-science-boston/
+    deadline: "2027-06-15"
+    kind: fellowship
+    category: "🎓 Study + work programs"
+    chance: 55
+    location: "Boston, United States"
+    mode: onsite
+    visa: needed
+    family: scholarship
+    why: "Master's with paid work built in; student visa needed"
+    description: "Co-op master's: alternate study with paid full-time work terms at companies. Fall 2027 deadline for international applicants out of the US: 15 June 2027. After graduating, STEM OPT allows up to 3 years of US work. Expensive: look for assistantships and Fulbright."
+  - title: "MS in Computer Science with co-op — Northeastern University (Boston, USA)"
+    org: "Northeastern University (Khoury College)"
+    url: https://www.khoury.northeastern.edu/apply/masters-apply/
+    deadline: "2027-06-15"
+    kind: fellowship
+    category: "🎓 Study + work programs"
+    chance: 50
+    location: "Boston, United States"
+    mode: onsite
+    visa: needed
+    family: scholarship
+    why: "Master's with paid work built in; student visa needed"
+    description: "Same co-op model in computer science. Fall 2027: 15 June 2027 for international applicants out of country (Spring 2027 deadline was 1 Nov)."
+  - title: "Mastère Spécialisé Data & AI for Business (alternance possible) — EFREI Paris"
+    org: "EFREI Paris"
+    url: https://www.efrei.fr/formation/mastere-specialise-data-ai-for-business/
+    deadline: "apply now (start 8 Feb 2027)"
+    kind: fellowship
+    category: "🎓 Study + work programs"
+    chance: 60
+    location: "Paris, France"
+    mode: onsite
+    visa: needed
+    family: scholarship
+    why: "Master's with paid work built in; student visa needed"
+    description: "Data & AI programme in Paris with a February 2027 start (pre-start 5 Jan 2027). Ask admissions about the alternance rhythm and the Études en France procedure for Tunisian applicants."
+  - title: "MSc Artificial Intelligence Systems — EPITA (Paris)"
+    org: "EPITA"
+    url: https://www.epita.fr/tarifs-et-financement/
+    deadline: "check (Spring & Fall 2027 intakes)"
+    kind: fellowship
+    category: "🎓 Study + work programs"
+    chance: 58
+    location: "Paris, France"
+    mode: onsite
+    visa: needed
+    family: scholarship
+    why: "Master's with paid work built in; student visa needed"
+    description: "English-taught MSc in AI systems. Total fee for the Spring 2027 intake: €18,100. Check whether an alternance / internship track is available for your intake."
+  - title: "M1 Artificial Intelligence (English) — Université Paris-Saclay"
+    org: "Université Paris-Saclay"
+    url: https://www.universite-paris-saclay.fr/formation/master/informatique/m1-artificial-intelligence
+    deadline: "check (spring 2027 application window)"
+    kind: fellowship
+    category: "🎓 Study + work programs"
+    chance: 50
+    location: "Paris-Saclay, France"
+    mode: onsite
+    visa: needed
+    family: scholarship
+    why: "Master's with paid work built in; student visa needed"
+    description: "Top-ranked public university, English-taught AI master's with a research internship. Highly selective; public-university fees. Tunisian applicants usually go through Études en France / Campus France."
+  - title: "Masters data science en alternance à Paris — comparatif de 6 programmes (guide)"
+    org: "Meilleurs Masters"
+    url: https://www.meilleurs-masters.com/articles/master-big-data-data-science-alternance-paris.html
+    deadline: "rolling"
+    kind: fellowship
+    category: "🎓 Study + work programs"
+    chance: 60
+    location: "Paris, France"
+    mode: onsite
+    visa: needed
+    family: scholarship
+    why: "Master's with paid work built in; student visa needed"
+    description: "Guide comparing six data science / big data masters taught en alternance in Île-de-France: entry level, school-company rhythm, admission, apprentice salary and key dates. Use it to pick schools to apply to."
+  - title: "MSc Data Science — TU Dortmund (tuition-free, Germany)"
+    org: "TU Dortmund University"
+    url: https://www.glovels.com/post/top-masters-programs-for-data-science-in-germany
+    deadline: "2027-06-15"
+    kind: fellowship
+    category: "🎓 Study + work programs"
+    chance: 62
+    location: "Dortmund, Germany"
+    mode: onsite
+    visa: needed
+    family: scholarship
+    why: "Master's with paid work built in; student visa needed"
+    description: "Tuition €0. Non-EU deadline for the winter semester: 15 June (summer semester: 15 January). In Germany students may work as Werkstudent (about 20 h/week) during studies."
+  - title: "MSc Data Science — TU Braunschweig (tuition-free, Germany)"
+    org: "TU Braunschweig"
+    url: https://www.glovels.com/post/top-masters-programs-for-data-science-in-germany
+    deadline: "2027-03-15"
+    kind: fellowship
+    category: "🎓 Study + work programs"
+    chance: 62
+    location: "Braunschweig, Germany"
+    mode: onsite
+    visa: needed
+    family: scholarship
+    why: "Master's with paid work built in; student visa needed"
+    description: "Tuition €0. Non-EU deadline for the winter semester: 15 March (summer: 15 September)."
+  - title: "MSc Artificial Intelligence and Data Science — Heinrich Heine University Düsseldorf"
+    org: "Heinrich Heine University Düsseldorf"
+    url: https://www.glovels.com/post/top-masters-programs-for-data-science-in-germany
+    deadline: "2027-07-15"
+    kind: fellowship
+    category: "🎓 Study + work programs"
+    chance: 62
+    location: "Düsseldorf, Germany"
+    mode: onsite
+    visa: needed
+    family: scholarship
+    why: "Master's with paid work built in; student visa needed"
+    description: "Tuition €0. Non-EU application deadline: 15 July. Düsseldorf has many fintech/insurance employers for Werkstudent jobs."
+  - title: "MSc Data Science — University of Marburg (tuition-free, Germany)"
+    org: "University of Marburg"
+    url: https://www.glovels.com/post/top-masters-programs-for-data-science-in-germany
+    deadline: "2027-06-30"
+    kind: fellowship
+    category: "🎓 Study + work programs"
+    chance: 62
+    location: "Marburg, Germany"
+    mode: onsite
+    visa: needed
+    family: scholarship
+    why: "Master's with paid work built in; student visa needed"
+    description: "Tuition €0. Deadline for applicants with foreign degrees: 30 June (summer semester: 15 January)."
+  - title: "MSc Data Engineering and Analytics — Technical University of Munich"
+    org: "Technical University of Munich"
+    url: https://www.glovels.com/post/top-masters-programs-for-data-science-in-germany
+    deadline: "2027-05-31"
+    kind: fellowship
+    category: "🎓 Study + work programs"
+    chance: 45
+    location: "Munich, Germany"
+    mode: onsite
+    visa: needed
+    family: scholarship
+    why: "Master's with paid work built in; student visa needed"
+    description: "Top-ranked; winter semester deadline 31 May. Note: TUM charges tuition to non-EU students, check the current amount."
+  - title: "MSc Data Science — Trier University (tuition-free, Germany)"
+    org: "Trier University"
+    url: https://www2.daad.de/deutschland/studienangebote/international-programmes/en/detail/5351/
+    deadline: "check DAAD page"
+    kind: fellowship
+    category: "🎓 Study + work programs"
+    chance: 62
+    location: "Trier, Germany"
+    mode: onsite
+    visa: needed
+    family: scholarship
+    why: "Master's with paid work built in; student visa needed"
+    description: "English-taught MSc in Data Science; Trier University does not charge tuition fees. Listed on DAAD International Programmes."
+  - title: "MSc programmes in English — Politecnico di Milano (admission window, with merit scholarships)"
+    org: "Politecnico di Milano"
+    url: https://www.polimi.it/en/prospective-students/how-to-apply/admission-to-laurea-magistrale/foreign-qualification/deadlines
+    deadline: "2027-01-28"
+    kind: fellowship
+    category: "🎓 Study + work programs"
+    chance: 58
+    location: "Milan, Italy"
+    mode: onsite
+    visa: needed
+    family: scholarship
+    why: "Master's with paid work built in; student visa needed"
+    description: "Application period 1 October 2026 – 28 January 2027 for September 2027 (e.g. Computer Science and Engineering). Merit-based international scholarships: English certificate needed by 4 March 2027. Curricular internships (tirocinio) with Milan companies."
+  - title: "MSc Data Science and Business Analytics (English) — Bocconi University (Milan)"
+    org: "Bocconi University"
+    url: https://www.unibocconi.it/en/applying-bocconi/master-science-and-ma-programs/application-and-admissions/admissions
+    deadline: "check admissions page"
+    kind: fellowship
+    category: "🎓 Study + work programs"
+    chance: 45
+    location: "Milan, Italy"
+    mode: onsite
+    visa: needed
+    family: scholarship
+    why: "Master's with paid work built in; student visa needed"
+    description: "Highly selective business-oriented data science MSc in Milan with strong finance/fintech recruiting. Check round deadlines and Bocconi scholarships."
+  - title: "Master in Big Data Analytics (English) — Universidad Carlos III de Madrid"
+    org: "Universidad Carlos III de Madrid"
+    url: https://www.uc3m.es/master/big-data-analytics
+    deadline: "check (spring 2027)"
+    kind: fellowship
+    category: "🎓 Study + work programs"
+    chance: 60
+    location: "Madrid, Spain"
+    mode: onsite
+    visa: needed
+    family: scholarship
+    why: "Master's with paid work built in; student visa needed"
+    description: "English-taught big data master's at a strong public university in Madrid; ask about company internships (prácticas) during the programme."
+  - title: "Master in Statistics for Data Science (English) — Universidad Carlos III de Madrid"
+    org: "Universidad Carlos III de Madrid"
+    url: https://www.uc3m.es/master/statistics-data-science
+    deadline: "check (spring 2027)"
+    kind: fellowship
+    category: "🎓 Study + work programs"
+    chance: 55
+    location: "Madrid, Spain"
+    mode: onsite
+    visa: needed
+    family: scholarship
+    why: "Master's with paid work built in; student visa needed"
+    description: "English-taught statistics & data science master's (time series, high-performance computing...). Fits your LSTM forecasting experience."
 
 # Hackathons (Devpost): open + upcoming, all themes (filtered to tech by the event section rules)
 devpost:

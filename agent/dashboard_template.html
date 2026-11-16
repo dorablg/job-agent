@@ -79,6 +79,13 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .shake{animation:shake .35s}
 @keyframes shake{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
 @media (max-width:760px){.lk{grid-template-columns:1fr;max-width:420px}.lk-hero{display:none}#lockform .lk-mlogo{display:inline-grid;margin-bottom:16px}#lockform{padding:32px 24px}}
+/* ---------- agents ---------- */
+.agentbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px;margin-bottom:12px;border-radius:16px;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 16%,var(--panel)),color-mix(in srgb,var(--accent2) 12%,var(--panel)));border:1px solid var(--line)}
+.agentbar .btn.primary{margin-left:auto}
+.agentlog{width:100%;max-height:180px;overflow:auto;font-size:12.5px;display:grid;gap:4px;margin-top:4px}
+.agentlog div{padding:6px 9px;border-radius:9px;background:var(--panel)}
+.agentlog .ok{border-left:3px solid #16a34a}.agentlog .wait{border-left:3px solid #d97706}.agentlog .run{border-left:3px solid var(--accent)}
 /* ---------- applications database ---------- */
 .pipebar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
 .seg{display:inline-flex;background:var(--soft);border-radius:10px;padding:3px}
@@ -254,7 +261,7 @@ aside.filters{position:sticky;top:70px;background:var(--panel);border:1px solid 
 .reasons button{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:5px 11px;font-size:12.5px;cursor:pointer}
 .reasons button:hover{border-color:#dc2626;color:#dc2626}
 /* ---------- pipeline ---------- */
-.board{display:grid;grid-template-columns:repeat(6,minmax(210px,1fr));gap:12px;overflow-x:auto;padding-bottom:8px}
+.board{display:grid;grid-template-columns:repeat(7,minmax(200px,1fr));gap:12px;overflow-x:auto;padding-bottom:8px}
 .col{background:var(--soft);border-radius:14px;padding:10px;min-height:200px}
 .col h4{margin:2px 4px 10px;font-size:13px;display:flex;justify-content:space-between}
 .col.drop{outline:2px dashed var(--accent)}
@@ -354,6 +361,7 @@ aside.filters{position:sticky;top:70px;background:var(--panel);border:1px solid 
         <button class="btn small" id="csvBtn">⬇ Export CSV</button>
         <a class="btn small hidden" id="sheetBtn" target="_blank" rel="noopener">📗 Open Google Sheet</a>
       </div>
+      <div id="agentslot"></div>
       <p class="muted" id="pipehint" style="margin-top:0">Drag cards between columns, or change the status inside a job. Gmail replies move them for you.</p>
       <div class="board" id="board"></div>
       <div id="ptable" class="hidden"></div>
@@ -392,9 +400,9 @@ aside.filters{position:sticky;top:70px;background:var(--panel);border:1px solid 
 
 <script>
 const BLOB = __PAYLOAD__;
-const STATUSES = {new:"New",saved:"Saved",applied:"Applied",assessment:"Assessment",interview:"Interview",offer:"Offer",rejected:"Rejected",skip:"Not applicable"};
-const SICON = {new:"🆕",saved:"⭐",applied:"📨",assessment:"🧪",interview:"🗣",offer:"🎉",rejected:"✖",skip:"🙈"};
-const RANK = {new:0,saved:1,applied:2,assessment:3,interview:4,offer:5};
+const STATUSES = {new:"New",queued:"Agent queue",saved:"Saved",applied:"Applied",assessment:"Assessment",interview:"Interview",offer:"Offer",rejected:"Rejected",skip:"Not applicable"};
+const SICON = {new:"🆕",queued:"🤖",saved:"⭐",applied:"📨",assessment:"🧪",interview:"🗣",offer:"🎉",rejected:"✖",skip:"🙈"};
+const RANK = {new:0,queued:1,saved:1,applied:2,assessment:3,interview:4,offer:5};
 const MAIL2STATUS = {confirmation:"applied",assessment:"assessment",interview:"interview",offer:"offer",rejection:"rejected"};
 const MAILICON = {confirmation:"📨",interview:"🗣",assessment:"🧪",rejection:"✖",offer:"🎉",info_request:"❓",other:"✉️"};
 const MODELS = ["gemini-3.5-flash","gemini-3.5-flash-lite","gemini-flash-latest"];
@@ -561,7 +569,7 @@ function renderTable(){
   const rows = trackedRows(showSkip);
   $("#ptable").innerHTML = `<label class="muted" style="font-size:13px;display:flex;gap:6px;align-items:center;margin-bottom:8px"><input type="checkbox" id="tSkip" ${showSkip?"checked":""}> Also show the ones I marked "not interested"</label>` +
     (rows.length ? `<div class="tblwrap"><table class="tbl"><thead><tr><th>Opportunity</th><th>Category</th><th>Status</th><th>Applied</th><th>Deadline</th><th>Updated</th><th></th></tr></thead><tbody>${rows.map(r => { const t = track[r.id] || {};
-      return `<tr><td><a href="#" data-open="${esc(r.id)}"><b>${esc(r.title)}</b></a><div class="muted">${esc(r.company||r.source||"")}${r.location?" · "+esc(r.location):""}${r.ghost?' · <span class="bd">listing closed</span>':""}</div>${t.na&&st(r.id)==="skip"?`<div class="muted" style="font-size:12px">🙈 ${esc(t.na)}</div>`:""}</td>
+      return `<tr><td><a href="#" data-open="${esc(r.id)}"><b>${esc(r.title)}</b></a><div class="muted">${esc(r.company||r.source||"")}${r.location?" · "+esc(r.location):""}${r.ghost?' · <span class="bd">listing closed</span>':""}</div>${t.agent?`<div class="muted" style="font-size:12px">🤖 ${esc(t.agent)}</div>`:""}${t.na&&st(r.id)==="skip"?`<div class="muted" style="font-size:12px">🙈 ${esc(t.na)}</div>`:""}</td>
       <td>${esc(r.category||"")}</td>
       <td><select data-st="${esc(r.id)}">${Object.entries(STATUSES).filter(([k]) => k !== "new").map(([k,v]) => `<option value="${k}" ${st(r.id)===k?"selected":""}>${SICON[k]||""} ${v}</option>`).join("")}</select></td>
       <td class="nw">${fmtDate(t.applied_at)}</td><td class="nw">${r.deadline?esc(fmtDate(r.deadline)):""}</td><td class="nw">${fmtDate(lastAt(t))}</td>
@@ -1149,18 +1157,19 @@ function swipeCardHTML(r, back){
   </div>`;
 }
 function renderSwipe(){
-  const q = swipeQueue(), ext = document.documentElement.dataset.flousExt === "1";
+  const q = swipeQueue(), ext = !!document.documentElement.dataset.flousExt;
   const top = q[0], next = q[1];
-  $("#swipe").innerHTML = `<div class="swipe-top"><b style="font-size:16px">💘 ${q.length} to review</b>
-      <span class="muted" style="font-size:12.5px;margin-left:auto">← nope · → apply · ↑ later ${ext?"· ⚡ auto-fill on":""}</span></div>
+  $("#swipe").innerHTML = agentBarHTML() + `<div class="swipe-top"><b style="font-size:16px">💘 ${q.length} to review</b>
+      <span class="muted" style="font-size:12.5px;margin-left:auto">← nope · → agents apply · ↑ later</span></div>
     ${top ? `<div class="stack" id="stack">${next?swipeCardHTML(next,true):""}${swipeCardHTML(top,false)}</div>
       <div class="swipe-btns"><button class="sbtn no" data-s="no" title="Not interested (←)">✕</button>
         <button class="sbtn later" data-s="later" title="Save for later (↑)">⭐</button>
         <button class="sbtn yes" data-s="yes" title="Apply (→)">✓</button></div>
       <div class="reasons">${SWIPE_REASONS.map(([t,w]) => `<button data-reason="${esc(w)}">${t}</button>`).join("")}</div>
-      ${ext?"":`<p class="muted" style="text-align:center;font-size:12.5px">Tip: with the ⚡ Flous extension in this browser, swiping right also clicks the company's Apply button and fills the form.</p>`}
+      ${ext?"":`<p class="muted" style="text-align:center;font-size:12.5px">Swipe right to queue jobs. The agents apply from your laptop (with the ⚡ Flous extension).</p>`}
       ${swipeUndo?`<p style="text-align:center"><button class="btn small ghost" data-undo>↺ Undo last swipe</button></p>`:""}`
     : `<div class="empty"><div style="font-size:38px">🎉</div><b>All caught up!</b><p class="muted">New opportunities arrive every 3 hours. Loosen the filters in Discover to see more.</p></div>`}`;
+  wireAgentBar($("#swipe"));
   if(!top) return;
   const card = $("#stack .scard:not(.back)");
   card.querySelector("[data-sdetails]").onclick = e => { e.stopPropagation(); openDrawer(top.id); };
@@ -1185,12 +1194,9 @@ function doSwipe(r, dir, reason){
   if(dir === "no"){ setStatus(r.id, "skip"); setField(r.id, "na", reason || "Not interested"); toast(`Not interested${reason?": "+reason:""}`); }
   if(dir === "later"){ setStatus(r.id, "saved"); toast("Saved for later ⭐"); }
   if(dir === "yes"){
-    setStatus(r.id, "applied");
-    const letter = (track[r.id] && track[r.id].letter) || (r.ai && r.ai.cover_letter) || "";
-    if(letter && navigator.clipboard) navigator.clipboard.writeText(letter).catch(()=>{});
-    const link = safeUrl(r.url) ? safeUrl(r.url) : "https://www.google.com/search?q=" + encodeURIComponent(`${r.title} ${r.company||""} apply`);
-    if(document.documentElement.dataset.flousExt === "1"){ window.postMessage({ flous: "apply", url: link, title: r.title }, location.origin); toast("Opening… ⚡ Flous will click Apply and fill the form"); }
-    else { window.open(link, "_blank", "noopener"); toast("Opened. Use ⚡ on the form to fill it"); }
+    setStatus(r.id, "queued");
+    const n = L().filter(x => st(x.id) === "queued").length;
+    toast(agentsAvailable() ? `🤖 Added to the agent queue (${n}). Press “Let agents apply” when ready` : `🤖 Queued (${n}). Agents apply when you open Flous on your laptop`);
   }
   setTimeout(() => renderAll(), 260);
 }
@@ -1200,13 +1206,68 @@ document.addEventListener("keydown", e => {
   if(e.key === "ArrowRight") doSwipe(top, "yes"); if(e.key === "ArrowLeft") doSwipe(top, "no"); if(e.key === "ArrowUp") doSwipe(top, "later");
 });
 
+/* ---------- agents (run by the ⚡ Flous extension on your laptop) ---------- */
+let agentRun = null;   // {total, done, log: [{cls, text}]}
+const agentsAvailable = () => document.documentElement.dataset.flousExt === "2";
+function agentQueue(){ return L().filter(r => st(r.id) === "queued" && safeUrl(r.url)); }
+function agentBarHTML(){
+  const q = agentQueue(), ext = document.documentElement.dataset.flousExt;
+  if(!q.length && !agentRun) return "";
+  const log = agentRun ? `<div class="agentlog">${agentRun.log.slice(-30).reverse().map(l => `<div class="${l.cls}">${esc(l.text)}</div>`).join("")}</div>` : "";
+  const btn = agentRun ? `<button class="btn small" data-agent-stop>■ Stop after this one</button>`
+    : ext === "2" ? `<button class="btn primary" data-agent-go>🤖 Let agents apply (${q.length})</button>`
+    : ext ? `<span class="muted" style="font-size:12.5px">Reload the ⚡ Flous extension (v2) to use agents</span>`
+    : `<span class="muted" style="font-size:12.5px">Open Flous on your laptop (with the extension) to run the agents</span>`;
+  const head = agentRun ? `🤖 <b>Agents working… ${agentRun.done}/${agentRun.total}</b>` : `🤖 <b>${q.length}</b>&nbsp;job${q.length>1?"s":""} in the agent queue`;
+  return `<div class="agentbar">${head}${btn}${log}</div>`;
+}
+function wireAgentBar(root){
+  const go = root.querySelector("[data-agent-go]"); if(go) go.onclick = startAgents;
+  const stop = root.querySelector("[data-agent-stop]"); if(stop) stop.onclick = () => { window.postMessage({ flous: "stopBatch" }, location.origin); toast("Agents will stop after the current job"); };
+}
+function startAgents(){
+  const q = agentQueue().slice(0, 30);
+  if(!q.length) return toast("Swipe right on jobs to fill the agent queue first");
+  const ok = confirm(`🤖 Let the agents apply to ${q.length} job${q.length>1?"s":""}?\n\n` +
+    `• For each one they open the site, click Apply, write tailored answers, fill the form and attach your tailored CV and cover letter.\n` +
+    `• On standard forms (Greenhouse, Lever, Ashby, Workable, SmartRecruiters, Teamtailor, Recruitee) where EVERY question is answered, they SUBMIT for you and tick “I have read the privacy notice”. Maximum 25 per day.\n` +
+    `• Everything else (other sites, CAPTCHAs, unanswered questions, LinkedIn/Indeed) is filled and left open in a tab for you to check and submit.\n\n` +
+    `Keep this tab open while they work. Start?`);
+  if(!ok) return;
+  agentRun = { total: q.length, done: 0, log: [{ cls: "run", text: "Starting…" }] };
+  window.postMessage({ flous: "applyBatch", autoSubmit: true, consent: true,
+    items: q.map(r => ({ id: r.id, url: safeUrl(r.url), title: `${r.title}${r.company ? " — " + r.company : ""}` })) }, location.origin);
+  renderAll();
+}
+window.addEventListener("message", e => {
+  if(e.source !== window || e.origin !== location.origin || !e.data || !D) return;
+  const m = e.data;
+  if(m.flous === "batchStarted" && !m.ok){ agentRun = null; toast("⚠️ " + (m.error || "Agents could not start")); renderAll(); }
+  if(m.flous !== "batchResult" || !agentRun) return;
+  if(m.done){
+    agentRun.log.push({ cls: "ok", text: `Done: ${m.submitted} submitted, ${m.ready} filled and waiting for you, ${m.open} opened.` });
+    toast(`🤖 Agents finished: ${m.submitted} submitted, ${m.ready + m.open} waiting for you in open tabs`);
+    const keep = agentRun; setTimeout(() => { if(agentRun === keep){ agentRun = null; renderAll(); } }, 15000);
+    renderAll(); return;
+  }
+  if(m.status === "working"){ agentRun.log.push({ cls: "run", text: m.detail }); }
+  else {
+    agentRun.done++;
+    if(m.status === "submitted"){ setStatus(m.id, "applied", "Flous agent"); setField(m.id, "agent", "Submitted by the agent ✔"); }
+    else { setStatus(m.id, "saved", "Flous agent"); setField(m.id, "agent", m.detail); }
+    agentRun.log.push({ cls: m.status === "submitted" ? "ok" : "wait", text: `${m.status === "submitted" ? "✅" : "✋"} ${m.title}: ${m.detail}` });
+  }
+  renderAll();
+});
+
 /* ---------- pipeline ---------- */
 function renderBoard(){
   document.querySelectorAll("[data-pv]").forEach(b => b.classList.toggle("on", b.dataset.pv === pv));
   $("#board").classList.toggle("hidden", pv !== "board"); $("#ptable").classList.toggle("hidden", pv !== "table");
   $("#pipehint").classList.toggle("hidden", pv !== "board");
+  $("#agentslot").innerHTML = agentBarHTML(); wireAgentBar($("#agentslot"));
   if(pv === "table") return renderTable();
-  const cols = ["saved","applied","assessment","interview","offer","rejected"];
+  const cols = ["queued","saved","applied","assessment","interview","offer","rejected"];
   $("#board").innerHTML = cols.map(c => {
     const rows = L().filter(r => st(r.id) === c);
     return `<div class="col" data-col="${c}"><h4><span>${SICON[c]} ${STATUSES[c]}</span><span class="muted">${rows.length}</span></h4>

@@ -111,3 +111,18 @@ def test_build_ships_phone_app_files(tmp_path, monkeypatch, password, cfg):
     for icon in manifest["icons"]:
         assert (tmp_path / icon["src"]).stat().st_size > 200
     assert 'rel="manifest"' in html and (tmp_path / "apple-touch-icon.png").exists()
+
+
+def test_template_code_lives_in_the_script_not_the_styles():
+    html = dashboard.TEMPLATE.read_text(encoding="utf-8")
+    style = html[html.index("<style>"):html.index("</style>")]
+    script = html[html.index("<script>"):html.index("</script>")]
+    assert "function " not in style and "=>" not in style
+    for fn in ("function agentQueue", "function startAgents", "function renderSwipe", "function unlock"):
+        assert fn in script, fn
+
+
+def test_agents_never_auto_submit_on_job_boards_that_forbid_bots():
+    bg = (dashboard.ROOT / "extension" / "background.js").read_text(encoding="utf-8")
+    assert "linkedin" in bg.split("NEVER_AUTO")[1].split("\n")[0] and "indeed" in bg.split("NEVER_AUTO")[1].split("\n")[0]
+    assert "DAILY_LIMIT = 25" in bg and "hasCaptcha" in bg

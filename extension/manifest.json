@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Flous Apply Assistant",
-  "version": "1.2.1",
-  "description": "Reads a job / internship / program application form, writes tailored answers from your profile, fills it and attaches your tailored CV. You review and click Submit.",
+  "version": "2.0.0",
+  "description": "Flous agents: open each job you queued, write tailored answers, fill the form, attach your tailored CV and submit safe standard forms. Everything else is left filled for you to submit.",
   "permissions": [
     "activeTab",
     "scripting",

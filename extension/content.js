@@ -1,5 +1,7 @@
 /* Flous Apply Assistant — runs inside the application page (and its frames). Reads fields, fills answers, shows a summary.
-   It never clicks Submit and never ticks consent / terms boxes. */
+   Manual mode: never clicks Submit, never ticks consent boxes.
+   Agent mode (you started a batch and allowed it): may tick "I have read the privacy notice" style boxes and submit,
+   but only when the background decided the form is safe to send (see background.js). */
 (function () {
   if (window.__flous) return;
 
@@ -66,6 +68,10 @@
   };
   const mark = (el, ok) => { el.style.outline = ok ? "2px solid #22a06b" : "2px solid #e5a000"; el.style.outlineOffset = "2px"; };
   const CONSENT = /consent|agree|privacy|terms|certify|confirm that|acknowledge|gdpr|data processing|marketing|newsletter|policy/i;
+  // the only boxes agents may tick for you: reading the privacy notice / data processing for THIS application
+  const PRIVACY_OK = /(read|reviewed|acknowledge|accept|agree to)[^.]{0,60}(privacy|data protection|candidate) (notice|policy|statement)|process(ing)? (of )?my (personal )?data[^.]{0,40}(application|recruit)|gdpr/i;
+  const NEVER_TICK = /marketing|newsletter|promotional|future (job|opportunit|role)|talent (pool|community)|certify|true and (accurate|complete)|sms|text message/i;
+  const agentMayTick = (label, consentOk) => consentOk && PRIVACY_OK.test(label) && !NEVER_TICK.test(label);
   const same = (a, b) => clean(a).toLowerCase() === clean(b).toLowerCase();
   const near = (a, b) => { a = clean(a).toLowerCase(); b = clean(b).toLowerCase(); return a && b && (a.includes(b) || b.includes(a)); };
 
@@ -75,7 +81,8 @@
     return new File([bytes], name, { type: "application/pdf" });
   }
 
-  function fill(answers, files, notes, jobTitle) {
+  function fill(answers, files, notes, jobTitle, opts) {
+    opts = opts || {};
     const byId = {}; (answers || []).forEach(a => { if (a && a.id) byId[a.id] = a.value; });
     let filled = 0, attached = 0; const left = [];
     document.querySelectorAll("[data-flous]").forEach(el => {
@@ -84,7 +91,13 @@
         const group = document.querySelectorAll(`input[type="${type}"][name="${CSS.escape(el.name)}"]`);
         const want = [].concat(v || []).map(String);
         const label = questionFor(el);
-        if (!want.length || (type === "checkbox" && CONSENT.test(label))) { if (el.required) left.push(label); return; }
+        if (type === "checkbox" && CONSENT.test(label)) {
+          const ok = [...group].filter(o => agentMayTick(questionFor(o) + " " + label, opts.consent));
+          if (ok.length) { ok.forEach(o => { if (!o.checked) o.click(); mark(o, true); }); filled++; }
+          else if (el.required) left.push(label);
+          return;
+        }
+        if (!want.length) { if (el.required && ![...group].some(o => o.checked)) left.push(label); return; }
         group.forEach(o => {
           const t = clean((o.id && document.querySelector(`label[for="${CSS.escape(o.id)}"]`) || o.closest("label") || {}).innerText || o.value);
           if (want.some(w => same(w, t)) || (!want.some(w => group.length && [...group].some(g => same(w, g.value))) && want.some(w => near(w, t) && t.length > 1))) {
@@ -108,7 +121,11 @@
       }
       if (type === "checkbox") {
         const label = questionFor(el);
-        if (CONSENT.test(label)) { mark(el, false); left.push("Tick yourself if you agree: " + label.slice(0, 80)); return; }
+        if (CONSENT.test(label)) {
+          if (agentMayTick(label, opts.consent)) { if (!el.checked) el.click(); mark(el, true); filled++; return; }
+          if (el.required || !NEVER_TICK.test(label)) { mark(el, false); left.push("Tick yourself if you agree: " + label.slice(0, 80)); }
+          return;
+        }
         if (v && /^(true|yes|checked|1)$/i.test(String(v)) && !el.checked) { el.click(); mark(el, true); filled++; }
         return;
       }
@@ -121,8 +138,8 @@
       if (el.value && el.value.trim()) return;  // never overwrite what's already there
       setValue(el, Array.isArray(v) ? v.join(", ") : String(v)); mark(el, true); filled++;
     });
-    panel(filled, attached, left.concat(notes || []), jobTitle);
-    return { filled, attached, left: left.length };
+    if (!opts.quiet) panel(filled, attached, left.concat(notes || []), jobTitle);
+    return { filled, attached, left: left.length, leftItems: left.slice(0, 12), missing: missingRequired() };
   }
 
   function panel(filled, attached, todo, jobTitle) {
@@ -162,7 +179,55 @@
     return { clicked: true };
   }
 
+  /* required fields that are still empty after filling (the agent never submits if any) */
+  function missingRequired() {
+    const out = [], seenGroups = new Set();
+    document.querySelectorAll("input, textarea, select").forEach(el => {
+      const type = (el.type || el.tagName).toLowerCase();
+      const req = el.required || el.getAttribute("aria-required") === "true";
+      if (!req || SKIP_TYPES.includes(type) || el.disabled || (type !== "file" && !visible(el))) return;
+      if (type === "radio" || type === "checkbox") {
+        if (!el.name || seenGroups.has(el.name)) return;
+        seenGroups.add(el.name);
+        const any = [...document.querySelectorAll(`input[name="${CSS.escape(el.name)}"]`)].some(o => o.checked);
+        if (!any) out.push(questionFor(el).slice(0, 80));
+        return;
+      }
+      if (type === "file" ? !(el.files && el.files.length) : !String(el.value || "").trim()) out.push(questionFor(el).slice(0, 80));
+    });
+    return out;
+  }
+
+  /* a CAPTCHA means a human must finish: agents never try to solve or bypass one */
+  function hasCaptcha() {
+    return !!document.querySelector('iframe[src*="recaptcha"], iframe[src*="hcaptcha"], iframe[src*="turnstile"], iframe[src*="captcha"], .g-recaptcha, .h-captcha, .cf-turnstile, [data-sitekey]');
+  }
+
+  const SUBMIT = /^(submit|submit application|submit your application|send application|send|apply|apply now|complete application|finish|envoyer|envoyer ma candidature|postuler|soumettre)$/i;
+  function submitButton() {
+    const cands = [...document.querySelectorAll('button, input[type="submit"], [role="button"]')].filter(b => visible(b) && !b.disabled);
+    const text = b => clean(b.innerText || b.value || b.getAttribute("aria-label") || "");
+    return cands.find(b => (b.type === "submit" || b.getAttribute("type") === "submit") && SUBMIT.test(text(b)))
+      || cands.find(b => SUBMIT.test(text(b)) && b.closest("form"));
+  }
+  function submit() {
+    const b = submitButton();
+    if (!b) return { clicked: false };
+    b.scrollIntoView({ block: "center" });
+    b.click();
+    return { clicked: true, label: clean(b.innerText || b.value || "") };
+  }
+  const DONE = /thank you for (your )?(application|applying|interest)|application (has been |was )?(received|submitted|sent)|we('ve| have) received your application|successfully (submitted|applied)|merci (pour|de) votre candidature|candidature (a bien été |a été )?(envoyée|reçue|transmise)/i;
+  function confirmed() {
+    return DONE.test(clean(document.body.innerText).slice(0, 6000)) || /confirmation|thank[-_]?you|submitted|success/i.test(location.pathname + location.search);
+  }
+  /* error messages the site shows after a failed submit */
+  function formErrors() {
+    return [...document.querySelectorAll('[role="alert"], .error, .errors, .field-error, [class*="error-message"], [aria-invalid="true"]')]
+      .filter(visible).map(e => clean(e.innerText || questionFor(e))).filter(Boolean).slice(0, 5);
+  }
+
   const formSize = () => scan().fields.filter(f => !["file"].includes(f.type) && !/search/i.test(f.label)).length;
 
-  window.__flous = { scan, fill, clickApply, formSize };
+  window.__flous = { scan, fill, clickApply, formSize, missingRequired, hasCaptcha, submit, submitButton: () => !!submitButton(), confirmed, formErrors };
 })();

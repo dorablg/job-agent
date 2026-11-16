@@ -2,7 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#4f46e5">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Flous">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="robots" content="noindex, nofollow">
 <meta http-equiv="Content-Security-Policy" content="__CSP__">
 <meta name="referrer" content="no-referrer">
@@ -95,6 +102,8 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .nav{display:flex;gap:4px;margin-left:auto;overflow-x:auto}
 .nav button{border:0;background:transparent;padding:8px 12px;border-radius:9px;cursor:pointer;color:var(--muted);font-weight:600;white-space:nowrap}
 .nav button.on{background:var(--accent-bg);color:var(--accent)}
+.nav .ni{font-weight:400}.nl-short{display:none}
+body{overflow-x:clip}
 .nav .count{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:9px;background:var(--accent);color:var(--accent-ink);font-size:11px;line-height:18px;text-align:center}
 .wrap{max-width:1320px;margin:0 auto;padding:18px 16px 70px}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
@@ -160,8 +169,21 @@ aside.filters{position:sticky;top:70px;background:var(--panel);border:1px solid 
 }
 @media (max-width:640px){
   .brand>div{display:none}
-  .topbar .in{gap:6px;padding:8px 10px}
-  .nav button{padding:7px 9px;font-size:13px}
+  .topbar .in{gap:6px;padding:8px 10px;padding-top:max(8px,env(safe-area-inset-top))}
+  /* a blurred parent would trap the fixed tab bar inside the top bar: use a solid top bar on phones */
+  .topbar{backdrop-filter:none;background:var(--bg)}
+  /* phone: app-style tab bar at the bottom */
+  .nav{position:fixed;left:0;right:0;bottom:0;z-index:25;margin:0;gap:0;overflow:visible;justify-content:space-around;
+    background:color-mix(in srgb,var(--panel) 94%,transparent);backdrop-filter:blur(12px);border-top:1px solid var(--line);
+    padding:4px 4px calc(4px + env(safe-area-inset-bottom))}
+  .nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 2px;font-size:11px;border-radius:12px;position:relative}
+  .nav .ni{font-size:21px;line-height:1.1}
+  .nav .count{position:absolute;top:2px;left:calc(50% + 6px);margin:0}
+  .nl-long{display:none}.nl-short{display:inline}
+  #app main, #app > section, #app{padding-bottom:calc(74px + env(safe-area-inset-bottom))}
+  body[data-view="swipe"] .kpis{display:none}
+  .stack{height:calc(100dvh - 300px - env(safe-area-inset-bottom));min-height:360px}
+  .swipe-btns{margin:12px 0 6px}
   .kpis{grid-template-columns:repeat(3,1fr);gap:8px}
   .kpi{padding:10px 11px}.kpi b{font-size:20px}.kpi span{font-size:11.5px}
   .results-head select{flex:1}
@@ -286,11 +308,11 @@ aside.filters{position:sticky;top:70px;background:var(--panel);border:1px solid 
   <div class="topbar"><div class="in">
     <div class="brand"><span class="logo" style="width:34px;height:34px;font-size:17px">F</span><div>Flous Job Board<small id="updated"></small></div></div>
     <nav class="nav" id="nav">
-      <button data-view="swipe">💘 Swipe</button>
-      <button data-view="discover" class="on">🔎 Discover</button>
-      <button data-view="pipeline">📊 My applications</button>
-      <button data-view="inbox">📬 Inbox <span class="count hidden" id="inboxCount"></span></button>
-      <button data-view="profile">⚡ Autofill &amp; profile</button>
+      <button data-view="swipe"><b class="ni">💘</b><span>Swipe</span></button>
+      <button data-view="discover" class="on"><b class="ni">🔎</b><span>Discover</span></button>
+      <button data-view="pipeline"><b class="ni">📊</b><span class="nl-long">My applications</span><span class="nl-short">Applied</span></button>
+      <button data-view="inbox"><b class="ni">📬</b><span>Inbox</span> <span class="count hidden" id="inboxCount"></span></button>
+      <button data-view="profile"><b class="ni">⚡</b><span class="nl-long">Autofill &amp; profile</span><span class="nl-short">Profile</span></button>
     </nav>
     <button class="btn ghost small" id="dbchip" title="">💾</button>
     <button class="btn ghost small" id="theme" title="Switch light/dark">🌓</button>
@@ -594,7 +616,7 @@ function init(){
   const hash = decodeURIComponent(location.hash.slice(1)); if(hash && L().some(r => r.id === hash)) openDrawer(hash);
 }
 function go(v){
-  view = v;
+  view = v; document.body.dataset.view = v;
   document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.view === v));
   ["swipe","discover","pipeline","inbox","profile"].forEach(x => $("#v-"+x).classList.toggle("hidden", x !== v));
   renderAll(); window.scrollTo(0,0);

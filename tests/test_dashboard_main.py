@@ -100,3 +100,14 @@ def test_telegram_only_attaches_web_links(monkeypatch):
     telegram.send_text("hi", url="javascript:alert(1)")
     telegram.send_text("hi", url="https://ok.example")
     assert "javascript:" not in json.dumps(calls[0]) and "https://ok.example" in calls[1]["reply_markup"]
+
+
+def test_build_ships_phone_app_files(tmp_path, monkeypatch, password, cfg):
+    monkeypatch.setattr(dashboard, "SITE", tmp_path)
+    monkeypatch.setattr(secure, "SALT_FILE", tmp_path / "salt.txt")
+    html = dashboard.build({}, "cv", cfg, []).read_text(encoding="utf-8")
+    manifest = json.loads((tmp_path / "manifest.webmanifest").read_text(encoding="utf-8"))
+    assert manifest["display"] == "standalone"
+    for icon in manifest["icons"]:
+        assert (tmp_path / icon["src"]).stat().st_size > 200
+    assert 'rel="manifest"' in html and (tmp_path / "apple-touch-icon.png").exists()

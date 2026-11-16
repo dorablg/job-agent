@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parent.parent
 STORE = ROOT / "state" / "listings.enc"
 SITE = ROOT / "site"
 TEMPLATE = Path(__file__).with_name("dashboard_template.html")
+STATIC = Path(__file__).with_name("static")
 KEEP_DAYS = 60
 MAX_LISTINGS = 400
 
@@ -130,4 +131,7 @@ def build(listings: dict, cv_text: str, cfg: dict, responses: list | None = None
     out = SITE / "index.html"
     out.write_text(html, encoding="utf-8")
     (SITE / ".nojekyll").write_text("", encoding="utf-8")
+    for f in STATIC.iterdir():  # phone app: manifest + icons ("Add to Home screen")
+        if f.is_file():
+            (SITE / f.name).write_bytes(f.read_bytes())
     return out

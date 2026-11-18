@@ -40,6 +40,10 @@ Types: "confirmation" (application received), "interview" (invitation/scheduling
 questionnaire), "rejection", "offer" (a job offer, OR being accepted / admitted / selected for a fellowship, programme,
 scholarship, internship or event), "info_request" (they need documents/answers or a confirmation from her),
 "other" (newsletters, job alerts, marketing, unrelated, LinkedIn/Indeed/Himalayas recommendation emails).
+Rules: she is Dorra (Dora) Bouallegue. An email written BY HER (her own reply, e.g. "Re: ..." sent from her own address
+or signed by her) is "other". "company" is the
+organisation that wrote to her (use the sender's name if needed, never ''). "role" must be the job / programme named IN
+THAT EMAIL; never copy a title from the known applications list unless the email clearly names that same role.
 Known applications (id | company | title):
 {listings}
 

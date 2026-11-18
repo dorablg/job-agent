@@ -26,7 +26,7 @@ function doGet(e) {
   if (p.action === "track") return json_(loadTrack_());
   const days = Math.max(1, Math.min(Number(p.days) || 3, 60));
   const since = new Date(Date.now() - days * 864e5);
-  const me = Session.getActiveUser().getEmail().toLowerCase();
+  const me = Session.getActiveUser().getEmail().toLowerCase();   // may be empty for the web app: the agent also filters your own replies
   const out = [];
   const threads = GmailApp.search(QUERY + " newer_than:" + days + "d", 0, 150);
   threads.forEach(function (t) {

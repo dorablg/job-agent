@@ -48,6 +48,7 @@ jobs:
         run: python -m agent.secure unlock
       - name: Run agent
         run: python -m agent.main
+        timeout-minutes: 60       # leaves time to save state and publish even on a bad day
       - name: Save state
         run: |
           git config user.name "job-agent-bot"

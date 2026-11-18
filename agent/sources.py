@@ -11,6 +11,8 @@ from email.utils import parsedate_to_datetime
 
 from concurrent.futures import ThreadPoolExecutor
 
+import threading
+
 import feedparser
 import requests
 from requests.adapters import HTTPAdapter
@@ -667,7 +669,9 @@ def rss(feeds: list[str]) -> list[Job]:
     """Fellowship / scholarship / internship feeds (Opportunity Desk etc.)."""
     out = []
     for feed_url in feeds:
-        f = feedparser.parse(feed_url, agent=UA["User-Agent"])
+        r = http_get(feed_url, timeout=(10, 30))
+        r.raise_for_status()
+        f = feedparser.parse(r.content)
         name = f.feed.get("title", feed_url)
         for e in f.entries:
             body = clean(e.get("content", [{}])[0].get("value") if e.get("content") else e.get("summary"))
@@ -704,6 +708,26 @@ SOURCES = {
 }
 
 
+def run_with_deadline(tasks: list, seconds: float) -> list:
+    """Runs callables in parallel daemon threads and waits at most `seconds` overall. Results keep the task order;
+    a task still running at the deadline gives None (its thread is abandoned and cannot block the exit)."""
+    results: list = [None] * len(tasks)
+
+    def runner(i, fn):
+        try:
+            results[i] = fn()
+        except Exception as ex:  # run_source / run_feed already catch; this is a last resort
+            results[i] = ([], f"  task {i}: FAILED ({ex})")
+
+    threads = [threading.Thread(target=runner, args=(i, fn), daemon=True) for i, fn in enumerate(tasks)]
+    for t in threads:
+        t.start()
+    end = time.monotonic() + seconds
+    for t in threads:
+        t.join(max(0.0, end - time.monotonic()))
+    return results
+
+
 def fetch_all(cfg: dict, log=print) -> list[Job]:
     """Runs every enabled source concurrently (they are I/O bound) and merges results in config order,
     so de-duplication downstream stays deterministic. One broken source never stops the run."""
@@ -731,10 +755,15 @@ def fetch_all(cfg: dict, log=print) -> list[Job]:
         except Exception as ex:
             return [], f"  rss {feed}: FAILED ({ex})"
 
-    with ThreadPoolExecutor(max_workers=6) as ex:
-        feed_futs = [ex.submit(run_feed, f) for f in feeds]
-        results = pmap(run_source, names, workers=len(names) or 1)
-        feed_results = [f.result() for f in feed_futs]
+    deadline = float(cfg.get("fetch_deadline_seconds", 900))
+    tasks = [(lambda n=n: run_source(n)) for n in names] + [(lambda f=f: run_feed(f)) for f in feeds]
+    labels = names + [f"rss {f}" for f in feeds]
+    done = run_with_deadline(tasks, deadline)
+    results, feed_results = [], []
+    for i, res in enumerate(done):
+        if res is None:
+            res = ([], f"  {labels[i]}: TIMED OUT after {deadline:.0f}s (skipped this run)")
+        (results if i < len(names) else feed_results).append(res)
     jobs: list[Job] = []
     for got, line in results:
         log(line)

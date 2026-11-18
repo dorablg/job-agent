@@ -311,7 +311,11 @@ def main() -> None:
         telegram.send_text("✅ Job agent is connected! You'll get matches here.")
         print("sent")
         return
-    sys.exit(run(dry=a.dry_run))
+    code = run(dry=a.dry_run)
+    sys.stdout.flush()
+    sys.stderr.flush()
+    # A download thread abandoned at its deadline must not keep the process (and the GitHub run) alive.
+    os._exit(code)
 
 
 if __name__ == "__main__":

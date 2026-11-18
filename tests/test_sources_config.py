@@ -84,3 +84,32 @@ def test_curated_loader(cfg):
 @pytest.mark.parametrize("name", ["sources", "focus_places", "categories", "curated"])
 def test_config_has_section(cfg, name):
     assert cfg.get(name)
+
+
+def test_a_stuck_source_is_skipped_at_the_deadline(monkeypatch):
+    def stuck(_terms):
+        time.sleep(30)
+        return [make_job(id="late")]
+    def ok(_terms):
+        return [make_job(id="ok")]
+    monkeypatch.setattr(sources, "SOURCES", {"stuck": stuck, "ok": ok})
+    logs = []
+    t0 = time.perf_counter()
+    jobs = sources.fetch_all({"sources": ["stuck", "ok"], "fetch_deadline_seconds": 1}, log=logs.append)
+    assert time.perf_counter() - t0 < 5
+    assert [j.id for j in jobs] == ["ok"]
+    assert any("stuck: TIMED OUT" in line for line in logs)
+
+
+def test_rss_downloads_with_a_timeout(monkeypatch):
+    seen = {}
+    class R:
+        content = b"<rss><channel><title>Feed</title><item><title>AI Fellowship</title><link>https://x.example/a</link></item></channel></rss>"
+        def raise_for_status(self):
+            pass
+    def fake(url, **kw):
+        seen.update(kw)
+        return R()
+    monkeypatch.setattr(sources, "http_get", fake)
+    out = sources.rss(["https://feed.example/rss"])
+    assert seen.get("timeout") and out[0].title == "AI Fellowship"

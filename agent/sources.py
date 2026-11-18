@@ -576,10 +576,10 @@ def devpost(_terms, opts: dict | None = None) -> list[Job]:
                 if h.get("id") in seen:
                     continue
                 seen.add(h.get("id"))
-                dates = h.get("submission_period_dates", "")  # "Oct 01 - Nov 12, 2026"
+                dates = h.get("submission_period_dates") or ""  # "Oct 01 - Nov 12, 2026"
                 m = re.search(r"-\s*([A-Za-z]{3})\s+(\d{1,2}),\s*(\d{4})", dates) or re.search(r"([A-Za-z]{3})\s+(\d{1,2}),\s*(\d{4})", dates)
                 end = f"{m.group(2)} {m.group(1)} {m.group(3)}" if m else ""
-                loc = (h.get("displayed_location") or {}).get("location", "Online")
+                loc = (h.get("displayed_location") or {}).get("location") or "Online"  # can be null
                 themes = ", ".join(t.get("name", "") for t in h.get("themes") or [])
                 prize = clean(str(h.get("prize_amount", "")))
                 desc = (f"Hackathon by {h.get('organization_name') or 'Devpost'}. Themes: {themes}. Prizes: {prize}. "

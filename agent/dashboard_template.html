@@ -79,6 +79,37 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .shake{animation:shake .35s}
 @keyframes shake{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
 @media (max-width:760px){.lk{grid-template-columns:1fr;max-width:420px}.lk-hero{display:none}#lockform .lk-mlogo{display:inline-grid;margin-bottom:16px}#lockform{padding:32px 24px}}
+/* ---------- layout system: page headers, sidebar, spacing ---------- */
+.phead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:4px 0 18px}
+.phead h1{margin:0;font-size:26px;letter-spacing:-.02em;line-height:1.15}
+.phead p{margin:4px 0 0;color:var(--muted);font-size:14px}
+.pact{display:flex;gap:8px;flex-wrap:wrap}
+.kpis{display:none!important}           /* each page now shows only the numbers that matter to it */
+.util{display:flex;gap:4px;margin-left:8px}
+.ubtn{display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;color:var(--muted);padding:7px 9px;border-radius:9px;cursor:pointer;font:inherit;font-size:13px}
+.ubtn:hover{background:var(--soft);color:var(--ink)}
+.ubtn .ul{display:none}
+.seg.groups{flex-wrap:wrap;margin-bottom:10px}
+.seg.groups button .n,.cat .n{opacity:.6;font-weight:500;margin-left:2px}
+.cats.sub{margin:0 0 12px}.cats.sub .cat{font-size:12.5px;padding:5px 11px}
+.btn.ghostline{background:transparent}
+.badges .bd{font-size:12px}
+.card .c-cat{font-size:12px}
+@media (min-width:1100px){
+  /* laptop: labelled sidebar on the left, content on the right */
+  #app .topbar{position:fixed;inset:0 auto 0 0;width:232px;border-bottom:0;border-right:1px solid var(--line);background:var(--panel);backdrop-filter:none;z-index:20}
+  #app .topbar .in{flex-direction:column;align-items:stretch;height:100%;padding:18px 14px;gap:18px;max-width:none}
+  #app .brand{padding:0 6px}
+  #app .nav{flex-direction:column;margin:0;overflow:visible;gap:2px}
+  #app .nav button{display:flex;align-items:center;gap:10px;justify-content:flex-start;width:100%;padding:10px 12px;font-size:14.5px;text-align:left}
+  #app .nav .ni{width:22px;text-align:center}
+  #app .nav .count{margin-left:auto}
+  #app .util{flex-direction:column;margin:auto 0 0;gap:2px;border-top:1px solid var(--line);padding-top:10px}
+  #app .ubtn{width:100%;justify-content:flex-start;padding:9px 12px}.ubtn .ul{display:inline}
+  #app .wrap{margin-left:232px;max-width:1240px;padding:26px 28px 70px}
+  .drawer{z-index:41}
+}
+@media (max-width:640px){.phead h1{font-size:22px}.phead{margin-bottom:12px}.util{margin-left:auto}.seg.groups button{font-size:12.5px;padding:6px 9px}}
 /* ---------- email tracker ---------- */
 .tk-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
 .tk-kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
@@ -344,16 +375,18 @@ aside.filters{position:sticky;top:70px;background:var(--panel);border:1px solid 
 
 <div id="app" class="hidden">
   <div class="topbar"><div class="in">
-    <div class="brand"><span class="logo" style="width:34px;height:34px;font-size:17px">F</span><div>Flous Job Board<small id="updated"></small></div></div>
+    <div class="brand"><span class="logo" style="width:34px;height:34px;font-size:17px">F</span><div>Flous<small id="updated"></small></div></div>
     <nav class="nav" id="nav">
       <button data-view="swipe"><b class="ni">💘</b><span>Swipe</span></button>
       <button data-view="discover" class="on"><b class="ni">🔎</b><span>Discover</span></button>
       <button data-view="pipeline"><b class="ni">📊</b><span class="nl-long">Applications</span><span class="nl-short">Applied</span> <span class="count hidden" id="inboxCount"></span></button>
-      <button data-view="profile"><b class="ni">⚡</b><span class="nl-long">Autofill &amp; profile</span><span class="nl-short">Profile</span></button>
+      <button data-view="profile"><b class="ni">👤</b><span>Profile</span></button>
     </nav>
-    <button class="btn ghost small" id="dbchip" title="">💾</button>
-    <button class="btn ghost small" id="theme" title="Switch light/dark">🌓</button>
-    <button class="btn ghost small" id="lockbtn" title="Lock and forget password on this device">🔒</button>
+    <div class="util">
+      <button class="ubtn" id="dbchip" title=""><span class="ui">💾</span><span class="ul" id="dblabel">This device</span></button>
+      <button class="ubtn" id="theme" title="Switch light/dark"><span class="ui">🌓</span><span class="ul">Theme</span></button>
+      <button class="ubtn" id="lockbtn" title="Lock and forget the key on this device"><span class="ui">🔒</span><span class="ul">Lock</span></button>
+    </div>
   </div></div>
 
   <div class="wrap">
@@ -361,35 +394,36 @@ aside.filters{position:sticky;top:70px;background:var(--panel);border:1px solid 
 
     <!-- DISCOVER -->
     <section id="v-discover">
+      <header class="phead"><div><h1>Discover</h1><p id="discoverSub">Opportunities matched to your profile, checked by AI.</p></div>
+        <div class="pact"><button class="btn filterbtn" id="openFilters">Filters</button></div></header>
       <div class="layout">
         <aside class="filters" id="filters"></aside>
         <div>
           <div class="cats" id="cats"></div>
           <div class="results-head">
-            <button class="btn primary" id="queueBtn">🚀 Apply queue</button>
-            <button class="btn filterbtn" id="openFilters">⚙️ Filters</button>
             <input type="search" id="q" placeholder="Search title, company, skill, country…">
             <select id="sort">
               <option value="fit">Best fit for me</option><option value="score">Best match score</option><option value="found">Newest</option>
               <option value="ats">Highest ATS</option><option value="deadline">Deadline soonest</option>
             </select>
           </div>
-          <div class="muted" id="resultCount" style="margin:-4px 0 10px;font-size:13px"></div>
+
           <div class="cards" id="cards"></div>
         </div>
       </div>
     </section>
 
     <!-- SWIPE -->
-    <section id="v-swipe" class="hidden"><div class="swipe-wrap" id="swipe"></div></section>
+    <section id="v-swipe" class="hidden">
+      <header class="phead"><div><h1>Swipe</h1><p>Right: the agents apply for you · Left: not for me · Up: save for later</p></div></header>
+      <div class="swipe-wrap" id="swipe"></div></section>
 
     <!-- PIPELINE -->
     <section id="v-pipeline" class="hidden">
+      <header class="phead"><div><h1>Applications</h1><p>Everything you applied to, from your emails and this board, in one place.</p></div>
+        <div class="pact"><button class="btn small" id="csvBtn">⬇ Export CSV</button><a class="btn small hidden" id="sheetBtn" target="_blank" rel="noopener">📗 Google Sheet</a></div></header>
       <div class="pipebar">
         <div class="seg"><button data-pv="overview">📈 Overview</button><button data-pv="db">🗃 Database</button><button data-pv="board">🗂 Board</button><button data-pv="emails">📬 Emails</button></div>
-        <span style="flex:1"></span>
-        <button class="btn small" id="csvBtn">⬇ Export CSV</button>
-        <a class="btn small hidden" id="sheetBtn" target="_blank" rel="noopener">📗 Open Google Sheet</a>
       </div>
       <div id="agentslot"></div>
       <p class="muted" id="pipehint" style="margin-top:0">Drag cards between columns, or change the status inside a job. Gmail replies move them for you.</p>
@@ -405,21 +439,13 @@ aside.filters{position:sticky;top:70px;background:var(--panel);border:1px solid 
 
     <!-- PROFILE -->
     <section id="v-profile" class="hidden">
-      <div class="sec">
-        <h3>⚡ One-click application filler</h3>
-        <ol style="margin:0;padding-left:20px;line-height:1.9">
-          <li>Show your bookmarks bar: <b>Ctrl+Shift+B</b>.</li>
-          <li>Drag this button onto the bookmarks bar: <a class="bm" id="bookmarklet" href="#">⚡ Fill application</a></li>
-          <li>On a job, open <b>Apply kit</b> and click <b>🚀 Apply</b>. It copies the cover letter and opens the form.</li>
-          <li>On the form, click <b>⚡ Fill application</b>. It fills your name, email, phone, LinkedIn, GitHub and location, and pastes the cover letter.</li>
-          <li>Upload the <b>ATS CV</b> PDF for that job, answer the questions (copy them from the Apply kit), check everything and submit.</li>
-        </ol>
-        <p class="muted" style="margin-bottom:0;font-size:13px">Works on most forms (Lever, Workable, Ashby, SmartRecruiters, Teamtailor, many company sites). If a form is inside a box from another site, open that box's page directly.</p>
-      </div>
+      <header class="phead"><div><h1>Profile</h1><p>The details the agents use to fill your applications.</p></div></header>
+      <div class="sec"><h3>⚡ Flous browser extension</h3>
+        <p id="extStatus" class="muted" style="margin:0">Checking…</p></div>
       <div class="sec" id="profile"></div>
       <div class="sec">
-        <h3>Move your tracking to another device</h3>
-        <p class="muted">Statuses, notes and edited letters are saved in this browser. Export them here, then import them on your phone or another computer.</p>
+        <h3>Backup</h3>
+        <p class="muted">Your applications are kept in your Google Sheet when it's connected. You can also export everything from this device and import it elsewhere.</p>
         <button class="btn" id="export">⬇ Export</button>
         <label class="btn">⬆ Import<input type="file" id="import" accept=".json" class="hidden"></label>
       </div>
@@ -581,7 +607,8 @@ function setDb(s, msg){
   const M = {off:["💾","Saved on this device only. Connect Google (see My applications) to keep a copy in a Google Sheet."],
     sync:["⏳","Saving to your Google Sheet…"], ok:["☁️","Saved in your Google Sheet. Click to open it."],
     err:["⚠️",`Couldn't reach your Google Sheet (${msg||"offline"}). Your changes are kept here and will be retried.`]};
-  b.textContent = M[s][0]; b.title = M[s][1];
+  b.querySelector(".ui").textContent = M[s][0]; b.title = M[s][1];
+  const lab = {off:"This device", sync:"Saving…", ok:"Google Sheet", err:"Not synced"}[s]; const l = $("#dblabel"); if(l) l.textContent = lab;
   const n = $("#dbnote"); if(n) n.textContent = M[s][1];
 }
 function applyMailStatuses(){
@@ -617,7 +644,7 @@ function init(){
   document.querySelectorAll("#nav button").forEach(b => b.onclick = () => go(b.dataset.view));
   $("#q").oninput = renderCards; $("#sort").value = "fit"; $("#sort").onchange = renderCards;
   $("#openFilters").onclick = () => $("#filters").classList.add("open");
-  $("#queueBtn").onclick = startQueue;
+
   $("#scrim").onclick = closeDrawer;
   document.addEventListener("keydown", e => { if(e.key === "Escape") closeDrawer(); });
   $("#dbchip").onclick = () => { if(safeUrl(dbSheet)) window.open(safeUrl(dbSheet), "_blank", "noopener"); else if(dbState === "err") dbLoad(); else go("pipeline"); };
@@ -735,16 +762,40 @@ function renderFilters(){
   $("#resetF").onclick = () => { F = {...DEFAULT_F}; $("#q").value = ""; save(); };
   $("#closeF").onclick = () => $("#filters").classList.remove("open");
 }
+/* Categories are grouped so Discover stays readable: pick a group, then (optionally) one category inside it. */
+const CAT_GROUPS = [
+  ["jobs", "💼 Jobs & internships", /job|intern|research|finance|technical|also fits|alternance/i],
+  ["earn", "💵 Earn fast", /contract|freelance|part-time/i],
+  ["programs", "🎓 Programs & scholarships", /study|scholarship|fellowship|exchange/i],
+  ["events", "🎤 Events & community", /event|volunteer|ambassador/i],
+];
+const groupOf = c => (CAT_GROUPS.find(([, , re]) => re.test(c)) || CAT_GROUPS[0])[0];
+const shortCat = c => String(c || "").replace(/\s*\([^)]*\)\s*/g, " ").replace(/\s+/g, " ").trim();
 function renderCats(){
   const cc = counts("cats", r => r.category);
-  $("#cats").innerHTML = `<button class="cat ${!F.cats.length?"on":""}" data-c="">All</button>` + D.categories.map(c =>
-    `<button class="cat ${F.cats.includes(c)?"on":""}" data-c="${esc(c)}">${esc(c)} <span class="n">${cc[c]||0}</span></button>`).join("");
-  $("#cats").querySelectorAll(".cat").forEach(b => b.onclick = () => { const c = b.dataset.c;
-    F.cats = !c ? [] : F.cats.includes(c) ? F.cats.filter(x => x !== c) : [...F.cats, c]; store("filters", F); renderFilters(); renderCats(); renderCards(); });
+  const g = F.group || "all";
+  const inG = c => g === "all" || groupOf(c) === g;
+  const gCount = k => D.categories.filter(c => k === "all" || groupOf(c) === k).reduce((n, c) => n + (cc[c] || 0), 0);
+  const sub = g === "all" ? "" : `<div class="cats sub">${D.categories.filter(inG).map(c =>
+    `<button class="cat ${F.cats.length === 1 && F.cats[0] === c ? "on" : ""}" data-c="${esc(c)}">${esc(shortCat(c))} <span class="n">${cc[c]||0}</span></button>`).join("")}</div>`;
+  $("#cats").innerHTML = `<div class="seg groups"><button class="${g==="all"?"on":""}" data-g="all">All <span class="n">${gCount("all")}</span></button>${CAT_GROUPS.map(([k, t]) =>
+    `<button class="${g===k?"on":""}" data-g="${k}">${t} <span class="n">${gCount(k)}</span></button>`).join("")}</div>${sub}`;
+  const apply = () => { store("filters", F); renderFilters(); renderCats(); renderCards(); };
+  $("#cats").querySelectorAll("[data-g]").forEach(b => b.onclick = () => { F.group = b.dataset.g;
+    F.cats = F.group === "all" ? [] : D.categories.filter(c => groupOf(c) === F.group); apply(); });
+  $("#cats").querySelectorAll("[data-c]").forEach(b => b.onclick = () => { const c = b.dataset.c;
+    F.cats = F.cats.length === 1 && F.cats[0] === c ? D.categories.filter(x => groupOf(x) === F.group) : [c]; apply(); });
 }
 
 /* ---------- cards ---------- */
 function ringColor(s){ return s >= 65 ? "var(--good)" : s >= 45 ? "var(--warn)" : "var(--faint)"; }
+// Cards show only the 5 most useful facts (in this order); the full list is in the job's details panel.
+const BADGE_PRIORITY = [/days left|Closes today|Closed/, /chance/, /💰|💵|Unpaid/, /Open to Tunisia|Not open to Tunisia|Check Tunisia|Visa|visa|Sponsorship|right to work/, /🏠|🏢|Mode not stated/, /Kit ready/, /fit/];
+function topBadges(r, n = 5){
+  const all = badges(r).split("</span>").filter(Boolean).map(x => x + "</span>");
+  const rank = h => { const i = BADGE_PRIORITY.findIndex(re => re.test(h)); return i < 0 ? 99 : i; };
+  return all.map((h, i) => [rank(h), i, h]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).slice(0, n).sort((a, b) => a[1] - b[1]).map(x => x[2]).join("");
+}
 function badges(r){
   const b = [];
   if(r.check) b.push(`<span class="bd ${r.check.chance>=70?"good":r.check.chance>=50?"acc":"warn"}" title="${esc(r.check.why||"")}">🤖 ${r.check.chance}% chance</span>`);
@@ -775,17 +826,17 @@ function renderCards(){
     sort === "fit" ? (((b.check||{}).chance||0) - ((a.check||{}).chance||0)) || ((FITRANK[b.fit]||0) - (FITRANK[a.fit]||0)) || (b.tunisia==="yes") - (a.tunisia==="yes") || b.score - a.score :
     sort === "found" ? b.found.localeCompare(a.found) : sort === "ats" ? b.ats - a.ats :
     sort === "deadline" ? ((days(a.deadline) ?? 999) < 0 ? 999 : (days(a.deadline) ?? 999)) - ((days(b.deadline) ?? 999) < 0 ? 999 : (days(b.deadline) ?? 999)) : b.score - a.score);
-  $("#resultCount").textContent = `${rows.length} of ${L().length} opportunities`;
-  $("#queueBtn").textContent = `🚀 Apply queue (${readyJobs().length} ready)`;
+
+  $("#discoverSub").textContent = `${rows.length} of ${L().length} opportunities · matched to your profile and checked by AI`;
   $("#cards").innerHTML = rows.length ? rows.map(r => {
     const s = st(r.id), cv = catVar(r.category);
     return `<article class="card ${s==="skip"||s==="rejected"?"dim":""}" data-id="${esc(r.id)}" style="--cc:var(--c-${cv})">
       <div><div class="ring" style="--p:${Math.round(r.score)};--rc:${ringColor(r.score)}"><b>${Math.round(r.score)}</b></div><small class="muted" style="display:block;text-align:center;font-size:10.5px;margin-top:3px">match</small></div>
       <div class="c-main">
-        <div class="c-cat">${esc(r.category)}${r.found>lastSeen?'<span class="newtag">NEW</span>':""}</div>
+        <div class="c-cat">${esc(shortCat(r.category))}${r.found>lastSeen?'<span class="newtag">NEW</span>':""}</div>
         <div class="c-title">${esc(r.title)}</div>
         <div class="c-sub">${r.company?`<b style="color:var(--ink);font-weight:600">${esc(r.company)}</b> · `:""}${esc((r.location||"Location not stated").length>90?r.location.slice(0,90)+"…":(r.location||"Location not stated"))} · via ${esc(r.source)}${r.posted?` · posted ${fmtDate(r.posted)}`:""}</div>
-        <div class="badges">${badges(r)}</div>
+        <div class="badges">${topBadges(r)}</div>
         ${r.kind!=="fellowship"||r.ats?`<div class="atsline">ATS ${Math.round(r.ats)}%${cvOf(r)&&atsCheck(r,cvOf(r)).n?` → <b style="color:var(--accent)">${atsCheck(r,cvOf(r)).after}%</b> with tailored CV`:""}<span class="bar"><i style="width:${Math.min(100,r.ats)}%"></i></span></div>`:""}
       </div>
       <div class="c-side">
@@ -813,16 +864,17 @@ function renderDrawer(){
     <div class="dtop">
       <div class="ring" style="--p:${Math.round(r.score)};--rc:${ringColor(r.score)}"><b>${Math.round(r.score)}</b></div>
       <div style="min-width:0">
-        <div class="c-cat" style="--cc:var(--c-${catVar(r.category)})">${esc(r.category)}</div>
+        <div class="c-cat" style="--cc:var(--c-${catVar(r.category)})">${esc(shortCat(r.category))}</div>
         <div class="dtitle">${esc(r.title)}</div>
         <div class="c-sub">${r.company?`<b style="color:var(--ink)">${esc(r.company)}</b> · `:""}${esc((r.location||"Location not stated").length>110?r.location.slice(0,110)+"…":(r.location||"Location not stated"))}</div>
+        <div class="badges" style="margin-top:8px">${badges(r)}</div>
       </div>
       <button class="btn ghost x" id="dclose" title="Close">✕</button>
     </div>
     <div class="dactions">
       <button class="btn primary" data-a="apply">🚀 Apply</button>
-      <a class="btn" href="${esc(safeUrl(r.url) ? safeUrl(r.url) : "https://www.google.com/search?q=" + encodeURIComponent(r.title+" "+(r.company||"")))}" target="_blank" rel="noopener">↗ Open posting</a>
-      <button class="btn" data-a="na">🚫 Not applicable</button>
+      <a class="btn ghostline" href="${esc(safeUrl(r.url) ? safeUrl(r.url) : "https://www.google.com/search?q=" + encodeURIComponent(r.title+" "+(r.company||"")))}" target="_blank" rel="noopener">↗ Open posting</a>
+      <button class="btn ghostline" data-a="na">🚫 Not for me</button>
       <select id="dstatus">${Object.entries(STATUSES).map(([k,v]) => `<option value="${k}" ${k===s?"selected":""}>${SICON[k]} ${v}</option>`).join("")}</select>
       ${D.gemini_key?`<button class="btn" data-a="gen">✨ ${ai?"Regenerate kit":"Generate apply kit"}</button>`:""}
     </div>
@@ -1481,8 +1533,10 @@ function renderProfile(){
   $("#profile").querySelectorAll("[data-copy]").forEach(b => b.onclick = () => copy(b.dataset.copy));
   $("#profile").insertAdjacentHTML("beforeend", `<h3 style="margin-top:18px">🚫 Hidden companies</h3>${muted.length ? muted.map(c => `<span class="bd" style="margin:0 6px 6px 0">${esc(c)} <a href="#" data-unmute="${esc(c)}">✕</a></span>`).join("") : `<span class="muted">None</span>`}`);
   $("#profile").querySelectorAll("[data-unmute]").forEach(a => a.onclick = e => { e.preventDefault(); muted = muted.filter(x => x !== a.dataset.unmute); store("muted", muted); renderProfile(); renderAll(); });
-  $("#bookmarklet").href = bookmarklet(A);
-  $("#bookmarklet").onclick = e => { e.preventDefault(); toast("Drag me to your bookmarks bar ↑"); };
+  const ext = document.documentElement.dataset.flousExt;
+  $("#extStatus").innerHTML = ext === "2" ? "✅ Installed and connected: swipe right on jobs, then press <b>🤖 Let agents apply</b> in Applications."
+    : ext ? "⚠️ An older version is installed: open <b>opera://extensions</b> and click ↻ on Flous to update it."
+    : "Not detected in this browser. On your laptop, install the Flous extension so the agents can open, fill and submit applications for you.";
   $("#export").onclick = () => download("job-tracking.json", JSON.stringify({track, aiCache: store("aiCache2")||{}}), "application/json");
   $("#import").onchange = async e => { try{ const d = JSON.parse(await e.target.files[0].text()); track = Object.assign(track, d.track||d); store("track", track);
     if(d.aiCache){ const c = Object.assign(store("aiCache2")||{}, d.aiCache); store("aiCache2", c); L().forEach(r => { if(!r.ai && c[r.id]) r.ai = c[r.id]; }); }

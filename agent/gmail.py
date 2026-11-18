@@ -37,8 +37,9 @@ ICON = {"confirmation": "📨", "interview": "🗣", "assessment": "🧪", "reje
 
 PROMPT = """You sort a job seeker's emails. For each email decide if it is a reply about one of HER applications.
 Types: "confirmation" (application received), "interview" (invitation/scheduling), "assessment" (test, task,
-questionnaire), "rejection", "offer", "info_request" (they need documents/answers), "other" (newsletters, job alerts,
-marketing, unrelated, LinkedIn/Indeed recommendation emails).
+questionnaire), "rejection", "offer" (a job offer, OR being accepted / admitted / selected for a fellowship, programme,
+scholarship, internship or event), "info_request" (they need documents/answers or a confirmation from her),
+"other" (newsletters, job alerts, marketing, unrelated, LinkedIn/Indeed/Himalayas recommendation emails).
 Known applications (id | company | title):
 {listings}
 
@@ -46,6 +47,7 @@ Emails:
 {emails}
 
 Return ONLY JSON: {{"results": [ {{"i": <email number>, "type": one of {types}, "company": "<company name or ''>",
+"role": "<the job / programme she applied for, or ''>",
 "listing_id": "<id from the known list if it clearly matches, else ''>", "summary": "<1 sentence>",
 "action": "<what she should do next, or ''>", "due": "<YYYY-MM-DD if a date/deadline is given, else ''>"}} ]}}"""
 
@@ -83,7 +85,7 @@ def fetch_bridge(days_first_run: int = 30) -> list[dict]:
         out.append({"key": key, "msgid": mid, "from": m.get("from", ""), "subject": m.get("subject", ""),
                     "date": m.get("date") or datetime.now(UTC).isoformat(), "body": m.get("body", "")[:2500]})
     seen["ids"] = list(known)[-3000:]
-    seen["last"] = datetime.now(UTC).isoformat()
+    seen["prev_last"], seen["last"] = seen.get("last", ""), datetime.now(UTC).isoformat()
     SEEN.write_text(json.dumps(seen), encoding="utf-8")
     return out
 
@@ -171,7 +173,7 @@ def fetch(days_first_run: int = 30, max_emails: int = 60) -> list[dict]:
         out.append({"key": key, "msgid": mid, "from": frm, "subject": subj, "date": dt, "body": body[:2500]})
     M.logout()
     seen["ids"] = list(known)[-3000:]
-    seen["last"] = datetime.now(UTC).isoformat()
+    seen["prev_last"], seen["last"] = seen.get("last", ""), datetime.now(UTC).isoformat()
     SEEN.write_text(json.dumps(seen), encoding="utf-8")
     return out
 
@@ -190,6 +192,8 @@ def classify(mails: list[dict], listings: dict) -> list[dict]:
             res = llm.ask_json(PROMPT.format(listings=known, emails=em, types=TYPES)).get("results", [])
         except Exception as ex:
             print(f"  gmail AI classify failed: {ex}")
+            for m in batch:
+                m["_failed"] = True  # retried next run (see check)
             continue
         for r in res:
             try:
@@ -202,12 +206,22 @@ def classify(mails: list[dict], listings: dict) -> list[dict]:
             lid = r.get("listing_id", "") if r.get("listing_id", "") in listings else ""
             results.append({
                 "key": m["key"], "date": m["date"], "from": m["from"], "subject": m["subject"], "type": t,
-                "company": r.get("company", ""), "listing_id": lid, "summary": r.get("summary", ""),
+                "company": r.get("company", ""), "role": str(r.get("role", ""))[:120], "listing_id": lid,
+                "summary": r.get("summary", ""),
                 "action": r.get("action", ""), "due": r.get("due", ""),
                 "link": "https://mail.google.com/mail/u/0/#search/" + urllib.parse.quote(f"rfc822msgid:{m['msgid']}")
                 if m["msgid"] else "https://mail.google.com/mail/u/0/#inbox",
             })
     return results
+
+
+def _unsee(mails: list[dict]) -> None:
+    """Emails the AI couldn't read this time are fetched and classified again on the next run."""
+    seen = _load_seen()
+    drop = {m["key"] for m in mails}
+    seen["ids"] = [k for k in seen.get("ids", []) if k not in drop]
+    seen["last"] = seen.get("prev_last", "")
+    SEEN.write_text(json.dumps(seen), encoding="utf-8")
 
 
 def check(listings: dict, notify=None) -> list[dict]:
@@ -221,11 +235,16 @@ def check(listings: dict, notify=None) -> list[dict]:
         print(f"Gmail: FAILED ({ex})")
         return rows
     new = classify(mails, listings)
+    failed = [m for m in mails if m.get("_failed")]
+    if failed:
+        _unsee(failed)
+        print(f"Gmail: {len(failed)} emails will be retried next run (AI busy)")
     print(f"Gmail: {len(mails)} job-related emails checked, {len(new)} application replies")
     have = {r["key"] for r in rows}
     new = [r for r in new if r["key"] not in have]
+    recent = (datetime.now(UTC) - timedelta(days=3)).isoformat()
     for r in new:
-        if notify:
+        if notify and (r.get("date") or "") >= recent:  # re-reading old mail never floods Telegram
             e = html.escape
             title = listings.get(r["listing_id"], {}).get("title", "")
             notify(f"{ICON.get(r['type'], '✉️')} <b>{r['type'].replace('_', ' ').title()}</b> — {e(r['company'] or r['from'])}"

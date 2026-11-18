@@ -75,3 +75,18 @@ def test_prune_removes_front_office_but_not_curated_programmes(cfg):
     }
     main.prune(listings, cfg, "2026-11-18")
     assert sorted(listings) == ["x-tech", "x-uc3m"]
+
+
+def test_gmail_retries_emails_the_ai_could_not_read(tmp_path, monkeypatch):
+    import json as _json
+    from agent import gmail
+    monkeypatch.setattr(gmail, "SEEN", tmp_path / "seen.json")
+    gmail.SEEN.write_text(_json.dumps({"ids": ["a", "b", "c"], "last": "2026-11-19", "prev_last": "2026-11-10"}))
+    def boom(*a, **k):
+        raise gmail.llm.LLMUnavailable("busy")
+    monkeypatch.setattr(gmail.llm, "ask_json", boom)
+    mails = [{"key": "b", "from": "x", "subject": "s", "date": "2026-11-18", "body": "b"}]
+    assert gmail.classify(mails, {}) == [] and mails[0]["_failed"]
+    gmail._unsee(mails)
+    seen = _json.loads(gmail.SEEN.read_text())
+    assert seen["ids"] == ["a", "c"] and seen["last"] == "2026-11-10"

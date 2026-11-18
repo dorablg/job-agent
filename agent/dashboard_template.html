@@ -79,6 +79,24 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .shake{animation:shake .35s}
 @keyframes shake{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
 @media (max-width:760px){.lk{grid-template-columns:1fr;max-width:420px}.lk-hero{display:none}#lockform .lk-mlogo{display:inline-grid;margin-bottom:16px}#lockform{padding:32px 24px}}
+/* ---------- email tracker ---------- */
+.tk-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+.tk-kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.tk-kpi b{display:block;font-size:24px;letter-spacing:-.02em}.tk-kpi span{font-size:12px;color:var(--muted)}
+.tk-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:12px;margin-bottom:14px}
+.tk-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 16px;min-width:0}
+.tk-card h3{margin:0 0 10px;font-size:14.5px}
+.funnel{display:grid;gap:8px}
+.funnel .row{display:grid;grid-template-columns:110px 1fr 44px;align-items:center;gap:8px;font-size:13px}
+.funnel .bar{height:22px;border-radius:7px;background:var(--soft);overflow:hidden}
+.funnel .bar i{display:block;height:100%;border-radius:7px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.tk-chart svg{width:100%;height:150px;display:block}
+.tk-todo{display:grid;gap:8px}
+.tk-todo div{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:start;padding:8px 10px;border-radius:10px;background:var(--soft);font-size:13px}
+.tk-legend{display:flex;gap:12px;font-size:12px;color:var(--muted);margin-top:6px}
+.tk-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+body[data-view="inbox"] .kpis{display:none}
+@media (max-width:760px){.tk-grid{grid-template-columns:1fr}.funnel .row{grid-template-columns:90px 1fr 36px}}
 /* ---------- agents ---------- */
 .agentbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px;margin-bottom:12px;border-radius:16px;
   background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 16%,var(--panel)),color-mix(in srgb,var(--accent2) 12%,var(--panel)));border:1px solid var(--line)}
@@ -318,7 +336,7 @@ aside.filters{position:sticky;top:70px;background:var(--panel);border:1px solid 
       <button data-view="swipe"><b class="ni">💘</b><span>Swipe</span></button>
       <button data-view="discover" class="on"><b class="ni">🔎</b><span>Discover</span></button>
       <button data-view="pipeline"><b class="ni">📊</b><span class="nl-long">My applications</span><span class="nl-short">Applied</span></button>
-      <button data-view="inbox"><b class="ni">📬</b><span>Inbox</span> <span class="count hidden" id="inboxCount"></span></button>
+      <button data-view="inbox"><b class="ni">📈</b><span>Tracker</span> <span class="count hidden" id="inboxCount"></span></button>
       <button data-view="profile"><b class="ni">⚡</b><span class="nl-long">Autofill &amp; profile</span><span class="nl-short">Profile</span></button>
     </nav>
     <button class="btn ghost small" id="dbchip" title="">💾</button>
@@ -1294,10 +1312,85 @@ function mailRow(m){
       ${r?`<div style="margin-top:6px"><a href="#" data-open="${esc(r.id)}">↳ ${esc(r.title)}</a></div>`:""}</div>
     <div class="act"><a class="btn small" href="${esc(safeUrl(m.link) || "https://mail.google.com/")}" target="_blank" rel="noopener noreferrer">Open in Gmail</a></div></div>`;
 }
+/* One row per application, built from the emails (plus applications you marked here that have no email yet). */
+const TK_RANK = {applied:1, assessment:2, interview:3, offer:4, rejected:4};
+const TK_FROM = {confirmation:"applied", info_request:"applied", assessment:"assessment", interview:"interview", offer:"offer", rejection:"rejected"};
+const TK_LABEL = {applied:"Waiting for reply", assessment:"Test / assessment", interview:"Interview", offer:"Offer / accepted", rejected:"Rejected"};
+function trackerApps(){
+  const apps = {};
+  const norm = s => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  for(const m of [...(D.responses || [])].sort((a,b) => (a.date||"").localeCompare(b.date||""))){
+    const lst = m.listing_id && L().find(r => r.id === m.listing_id);
+    const company = m.company || (lst && lst.company) || String(m.from || "").replace(/<.*>/, "").trim() || "Unknown";
+    const role = m.role || (lst && lst.title) || "";
+    const key = m.listing_id || norm(company);
+    const a = apps[key] = apps[key] || {key, company, role, listing: lst ? lst.id : "", status: "applied", first: m.date, last: m.date, events: [], actions: []};
+    if(role && !a.role) a.role = role;
+    a.events.push(m); a.last = m.date;
+    const st2 = TK_FROM[m.type] || "applied";
+    if(st2 === "rejected" ? a.status !== "offer" : TK_RANK[st2] >= TK_RANK[a.status]) a.status = st2;
+    if(["assessment","interview","info_request","offer"].includes(m.type)) a.actions.push(m);  // real things to do
+  }
+  // applications marked on this board with no email yet
+  for(const r of L()){
+    const s = st(r.id);
+    if(!["applied","assessment","interview","offer"].includes(s)) continue;
+    if(Object.values(apps).some(a => a.listing === r.id || norm(a.company) === norm(r.company))) continue;
+    const t = track[r.id] || {};
+    apps["board:" + r.id] = {key: "board:" + r.id, company: r.company || r.source || "", role: r.title, listing: r.id, status: s,
+      first: t.applied_at || lastAt(t), last: lastAt(t), events: [], actions: [], noEmail: true};
+  }
+  return Object.values(apps).sort((a,b) => (b.last||"").localeCompare(a.last||""));
+}
+const daysSince = iso => iso ? Math.floor((Date.now() - new Date(iso)) / 864e5) : null;
+function weeklyChart(apps){
+  const weeks = [], now = new Date();
+  for(let i = 7; i >= 0; i--){ const d = new Date(now - i * 7 * 864e5); weeks.push({start: new Date(d - d.getDay() * 864e5).toISOString().slice(0,10), sent: 0, replies: 0}); }
+  const wk = iso => { if(!iso) return -1; for(let i = weeks.length - 1; i >= 0; i--) if(iso.slice(0,10) >= weeks[i].start) return i; return -1; };
+  for(const a of apps){ const i = wk(a.first); if(i >= 0) weeks[i].sent++;
+    for(const e of a.events) if(e.type !== "confirmation"){ const j = wk(e.date); if(j >= 0) weeks[j].replies++; } }
+  const max = Math.max(1, ...weeks.map(w => Math.max(w.sent, w.replies))), W = 320, H = 130, bw = W / weeks.length;
+  const bars = weeks.map((w, i) => {
+    const x = i * bw + 6, h1 = (w.sent / max) * (H - 24), h2 = (w.replies / max) * (H - 24);
+    return `<rect x="${x}" y="${H - 18 - h1}" width="${bw/2 - 5}" height="${h1}" rx="3" fill="var(--accent)"><title>${w.sent} sent, week of ${w.start}</title></rect>`
+      + `<rect x="${x + bw/2 - 4}" y="${H - 18 - h2}" width="${bw/2 - 5}" height="${h2}" rx="3" fill="#16a34a"><title>${w.replies} replies, week of ${w.start}</title></rect>`
+      + `<text x="${x + bw/2 - 6}" y="${H - 4}" font-size="9" text-anchor="middle" fill="var(--muted)">${w.start.slice(5).replace("-","/")}</text>`;
+  }).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Applications and replies per week">${bars}</svg>
+    <div class="tk-legend"><span><i style="background:var(--accent)"></i>applications</span><span><i style="background:#16a34a"></i>replies (tests, interviews, offers, rejections)</span></div>`;
+}
+function trackerHTML(){
+  const apps = trackerApps();
+  if(!apps.length) return "";
+  const n = s => apps.filter(a => a.status === s).length;
+  const replied = apps.filter(a => a.events.some(e => e.type !== "confirmation")).length;
+  const rate = apps.length ? Math.round(100 * replied / apps.length) : 0;
+  const waits = apps.filter(a => a.status === "applied");
+  const followUp = waits.filter(a => daysSince(a.first) >= 14);
+  const kpi = (v, t) => `<div class="tk-kpi"><b>${v}</b><span>${t}</span></div>`;
+  const steps = [["Applied", apps.length], ["Got a reply", replied], ["Test / interview", apps.filter(a => ["assessment","interview","offer"].includes(a.status) || a.events.some(e => ["assessment","interview"].includes(e.type))).length], ["Offer / accepted", n("offer")]];
+  const todo = [...apps.flatMap(a => a.actions.map(m => ({a, m}))).sort((x,y) => (x.m.due||"9999").localeCompare(y.m.due||"9999")).slice(0, 8)
+      .map(({a, m}) => `<div><span>${MAILICON[m.type]||"❓"}</span><span><b>${esc(a.company)}</b>${a.role?` · ${esc(a.role)}`:""}<br><span class="muted">${esc(m.action || m.summary)}</span></span>${m.due?`<span class="bd warn">⏰ ${esc(m.due)}</span>`:"<span></span>"}</div>`),
+    ...followUp.slice(0, 6).map(a => `<div><span>⏳</span><span><b>${esc(a.company)}</b>${a.role?` · ${esc(a.role)}`:""}<br><span class="muted">No reply for ${daysSince(a.first)} days: a short, polite follow-up email can help.</span></span><span></span></div>`)];
+  const rows = apps.map(a => { const d = daysSince(a.first), last = a.events[a.events.length-1];
+    return `<tr><td><b>${esc(a.company)}</b><div class="muted" style="font-size:12.5px">${esc(a.role || "")}${a.noEmail?' · <span class="bd">no email yet</span>':""}</div></td>
+      <td><span class="pill ${a.status}">${TK_LABEL[a.status]}</span></td>
+      <td class="nw">${fmtDate(a.first)}</td><td class="nw">${d === null ? "" : d + " d"}</td>
+      <td style="font-size:12.5px">${last ? esc(last.summary) : ""}</td>
+      <td class="nw">${last && safeUrl(last.link) ? `<a class="btn small" href="${esc(safeUrl(last.link))}" target="_blank" rel="noopener noreferrer">Gmail ↗</a>` : ""}${a.listing ? ` <a href="#" class="btn small ghost" data-open="${esc(a.listing)}">Job</a>` : ""}</td></tr>`; }).join("");
+  return `<div class="tk-kpis">${kpi(apps.length, "Applications tracked")}${kpi(waits.length, "Waiting for a reply")}${kpi(n("assessment") + n("interview"), "Tests & interviews")}${kpi(n("offer"), "Offers & acceptances 🎉")}${kpi(n("rejected"), "Rejections")}${kpi(rate + "%", "Response rate")}</div>
+    <div class="tk-grid">
+      <div class="tk-card"><h3>📊 Your funnel</h3><div class="funnel">${steps.map(([t, v]) => `<div class="row"><span>${t}</span><div class="bar"><i style="width:${apps.length ? Math.max(2, 100 * v / apps.length) : 0}%"></i></div><b>${v}</b></div>`).join("")}</div>
+        <h3 style="margin-top:16px">📅 Last 8 weeks</h3><div class="tk-chart">${weeklyChart(apps)}</div></div>
+      <div class="tk-card"><h3>✅ To do</h3>${todo.length ? `<div class="tk-todo">${todo.join("")}</div>` : `<p class="muted" style="margin:0">Nothing to do right now. Tests, interview invites, requests and deadlines from your emails appear here.</p>`}</div>
+    </div>
+    <div class="tk-card" style="margin-bottom:16px"><h3>🗂 Every application</h3><div class="tblwrap" style="border:0"><table class="tbl"><thead><tr><th>Company / role</th><th>Status</th><th>Applied</th><th>Waiting</th><th>Latest email</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>
+    <h3 style="margin:8px 0">📬 All replies</h3>`;
+}
 function renderInbox(){
   const R = D.responses || [];
-  $("#inbox").innerHTML = R.length ? `<p class="muted" style="margin-top:0">Replies to your applications found in Gmail. Statuses update automatically.</p>` + R.map(mailRow).join("")
-    : `<div class="empty"><div style="font-size:34px">📬</div><b>No application replies yet</b><p class="muted" style="max-width:460px;margin:8px auto 0">When Gmail is connected, the agent reads replies to your applications (confirmations, tests, interviews, rejections, offers), puts them here, updates the job's status and alerts you on Telegram.</p></div>`;
+  $("#inbox").innerHTML = trackerHTML() + (R.length ? `<p class="muted" style="margin-top:0">Replies to your applications found in Gmail. Statuses update automatically.</p>` + R.map(mailRow).join("")
+    : `<div class="empty"><div style="font-size:34px">📬</div><b>No application replies yet</b><p class="muted" style="max-width:460px;margin:8px auto 0">When Gmail is connected, the agent reads replies to your applications (confirmations, tests, interviews, rejections, offers), puts them here, updates the job's status and alerts you on Telegram.</p></div>`);
   $("#inbox").querySelectorAll("[data-open]").forEach(a => a.onclick = e => { e.preventDefault(); openDrawer(a.dataset.open); });
 }
 

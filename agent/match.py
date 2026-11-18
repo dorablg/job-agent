@@ -96,6 +96,8 @@ def passes_filters(job: Job, cfg: dict) -> bool:
     text = f"{job.title} {job.description}".lower()
     if any(_has(w.lower(), text) for w in f.get("exclude_words", [])):
         return False
+    if job.kind == "internship" and not f.get("unpaid_internships", True) and unpaid(text):
+        return False
     max_age = f.get("max_age_days", 14) * (4 if job.kind in ("fellowship", "event") else 1)  # scholarships stay open for months
     if job.posted and job.posted < datetime.now(UTC) - timedelta(days=max_age):
         return False
@@ -106,10 +108,28 @@ def passes_filters(job: Job, cfg: dict) -> bool:
     return True
 
 
+CONTRACT_RE = re.compile(
+    r"employment type: (contract|freelance|temporary)|contract (role|position|job|basis|opportunit|assignment|work)|"
+    r"(\d+[- ]months?|short[- ]term|fixed[- ]term|freelance|hourly|independent) contract|\bcontractor\b|\bfreelance\b|"
+    r"\bcdd\b|temporary (role|position|contract)|\binterim\b|per hour|/hr\b|hourly rate")
+
+
+def unpaid(text: str) -> bool:
+    """Says outright that it is unpaid / volunteer-only."""
+    return enrich.paid(text, "", "internship") == "unpaid"
+
+
+def title_excluded(title: str, cfg: dict) -> bool:
+    return any(_has(w.lower(), title.lower()) for w in cfg.get("filters", {}).get("exclude_title_words", []))
+
+
 def detect_employment(text: str) -> str:
+    """part-time | contract (freelance / fixed-term / hourly) | full-time | '' (not stated)."""
     t = text.lower()
-    if re.search(r"part[- ]time|teilzeit|mi-temps|temps partiel|\bhours? per week|freelance|contractor", t):
+    if re.search(r"part[- ]time|teilzeit|mi-temps|temps partiel|\bhours? per week", t):
         return "part-time"
+    if CONTRACT_RE.search(t):
+        return "contract"
     if re.search(r"full[- ]time|vollzeit|temps plein|cdi", t):
         return "full-time"
     return ""
@@ -169,6 +189,11 @@ def foreign_language_required(text: str, banned: list[str]) -> bool:
     return "Italian" in banned and len(ITALIAN.findall(text[:3000])) >= 6
 
 
+def _yes_no(values) -> list[str]:
+    """YAML reads a bare yes / no as True / False: turn them back into the words the Tunisia checks return."""
+    return [("yes" if v else "no") if isinstance(v, bool) else str(v).lower() for v in values or []]
+
+
 def _score_in_category(j: Job, cat: dict, title: str, body: str) -> float | None:
     if j.kind not in cat.get("kinds", ["job", "internship", "fellowship"]):
         return None
@@ -178,7 +203,7 @@ def _score_in_category(j: Job, cat: dict, title: str, body: str) -> float | None
         return None
     places = [p.lower() for p in _flat(cat.get("locations_any", []))]
     tn = enrich.tunisia(j.location, f"{title}\n{body}") if j.work_mode == "remote" else ""
-    remote_ok = cat.get("remote_ok") or (["yes"] if cat.get("remote_if_tunisia") else [])
+    remote_ok = _yes_no(cat.get("remote_ok")) or (["yes"] if cat.get("remote_if_tunisia") else [])
     remote_tn = j.work_mode == "remote" and tn in remote_ok
     if places and not remote_tn:
         where = f"{j.location} {title}".lower()
@@ -191,7 +216,7 @@ def _score_in_category(j: Job, cat: dict, title: str, body: str) -> float | None
         m = re.search(r"\b(?:work|based|relocat\w*|located) (?:in|to) ([a-z]+)", title)
         if m and not any(_has(p, m.group(1)) for p in places):
             return None  # "... - Work in Sofia, Bulgaria" posted under Italy
-    tn_ok = cat.get("tunisia_ok") or (["yes"] if cat.get("require_tunisia") else [])
+    tn_ok = _yes_no(cat.get("tunisia_ok")) or (["yes"] if cat.get("require_tunisia") else [])
     if tn_ok and enrich.tunisia(j.location, f"{title}\n{body}") not in tn_ok:
         return None
     req = [t.lower() for t in _flat(cat.get("require_any", []))]

@@ -49,9 +49,8 @@ titles_techops: &ops [technical operations, tech ops, technical support, product
   integration engineer, solutions analyst, data operations, ml operations, service desk, help desk, it support,
   systems analyst, noc, support engineer, technical specialist, technical analyst, implementation specialist,
   onboarding specialist, product support, saas support, qa analyst, quality assurance analyst, test analyst]
-titles_support: &sup [customer support, customer service, customer success, customer experience, customer care,
-  support specialist, support analyst, support associate, operations analyst, operations associate,
-  operations specialist, client operations, back office, implementation]
+titles_support: &sup [technical customer support, customer support engineer, technical support analyst, support analyst,
+  operations analyst, operations associate, operations specialist, client operations, back office, implementation]
 funding_words: &funding [fully funded, fully-funded, all expenses, all-expenses, expenses covered, costs covered,
   travel grant, travel grants, travel support, travel award, travel scholarship, travel bursary, flight, flights, airfare,
   air ticket, air tickets, airline ticket, round-trip, return ticket, accommodation, lodging, hotel, visa fee, visa fees,
@@ -165,7 +164,7 @@ categories:
       associate, internship, visa sponsorship, sponsorship, french, arabic]
 
   # Technical operations, production / application support, implementation, QA, IT ops
-  - name: "⚙️ Tech support, back office & ticketing"
+  - name: "⚙️ Technical support, ops & QA"
     kinds: [job, internship]
     work_modes: [onsite, hybrid, remote, unknown]
     locations_any: *focus
@@ -185,8 +184,7 @@ categories:
       Very good: [technical support, product support, support engineer, it operations, it support, service desk,
         help desk, implementation specialist, onboarding specialist, technical specialist, technical analyst,
         solutions analyst, systems analyst, qa analyst, quality assurance analyst, test analyst, noc]
-      Good: [operations analyst, operations associate, operations specialist, client operations, technical account,
-        customer support, customer service, customer care]
+      Good: [operations analyst, operations associate, operations specialist, client operations, technical account]
     exclude_title: [sales, account executive, account manager, business development, recruiter, marketing, nurse,
       clinical, driver, warehouse, mechanical, electrical, civil, construction, plant, field service, hvac, facilities,
       maintenance technician, security officer, defence, defense]
@@ -233,13 +231,11 @@ categories:
     student: false
     match_in: title
     tiers:
-      Excellent: [*fin, technical support, saas support, product support, payment support, billing support,
-        transaction operations, fintech support, bilingual customer support, customer support specialist,
-        support specialist, service desk analyst, technical operations, junior data analyst, data analyst,
+      Excellent: [*fin, technical support engineer, technical support analyst, application support, production support,
+        transaction operations, service desk analyst, technical operations, junior data analyst, data analyst,
         ai trainer, ai tutor, ai evaluator, llm evaluator, prompt engineer, ai data specialist, junior machine learning,
         junior data scientist, junior ai engineer]
-      Very good: [customer success, technical customer success, quality assurance analyst, qa analyst, support quality,
-        customer support, customer service, customer care, customer experience, *ai, *data, *ops]
+      Very good: [technical customer success, quality assurance analyst, qa analyst, *ai, *data, *ops]
       Good: [implementation, onboarding specialist, client delivery operations, client operations, operations associate,
         operations specialist, back office]
     exclude_title: [sales, account executive, clinical, nurse, psycholog, counsellor, driver, warehouse, maximo,
@@ -329,6 +325,28 @@ categories:
       neurips, icml, iclr, acl, indaba, mlh, devpost, hackathon, conference, summit, travel, funded, free registration]
 
   # Part-time / freelance / contract work you can do remotely from Tunisia alongside your studies
+  # Contract / freelance / part-time work you can start quickly and get paid for (AI training, data, Python, QA)
+  - name: "💵 Contract & freelance (start earning fast)"
+    kinds: [job, internship]
+    work_modes: [remote, hybrid, onsite, unknown]
+    locations_any: *focus
+    remote_ok: [yes, check]
+    employment: [contract, part-time]
+    student: false
+    bonus: 30
+    match_in: title
+    tiers:
+      Excellent: [ai trainer, ai tutor, ai evaluator, llm evaluator, ai red team, red team tester, ai data quality,
+        data annotation, data labeling, annotator, prompt engineer, prompt writer, rater, coding expert, code reviewer,
+        python, machine learning, data scientist, data analyst, ai engineer, ml engineer, data engineer, sql]
+      Very good: [software engineer, developer, qa tester, qa engineer, test engineer, fraud, kyc, aml, research assistant,
+        technical writer, french, arabic, bilingual, tutor, coding instructor, translator, localization]
+      Good: [analyst, operations, reviewer, evaluator, specialist]
+    exclude_title: [sales, cold caller, telemarketing, appointment setter, recruiter, nurse, clinical, driver, model,
+      onlyfans, adult, crypto trader, forex, mlm, commission only, unpaid, principal, staff, senior]
+    boost_any: [contract, freelance, hourly, per hour, /hr, usd, eur, gbp, weekly pay, flexible, anywhere, worldwide,
+      remote, french, arabic, python, ai, machine learning, data]
+
   - name: "⏰ Part-time remote job"
     kinds: [job, internship]
     work_modes: [remote]
@@ -339,12 +357,11 @@ categories:
     match_in: title
     tiers:
       Excellent: [ai trainer, ai tutor, ai evaluator, llm evaluator, ai data, data annotation, data labeling, annotator,
-        prompt engineer, prompt writer, ai content, rater, search evaluator, ads evaluator, machine learning, data scientist,
-        data analyst, python, technical support, customer support, chat support, payments, fraud, kyc]
-      Very good: [support, customer service, customer success, qa tester, quality assurance, tester, transcription,
-        transcriber, translator, translation, localization, french, arabic, bilingual, tutor, teaching assistant,
-        coding instructor, research assistant, content moderator, trust and safety, operations]
-      Good: [operations, reviewer, moderator]
+        prompt engineer, prompt writer, rater, machine learning, data scientist, data analyst, python, sql, fraud, kyc,
+        coding expert, code reviewer, software engineer, developer]
+      Very good: [qa tester, quality assurance, tester, technical support engineer, french, arabic, bilingual, tutor,
+        teaching assistant, coding instructor, research assistant, trust and safety, translator, localization]
+      Good: [operations, reviewer, data quality]
     exclude_title: [sales, cold caller, telemarketing, appointment setter, recruiter, nurse, clinical, driver, model,
       onlyfans, adult, crypto trader, forex, mlm, commission only, unpaid]
     boost_any: [part-time, part time, flexible, hours per week, freelance, contract, usd, eur, hourly, per hour,
@@ -376,7 +393,7 @@ search_terms: [machine learning, deep learning, ai engineer, data scientist, dat
 
 # Workable job search. Each location gets these searches; "Tunisia" = remote jobs open in Tunisia;
 # location "" = remote jobs anywhere (eligibility checked later).
-workable_common: &wq [working student, technology consultant, graduate consultant, solutions engineer, business analyst, product analyst,
+workable_common: &wq [working student, contract, freelance, part time, technology consultant, graduate consultant, solutions engineer, business analyst, product analyst,
   trust and safety, technical account manager, machine learning, ai engineer, data scientist, data analyst, ai intern, machine learning intern,
   data intern, fraud analyst, risk analyst, payments operations, technical operations, technical support, fintech,
   quantitative analyst, junior analyst, graduate]
@@ -517,8 +534,17 @@ filters:
   exclude_title_words: [senior, sr, staff, principal, lead, leader, director, head, manager, vp, phd, mba, expert, ii, iii,
     iv, mid-level, mid level, experienced, mts, member of technical staff, research associate, postdoc, postdoctoral,
     emirati, emiratis, saudi national, saudi nationals, qatari, kuwaiti, omani national, bahraini, nationals only,
-    accounting, accountant, audit, us remote, us only, usa only, u.s. only, us-based, canada only]
-  exclude_words: [us citizens only, security clearance, must be located in the us, must reside in the us,
+    accounting, accountant, audit, us remote, us only, usa only, u.s. only, us-based, canada only,
+    # front-office / call-centre roles: not your career path any more (technical support & ops roles stay)
+    customer service, customer care, call center, call centre, contact center, contact centre, receptionist,
+    front desk, front office, customer service representative, customer support representative,
+    customer support agent, customer support advisor, customer support associate, customer support specialist,
+    customer experience associate, customer experience advisor, customer experience agent, customer experience specialist,
+    chat support, chat agent, support agent, support advisor, helpdesk agent, telesales, inbound, outbound,
+    appointment setter, cold caller, concierge, cashier, guest relations, retail assistant, sales associate,
+    content moderator, moderator, transcription, transcriber, data entry, virtual assistant]
+  unpaid_internships: false     # false = hide internships marked unpaid / volunteer-only
+  exclude_words: [unpaid internship, unpaid position, this is an unpaid, us citizens only, security clearance, must be located in the us, must reside in the us,
     must reside in the united states, located in the united states, us work authorization, authorized to work in the us]
   allowed_locations: []            # location is decided per category now
 
@@ -530,7 +556,7 @@ screen_new_per_run: 200       # new matches the AI checks each run
 screen_backfill_per_run: 200  # older listings the AI checks each run
 notify_when_empty: false
 
-sources: [curated, workable, company_boards, jobs_ac_uk, wp_search, adzuna, devpost, gdg_events, remotive, remoteok, jobicy,
+sources: [alignerr, curated, workable, company_boards, jobs_ac_uk, wp_search, adzuna, devpost, gdg_events, remotive, remoteok, jobicy,
   himalayas]
 
 # Hand-picked programs from web research (Nov 2026). Dates marked "~" come from secondary sources: check the link.
@@ -947,7 +973,15 @@ adzuna:
     graduate technology consultant, junior ai consultant, solutions engineer, business analyst fintech, product analyst,
     trust and safety analyst, technical account manager, alternance data, alternance intelligence artificielle,
     alternance développeur, alternance support informatique, alternance fintech, apprentissage data,
-    working student data, werkstudent data, working student ai]
+    working student data, werkstudent data, working student ai, freelance python, contract data analyst,
+    contract machine learning, freelance data scientist, part time data analyst, part time python developer,
+    ai trainer, data annotation, paid internship data, paid internship machine learning]
+
+# Alignerr (Labelbox): paid remote AI-training contracts, weekly pay. Only roles not tied to another city/country.
+alignerr:
+  searches: [python, machine learning, data, ai evaluator, red team, code, sql, french, arabic, quality analyst,
+    content reviewer, math, finance, research]
+  max_jobs: 80
 
 # Deep search of opportunity sites: FULL posts (real deadlines, funding details), last 75 days.
 opportunity_search:

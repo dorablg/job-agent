@@ -23,12 +23,18 @@ remote work from Tunisia is fine).
   Google Gen AI, Oracle Cloud AI Associate, Cisco cybersecurity intro.
 - Languages: Arabic (native), French (advanced), English (C1). No German, Italian, Dutch, Spanish, etc."""
 
-TARGETS = """WHAT SHE WANTS (keep these):
+TARGETS = """PRIORITY RIGHT NOW: she needs to start earning money soon. Prefer PAID work she can start quickly:
+paid internships, junior roles (remote or on-site), part-time jobs and contract / freelance work (AI training and
+evaluation, data annotation, Python / data / ML contracts, QA). Unpaid internships are rejected.
+
+WHAT SHE WANTS (keep these):
 - Machine learning / deep learning / AI / data science / data analyst roles at junior, graduate or intern level,
   including AI research assistant roles and AI startups, and AI applied to finance/fintech.
 - Fintech & banking operations: payments operations, fraud, KYC/AML, disputes/chargebacks, risk/transaction monitoring.
-- Back-office operations, technical customer support, service desk / help desk / ticketing (Zendesk, Jira SD, etc.),
-  application/production support, implementation/integration support, technical operations, QA/testing at entry level.
+- TECHNICAL support and operations only: application/production support, technical support engineer/analyst,
+  implementation/integration support, technical operations, service desk analyst with IT/technical scope, QA/testing.
+- Contract, freelance and part-time paid work that uses her skills: AI trainer / evaluator / red-teamer, data annotation
+  & quality, prompt writing, Python / SQL / data / ML gigs, coding review, French/Arabic AI evaluation, tutoring code.
 - Other roles she could realistically get with this exact background (e.g. junior solutions/customer-success engineer,
   junior business/product analyst in fintech or SaaS, trust & safety, AI trainer/evaluator, tech/AI consulting graduate roles).
 - Events: AI / tech conferences, summits, hackathons, summer/winter schools, bootcamps, workshops (fully funded, partly
@@ -41,6 +47,9 @@ TARGETS = """WHAT SHE WANTS (keep these):
   CS, AI, data, engineering, fintech or general leadership/STEM.
 
 REJECT:
+- Front-office / call-centre customer service: customer service or support representative/agent/advisor, chat support,
+  call centre, receptionist, front desk, telesales, data entry, virtual assistant, content moderation (not her career).
+- Unpaid internships and unpaid "opportunities" (volunteer roles at tech/AI EVENTS are fine).
 - Other fields (biology/chemistry/pharma lab science, marine, mechanical/electrical/networking hardware, ERP like SAP /
   PeopleSoft / Oracle EBS, legal, journalism, arts, peace studies, medicine, public-sector policy consulting, sales).
 - Senior / lead / 3+ years required, PhD-required or academic staff posts (postdoc, lecturer, visiting scholar for faculty).

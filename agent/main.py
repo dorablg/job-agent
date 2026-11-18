@@ -21,7 +21,7 @@ from pathlib import Path
 import yaml
 
 from . import dashboard, enrich, gmail, llm, screen, sources, tailor, telegram
-from .match import find_cv, load_cv, score_jobs, written_in
+from .match import find_cv, load_cv, score_jobs, title_excluded, unpaid, written_in
 from .sources import Job, fetch_all
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -205,15 +205,20 @@ def backfill_kits(listings: dict, cv_text: str, cfg: dict) -> None:
 
 
 def prune(listings: dict, cfg: dict, today: str) -> int:
-    """Removes listings past their deadline, taken down by the company, or written in a language she doesn't speak."""
-    banned = cfg.get("filters", {}).get("exclude_required_languages", [])
+    """Removes listings past their deadline, taken down by the company, written in a language she doesn't speak,
+    with an excluded title (e.g. front-office customer service), or unpaid internships."""
+    f = cfg.get("filters", {})
+    banned = f.get("exclude_required_languages", [])
+    keep_unpaid = f.get("unpaid_internships", True)
     removed = 0
     for k in list(listings):
         r = listings[k]
         dl = enrich.apply(dict(r)).get("deadline") or ""
         board = "-".join(k.split("-")[:2])
         lang = written_in(f"{r.get('title', '')} {r.get('description', '')}")
-        if (dl and dl < today) or (board in sources.BOARDS_OK and k not in sources.LIVE_IDS) or (lang and lang in banned):
+        unwanted = (not str(r.get("source", "")).startswith("Curated") and title_excluded(r.get("title", ""), cfg)) or (
+            not keep_unpaid and r.get("kind") == "internship" and unpaid(f"{r.get('title', '')} {r.get('description', '')}"))
+        if (dl and dl < today) or (board in sources.BOARDS_OK and k not in sources.LIVE_IDS) or (lang and lang in banned) or unwanted:
             del listings[k]
             removed += 1
     return removed

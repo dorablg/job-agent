@@ -476,6 +476,59 @@ def adzuna(_terms, opts: dict | None = None) -> list[Job]:
     return out
 
 
+# A role tied to another city / country ("Native French speaker in Paris?", "US-based pros", "Austin's engineers")
+_ELSEWHERE = re.compile(r"\b(in|from|based in|living in)\s+(?!tunisia|africa|anywhere|any country|the world|your|our|ai\b|english|french|arabic)"
+                        r"[A-Z][a-zA-Z]+(?:[ -][A-Z][a-zA-Z]+)?\s*\?|\b[A-Z][a-zA-Z]+(?:[ -][A-Z][a-zA-Z]+)?[-' ](area|based)\b|"
+                        r"\bUS-based\b|\bU\.S\.|\b[A-Z][a-z]+'s (senior|growing|SaaS|engineers|professionals)|"
+                        r"\bin the (US|USA|UK|UAE|EU)\b|"
+                        r"\b(engineers?|professionals?|speakers?|pros|experts?|developers?|veterans?|scientists?|analysts?) "
+                        r"(in|from|based in) (?!Tunisia)[A-Z][a-z]+", re.UNICODE)
+# language roles she can't do (she speaks Arabic, French, English)
+_OTHER_LANG = re.compile(r"\b(italian|japanese|mandarin|chinese|cantonese|korean|dutch|german|spanish|portuguese|russian|"
+                         r"polish|turkish|hindi|swedish|danish|norwegian|finnish|greek|hebrew|thai|vietnamese|indonesian|"
+                         r"malay|tagalog|ukrainian|czech|romanian|hungarian|bengali|urdu|tamil|telugu|swahili)\b", re.I)
+_SENIOR_ROLE = re.compile(r"\b(principal|staff|senior|director|lead|head of|\d+\+? years)\b", re.I)
+
+
+def alignerr(_terms, opts: dict | None = None) -> list[Job]:
+    """Alignerr (Labelbox) public board of paid, remote AI-training contracts (hourly, paid weekly).
+    Keeps roles open from anywhere: drops the ones written for one city / country and senior-only roles."""
+    opts = opts or {}
+
+    def search(q: str) -> list[dict]:
+        try:
+            return _get("https://www.alignerr.com/api/jobs", params={"limit": 60, "offset": 0, "search": q}).get("jobs", [])
+        except Exception:
+            return []
+
+    out, seen_ids, seen_titles = [], set(), set()
+    for rows in pmap(search, list(opts.get("searches", ["python", "data", "ai"])), workers=4):
+        for j in rows:
+            jid, title = j.get("id"), clean(j.get("title"))
+            desc = clean(j.get("description"))
+            if not jid or jid in seen_ids or not title:
+                continue
+            seen_ids.add(jid)
+            if _ELSEWHERE.search(desc) or _SENIOR_ROLE.search(f"{title} {desc}") or _OTHER_LANG.search(title):
+                continue
+            key = title.lower()
+            if key in seen_titles:  # the same role is often posted once per city
+                continue
+            seen_titles.add(key)
+            pay = j.get("pay") or ""
+            out.append(Job(
+                id=f"alignerr-{jid}", title=title, company="Alignerr (Labelbox)",
+                url="https://www.alignerr.com" + (j.get("applyUrl") or f"/jobs/{jid}"),
+                description=f"Employment type: freelance hourly contract (paid weekly). Pay: {pay}. Remote.\n{desc}\n"
+                            f"Category: {j.get('category', '')}",
+                location="Remote (worldwide)", source="Alignerr", kind="job", work_mode="remote", salary=pay,
+                tags=["contract", "ai training"],
+            ))
+            if len(out) >= opts.get("max_jobs", 80):
+                return out
+    return out
+
+
 def curated(_terms, items: list | None = None) -> list[Job]:
     """Hand-picked programs found by web research (volunteer calls, ambassador programs, AI schools...).
     They stay listed until their deadline passes; 'rolling' ones stay until removed from config.yaml."""
@@ -634,6 +687,7 @@ def rss(feeds: list[str]) -> list[Job]:
 
 
 SOURCES = {
+    "alignerr": alignerr,
     "workable": workable,
     "company_boards": company_boards,
     "jobs_ac_uk": jobs_ac_uk,
@@ -659,7 +713,7 @@ def fetch_all(cfg: dict, log=print) -> list[Job]:
     extra = {"workable": cfg.get("workable_searches"), "company_boards": cfg.get("company_boards"),
              "jobs_ac_uk": cfg.get("jobs_ac_uk_queries"), "wp_search": cfg.get("opportunity_search"),
              "adzuna": cfg.get("adzuna"), "devpost": cfg.get("devpost"), "curated": cfg.get("curated"),
-             "gdg_events": cfg.get("gdg_events")}
+             "gdg_events": cfg.get("gdg_events"), "alignerr": cfg.get("alignerr")}
     names = [n for n in cfg.get("sources", list(SOURCES)) if n in SOURCES]
     feeds = list(cfg.get("rss_feeds", []))
 

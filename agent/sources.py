@@ -238,11 +238,18 @@ def set_focus(places: list[str]) -> None:
     FOCUS_LOC = re.compile(r"(?<![a-z])(" + "|".join(sorted(set(words), key=len, reverse=True)) + r")(?![a-z])", re.I)
 
 
+WORKABLE_PER_RUN = 100
+
+
 def workable(_terms, searches: list[dict] | None = None) -> list[Job]:
     """Workable's job search. Each search: {location, workplace (optional), queries}.
     Tunisia searches keep only remote jobs open in Tunisia; London/Italy keep jobs located there."""
     out, seen = [], set()
     pairs = [(srch, q) for srch in searches or [] for q in srch.get("queries", [])]
+    if len(pairs) > WORKABLE_PER_RUN:  # rotate: a different slice every 3-hour run, everything covered within a day
+        slot = int(datetime.now(UTC).timestamp() // (3 * 3600))
+        start = (slot * WORKABLE_PER_RUN) % len(pairs)
+        pairs = [pairs[(start + i) % len(pairs)] for i in range(WORKABLE_PER_RUN)]
 
     def one(pair):
         srch, q = pair
@@ -252,7 +259,7 @@ def workable(_terms, searches: list[dict] | None = None) -> list[Job]:
         if srch.get("workplace"):
             params["workplace"] = srch["workplace"]
         try:
-            return _get("https://jobs.workable.com/api/v1/jobs", params=params)
+            return _get("https://jobs.workable.com/api/v1/jobs", params=params, timeout=(10, 20))
         except Exception:
             return None
 

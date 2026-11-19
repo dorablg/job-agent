@@ -1,19 +1,34 @@
-# ⚡ Flous Apply Assistant (Opera / Chrome extension)
+# ⚡ Flous extension: the agents (Chrome / Opera)
 
-On an application form, click the extension (or press **Alt+Shift+F**). It:
-1. reads every question and field on the page (also inside embedded forms),
-2. finds the job in your dashboard (or reads the posting on the page),
-3. writes a tailored ATS CV + cover letter for that posting if it doesn't have one yet,
-4. writes tailored answers from your real CV (student rule: jobs = graduate, internships/programs = student),
-5. fills the form and attaches your CV (and cover letter) as PDFs,
-6. highlights what it filled (green) and what needs you (orange). **You check and click Submit.**
+## Two ways to use it
 
-It never clicks Submit, never ticks consent/terms boxes, never invents experience, and answers visa questions truthfully.
+**1. Agents (batch).** On your dashboard, swipe right on the jobs you want. They go into the **🤖 Agent queue**.
+Press **Let agents apply** (in Swipe or Applications) and confirm. For each job, one after another, the agents:
+1. open the posting and click the site's own **Apply** button (up to 3 steps),
+2. find the job in your dashboard, or write a tailored ATS CV and cover letter if it has none yet,
+3. write tailored answers to every question from your real CV,
+4. fill the form and attach your CV and cover letter as PDFs,
+5. **submit**, but only on a standard form (Greenhouse, Lever, Ashby, Workable, SmartRecruiters, Teamtailor,
+   Recruitee) where every required field is filled, the CV is attached, there's no CAPTCHA, and you're under
+   25 automatic applications today. Otherwise the tab stays open, filled, for you to check and submit.
 
-## Install (Opera)
-1. Open `opera://extensions` → switch on **Developer mode** (top right).
-2. Click **Load unpacked** → choose the folder `Documents\job-agent\extension`.
-3. Pin it: click the puzzle icon in the toolbar → pin **Flous Apply Assistant**.
+You see live progress on the dashboard, and the statuses update by themselves.
+
+**2. One page.** On any application form, click the extension icon (or press **Alt+Shift+F**): it fills that
+page and highlights what it filled (green) and what needs you (orange). You click Submit.
+
+## Rules
+- Only your dashboard page can start the agents, and only for normal web pages.
+- They tick privacy-notice acknowledgements only. Never marketing, talent-pool or "I certify" boxes.
+- Never auto-submits on LinkedIn, Indeed or Glassdoor. Never solves CAPTCHAs.
+- Never invents experience. Visa and work-authorisation questions are answered truthfully.
+- Your password is used once to create a locked key stored in the extension. The password itself is not kept.
+
+## Install (Opera or Chrome)
+1. Open `opera://extensions` (or `chrome://extensions`) → switch on **Developer mode**.
+2. **Load unpacked** → choose this `extension` folder.
+3. Pin it (puzzle icon → pin **Flous Apply Assistant**).
 4. Right-click the icon → **Options** → enter your dashboard password → **Save & test**.
 
-Chrome: same steps at `chrome://extensions`.
+After an update, click ↻ on the extension in the extensions page. The dashboard's Profile page shows whether the
+current version is connected.

@@ -1,87 +1,110 @@
-# Job Agent — free, fully automated
+# Flous — a free, automated career agent
 
-Every 4 hours, for free, on GitHub's servers (your PC can be off):
+Flous finds jobs, paid internships, contracts, alternance, study-and-work programmes, fellowships and tech events that
+match **your CV**. It checks each one with AI, writes a tailored ATS CV, cover letter and answers, applies for you
+where it's safe, reads the replies in your Gmail, and reminds you of every deadline. It runs **for free** on GitHub
+(your computer can be off). Everything personal is **encrypted**.
 
-1. Collects new **remote & hybrid jobs, internships and fellowships** from Remotive, RemoteOK,
-   Arbeitnow, Jobicy, Himalayas, Opportunity Desk and Opportunities Corners. You can add more RSS feeds.
-2. Filters them by what you want (type, remote/hybrid, location, seniority, age).
-3. Scores each one against **your CV**: a match score and an **ATS keyword score**, plus the keywords you have and the ones you're missing.
-4. For the best ones, uses free AI (Gemini or Groq) to write:
-   - a **tailored CV** (headline, summary, skills order, rewritten bullets, keywords you can truthfully add)
-   - a **cover letter** for that posting (.docx)
-   - **tips to strengthen that application** and the skills you're missing
-5. Sends everything to **Telegram** with an **Apply** button. It never sends you the same posting twice.
+```
+ every ~3 h on GitHub Actions                                   you
+ ┌───────────────────────────────────────────────────────┐   ┌─────────────────────────────────┐
+ │ 13 sources ─► filters ─► CV match + ATS score         │   │ 🌐 encrypted website / phone app │
+ │   ─► AI check (realistic chance, visa, fit)            │──►│ 💬 Telegram alerts + reminders   │
+ │   ─► AI apply kit (ATS CV, letter, answers)            │   │ ⚡ browser extension = agents    │
+ │ Gmail replies ─► statuses, tasks, morning reminders    │   │ 📗 Google Sheet of applications  │
+ └───────────────────────────────────────────────────────┘   └─────────────────────────────────┘
+```
 
-## Setup (about 15 minutes, all free)
+## What it does
 
-### 1. Telegram bot
-1. In Telegram, message **@BotFather** → `/newbot` → pick a name → copy the **token**.
-2. Open your new bot and press **Start** (send "hi").
-3. On your PC: copy `.env.example` to `.env`, paste the token, then run:
-   ```
-   pip install -r requirements.txt
-   python -m agent.main --chat-id
-   ```
-   Paste the number it prints as `TELEGRAM_CHAT_ID` in `.env`. Test it: `python -m agent.main --test-telegram`
+| | |
+|---|---|
+| 🔎 **Finds** | ~6,000–8,000 postings per run from 13 sources: company career boards (Greenhouse, Lever, Ashby), Workable, Adzuna (10 countries), jobs.ac.uk, Alignerr AI-training contracts, Remotive, RemoteOK, Jobicy, Himalayas, opportunity sites (full posts, real deadlines), Devpost hackathons, Google Developer Groups events, RSS feeds and a hand-researched list of programmes. |
+| 🎯 **Filters** | Your target roles and places, max years of experience, languages you don't speak, remote jobs open to your country, no front-office / call-centre roles, no unpaid internships, no expired deadlines, one listing per role per company. |
+| 🤖 **Checks with AI** | Each new posting gets a realistic chance (0–100), visa status and a one-line reason; irrelevant ones are dropped. |
+| ✍️ **Writes** | A full ATS CV (study mentions follow your rules: hidden for jobs, shown for internships and programmes), a cover letter, screening answers and tips. |
+| 💬 **Alerts** | Telegram cards with the match, chance, missing keywords, tips and the CV/letter files. |
+| 🌐 **Website & phone app** | Swipe, Discover (grouped categories, filters, search), Applications (Overview analytics, searchable Database, Board, Emails) and Profile. Installable on your phone ("Add to Home screen"). |
+| ⚡ **Agents** | Swipe right to queue jobs, then press **Let agents apply**. The browser extension opens each job, clicks Apply, writes tailored answers, fills the form, attaches your CV and letter, and **submits only on standard forms when everything is answered**. Everything else is left filled for you to check. |
+| 📬 **Gmail** | Reads replies (read-only), sorts them (confirmation, test, interview, rejection, offer or acceptance, request), updates each application and extracts dated tasks. |
+| ⏰ **Reminders** | One Telegram message each morning: what's due today, in the next 3 days and this week, including weekly tasks. Nothing on empty days. |
+| 📗 **Database** | Your applications are mirrored to a Google Sheet in your Drive, shared across devices, with CSV export. |
 
-### 2. Free AI key (for the cover letters and tailored CVs)
-- Gemini: https://aistudio.google.com/apikey → "Create API key" (free tier, no card), and/or
-- Groq: https://console.groq.com/keys (free tier, used as a backup)
+## Setup (about 30 minutes, all free)
 
-Put it in `.env` as `GEMINI_API_KEY` / `GROQ_API_KEY`. Without a key, the agent still sends matches and ATS keywords, but it doesn't write anything.
+1. **Fork or copy this repository** and keep it **public**: GitHub Pages and Actions are free for public repos.
+   Your data stays private because everything personal is encrypted.
+2. **Telegram:** message **@BotFather** → `/newbot` → copy the token → open your bot and press Start.
+   Locally: copy `.env.example` to `.env`, add the token, then run `python -m agent.main --chat-id` to get your chat id.
+3. **Free AI key:** https://aistudio.google.com/apikey (Gemini). Groq is an optional backup.
+4. **Your CV:** put it in `cv/` (PDF, DOCX, MD or TXT), plus `cv/applicant.yaml` (the details forms ask for) and
+   optionally `cv/profile.txt`. Then encrypt it: `python -m agent.secure lock`, and commit `cv.enc`.
+   The `cv/` folder itself is never committed.
+5. **Your targets:** edit `config.yaml`: `focus_places`, `categories` (titles per fit level), filters,
+   `max_per_company`, sources and the curated programmes.
+6. **GitHub secrets** (Settings → Secrets and variables → Actions):
+   `DASHBOARD_PASSWORD` (long and unique), `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `GEMINI_API_KEY`,
+   and optionally `ADZUNA_APP_ID` / `ADZUNA_APP_KEY` (free at developer.adzuna.com) and the Gmail ones below.
+7. **GitHub Pages:** Settings → Pages → Source: **GitHub Actions**. Then Actions → *job-agent* → **Run workflow**.
+   Your board is at `https://<user>.github.io/<repo>/`.
 
-### 3. Your CV + LinkedIn
-- Put your CV in `cv/` as `cv.pdf` (or .docx/.txt/.md). **Delete the sample `cv/cv.md`.**
-- LinkedIn: open your profile → **Resources → Save to PDF**, then add what's on it to your CV
-  (or use that PDF as your CV) so the agent knows your whole profile.
-- Edit `config.yaml`: your profile, interests, locations, and the titles to exclude.
-- Try it: `python -m agent.main --dry-run` (prints the matches and sends nothing).
+### Gmail + Google Sheet (optional, recommended)
+1. Copy `agent/gmail_bridge_template.gs` and replace `__KEY__` with a long random secret.
+2. Open https://script.google.com → New project → paste it → Save → **Run** once and allow access
+   (read-only Gmail and one Google Sheet; "Advanced → Go to project" on the unverified-app screen, since it's your own script).
+3. **Deploy → New deployment → Web app**, with *Execute as: Me* and *Who has access: Anyone*. Without the
+   secret key it answers "forbidden".
+4. Add secrets `GMAIL_WEBAPP_URL` (the web-app link) and `GMAIL_WEBAPP_KEY` (your secret).
 
-### 4. Make it run by itself (GitHub Actions, free)
-1. Create a **private** GitHub repo and upload this folder. `.env` is git-ignored and never uploaded.
-2. Repo → **Settings → Secrets and variables → Actions → New repository secret**. Add
-   `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `GEMINI_API_KEY` (and `GROQ_API_KEY` if you have one).
-3. **Actions** tab → enable workflows → "job-agent" → **Run workflow** to test it.
-   After that it runs every 4 hours. Change the `cron` line in `.github/workflows/job-agent.yml` to run more or less often.
-   Each run takes about 2–4 minutes, which fits easily in the 2,000 free minutes a month that private repos get.
+### Browser extension (the agents)
+See [extension/README.md](extension/README.md). Load it unpacked in Chrome or Opera, then enter your dashboard password once.
 
-## 📋 Dashboard website
-Every run also updates a private website: `https://<your-github-username>.github.io/job-agent/`
-- All matches, sorted into 🤖 AI internships · 🎧 remote support/ops jobs · 🌍 paid fellowships
-- Match score, ATS score, the keywords you have and the ones you're missing, and tips for each listing
-- Cover letter (you can edit it) + tailored CV, which you can copy or download as Word files. ✨ writes them with AI for any listing
-- Track each one: New → Saved → Applied → Interview → Offer / Rejected, plus notes
-- 🚀 Apply copies the cover letter and opens the posting; then **⚡ Fill application** (a bookmark you set up in the
-  "Autofill & profile" tab) fills in your name, email, phone, LinkedIn, GitHub and location on the form
-- Password-protected: the page, your CV (`cv.enc`) and all listings are AES-encrypted, so the repo can be public
-  (which makes GitHub Pages and Actions free) while only you can read them. The password is `DASHBOARD_PASSWORD` in `.env`.
-- Changed your CV or `cv/applicant.yaml`? Run `python -m agent.secure lock`, then commit `cv.enc`.
+## How it runs
+- `.github/workflows/job-agent.yml` knocks every 30 minutes. A small **gate** job lets a real run through only
+  ~3 hours after the last one, because GitHub drops many scheduled runs when it's busy.
+- Each run first runs **the test suite**: a broken change never touches your data or sends alerts.
+- Sources are fetched **in parallel** with a deadline each (a slow site is skipped, never blocks the run).
+- State (`state/`) is committed back: what you've already been sent, encrypted listings and replies,
+  reminders and the run time.
 
-## 📬 Gmail reply tracking
-The agent reads (read-only) your inbox every run, finds replies to applications (confirmation, test, interview,
-rejection, offer, request for documents), uses the free AI to sort them and link them to the right job, then
-updates that job's status on the dashboard, lists them in the 📬 Inbox tab, and alerts you on Telegram.
-Setup: Google Account → Security → 2-Step Verification (turn on) → App passwords → create one named "job agent",
-then set `GMAIL_ADDRESS` and `GMAIL_APP_PASSWORD` (in `.env` and as GitHub secrets).
+| Command | |
+|---|---|
+| `python -m agent.main` | a full run (what GitHub runs) |
+| `python -m agent.main --dry-run` | print matches, send nothing, change nothing |
+| `python -m agent.main --test-telegram` | send a test message |
+| `python -m agent.reminders` | preview the next week of morning reminders |
+| `python -m agent.secure lock` / `unlock` | encrypt / decrypt your `cv/` folder |
 
-## About LinkedIn and auto-apply
-- The agent does **not** log into LinkedIn or scrape it. LinkedIn bans accounts that do that, and it has no free jobs API.
-  Use your exported LinkedIn PDF as described above, and set LinkedIn's own **Job Alerts** to email you.
-- It does **not** submit applications blindly. Each Telegram alert comes with the tailored CV, the cover letter and an
-  **Apply** button. Applying takes about a minute and you check everything before it goes out. Auto-submitting gets
-  flagged as spam by ATS systems and can send wrong answers to screening questions.
+## Rules the agents follow
+- Only **your dashboard** can start them, and they only open normal web pages.
+- They submit only on standard applicant-tracking forms (Greenhouse, Lever, Ashby, Workable, SmartRecruiters,
+  Teamtailor, Recruitee), only when **every** required field is filled and the CV is attached, with **no CAPTCHA**,
+  and at most **25 a day**.
+- They tick "I have read the privacy notice" boxes only. Never marketing, talent-pool or "I certify" boxes.
+- **Never on LinkedIn, Indeed or Glassdoor** (their rules ban bots).
+- Answers come from your real CV. Nothing is invented, and visa questions are answered truthfully.
 
-## Tuning
-- Too many alerts → raise `min_score`, or add words to `exclude_title_words`.
-- Too few → lower `min_score`, add `interests`, or add RSS feeds (most WordPress opportunity sites have `/feed/`).
-- To see the full history again, reset `state/seen.json` to `{}`.
+## Security
+Public repo, private data: AES-256-GCM with PBKDF2 (600k rounds), a strict Content-Security-Policy on the website,
+no password stored in the browser or the extension (a non-extractable key instead), only http(s) links, formula-safe
+Google Sheet, pinned GitHub Actions, Dependabot and `pip-audit`. Details in [SECURITY.md](SECURITY.md).
 
 ## Development
 
 ```bash
 pip install -r requirements-dev.txt
 ruff check .          # lint, incl. security rules
-python -m pytest      # Python + JavaScript tests (needs Node for the JS part)
+python -m pytest      # ~100 Python + JavaScript tests (Node needed for the JS part)
 ```
 
-CI runs the same on every push; the scheduled agent also runs the tests before it touches any data. See [SECURITY.md](SECURITY.md) for the security model.
+| Path | |
+|---|---|
+| `agent/sources.py` | the 13 sources, parallel fetching with deadlines |
+| `agent/match.py` | filters, categories, CV match + ATS keyword score |
+| `agent/screen.py` | AI screening (chance, visa, fit) |
+| `agent/tailor.py` | AI apply kits (ATS CV, cover letter, answers) and the study rules |
+| `agent/gmail.py` · `agent/reminders.py` | email replies → statuses and tasks → morning digest |
+| `agent/dashboard.py` · `dashboard_template.html` | the encrypted website (built every run) |
+| `agent/main.py` | the run: fetch → score → screen → alert → website → Gmail → reminders |
+| `extension/` | the browser extension (agents, autofill, PDF CV) |
+| `tests/` | the test suite (also run by CI on every push) |

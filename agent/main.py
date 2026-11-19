@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 import time
 from collections import Counter
@@ -224,6 +225,51 @@ def prune(listings: dict, cfg: dict, today: str) -> int:
     return removed
 
 
+_GENDER = re.compile(r"\((?:[hfmwdx]\s*/\s*)+[hfmwdx]\)|\b(?:h/f|f/h|m/f/d|m/w/d|f/m/x)\b", re.I)
+
+
+def role_stem(title: str) -> str:
+    """'Alternance Développeur Web - Attichy (F/H) (Apprentissage)' -> 'alternance développeur web':
+    the same role posted once per city / campus collapses to one key."""
+    t = _GENDER.sub(" ", title.lower())
+    t = re.split(r"\s+[-–—|]\s+|\s*\(", t)[0]
+    return " ".join(re.sub(r"[^\w\s]", " ", t).split())
+
+
+# "ISCOD", "iSCOD" and "Iscod Alternance" are one school; "Acme Careers" is Acme
+_COMPANY_NOISE = re.compile(r"\b(alternance|recrutement|careers?|jobs?|hiring|group|groupe|ltd|limited|inc|sas|sa|gmbh|srl|plc|llc)\b", re.I)
+
+
+def thin(listings: dict, cfg: dict) -> int:
+    """At most one listing per role per company, and a cap per company and category (best chance first).
+    Stops one school or agency (e.g. 20 near-identical alternance ads) from flooding the board."""
+    caps = cfg.get("max_per_company", {}) or {}
+    default_cap = int(caps.get("default", 10)) if isinstance(caps, dict) else int(caps)
+    cap_for = lambda cat: int(caps.get(cat, default_cap)) if isinstance(caps, dict) else default_cap
+    rank = lambda r: ((r.get("check") or {}).get("chance", 0), r.get("score", 0), r.get("found", ""))
+    groups: dict[str, list] = {}
+    for k, r in listings.items():
+        company = _COMPANY_NOISE.sub(" ", (r.get("company") or "").lower())
+        company = " ".join(re.sub(r"[^\w\s]", " ", company).split())
+        if not company or str(r.get("source", "")).startswith("Curated"):
+            continue  # opportunity blogs leave the company empty; hand-picked programmes stay as they are
+        groups.setdefault(f"{company}|{r.get('category', '')}", []).append(k)
+    removed = 0
+    for keys in groups.values():
+        keys.sort(key=lambda k: rank(listings[k]), reverse=True)
+        cap = cap_for(listings[keys[0]].get("category", ""))
+        stems, kept = set(), 0
+        for k in keys:
+            stem = role_stem(listings[k].get("title", ""))
+            if stem in stems or kept >= cap:
+                del listings[k]
+                removed += 1
+                continue
+            stems.add(stem)
+            kept += 1
+    return removed
+
+
 def run(dry: bool = False) -> int:
     load_env()
     cfg = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
@@ -271,7 +317,8 @@ def run(dry: bool = False) -> int:
                 dashboard.upsert(listings, dashboard.record(j, tailored.get(j.id)))
             backfill_screening(listings, cfg)
             backfill_kits(listings, cv_text, cfg)
-            print(f"Removed {prune(listings, cfg, today)} expired or closed listings")
+            print(f"Removed {prune(listings, cfg, today)} expired or closed listings, "
+                  f"{thin(listings, cfg)} repeats (same role / too many from one company)")
             dashboard.save(listings)
             notify = (lambda text, link: telegram.send_text(text, url=link, button="📧 Open in Gmail")) if send else None
             responses = gmail.check(listings, notify)
@@ -287,6 +334,8 @@ def run(dry: bool = False) -> int:
             if j.id not in pending:
                 seen.setdefault(j.id, stamp)
         save_seen(seen)
+        # read by the workflow's gate: the next scheduled run starts ~3 hours after this one
+        (ROOT / "state" / "last_run.txt").write_text(now_iso(), encoding="utf-8")
     if send and not top and cfg.get("notify_when_empty", False):
         telegram.send_text("😴 No new matching opportunities this round.")
     return 0

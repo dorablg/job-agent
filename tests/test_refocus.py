@@ -90,3 +90,27 @@ def test_gmail_retries_emails_the_ai_could_not_read(tmp_path, monkeypatch):
     gmail._unsee(mails)
     seen = _json.loads(gmail.SEEN.read_text())
     assert seen["ids"] == ["a", "c"] and seen["last"] == "2026-11-10"
+
+
+def test_role_stem_merges_city_copies():
+    stem = main.role_stem
+    assert stem("Alternance Développeur Web Full stack - Attichy (F/H) (Apprentissage)") == stem("Alternance Développeur Web Full stack - Lille (H/F)")
+    assert stem("Junior Data Analyst (m/f/d)") == "junior data analyst"
+    assert stem("Data Analyst") != stem("Data Engineer")
+
+
+def test_thin_caps_repeats_but_keeps_best_and_distinct_roles():
+    cfg = {"max_per_company": {"default": 10, "Alt": 2}}
+    alt = {f"a{i}": {"title": f"Alternance Développeur - City{i} (F/H)", "company": ["ISCOD", "Iscod Alternance"][i % 2],
+                     "category": "Alt", "check": {"chance": 50 + i}} for i in range(6)}
+    alt["d1"] = {"title": "Alternance Data Analyst", "company": "iSCOD", "category": "Alt", "check": {"chance": 40}}
+    alt["d2"] = {"title": "Alternance Cybersécurité", "company": "ISCOD", "category": "Alt", "check": {"chance": 30}}
+    real = {f"r{i}": {"title": t, "company": "ASML", "category": "Jobs", "check": {"chance": 70}}
+            for i, t in enumerate(["Data Science Intern", "ML Engineer Intern", "Customer Success Engineer"])}
+    cur = {"c1": {"title": "Same Title", "company": "", "category": "Alt", "source": "Curated (web research)"}}
+    listings = {**alt, **real, **cur}
+    removed = main.thin(listings, cfg)
+    kept_alt = [k for k in listings if k.startswith(("a", "d"))]
+    assert kept_alt == ["a5", "d1"] or sorted(kept_alt) == ["a5", "d1"]   # best copy of the role + next best role, cap 2
+    assert all(f"r{i}" in listings for i in range(3)) and "c1" in listings
+    assert removed == 6

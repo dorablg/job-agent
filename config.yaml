@@ -548,6 +548,10 @@ filters:
     must reside in the united states, located in the united states, us work authorization, authorized to work in the us]
   allowed_locations: []            # location is decided per category now
 
+# One listing per role per company (the same role posted for 20 cities becomes 1), plus a cap per company:
+max_per_company:
+  default: 10
+  "🎓💼 Alternance & work-study": 3     # schools post near-identical alternance ads by the dozen
 min_score: 40                 # 0-100; raise to get fewer, better alerts
 max_alerts_per_run: 15
 max_ai_tailoring_per_run: 6   # new matches that get a full apply kit each run (free AI quota)

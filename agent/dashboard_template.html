@@ -1390,7 +1390,12 @@ function trackerApps(){
     a.events.push(m); a.last = m.date;
     const st2 = TK_FROM[m.type] || "applied";
     if(st2 === "rejected" ? a.status !== "offer" : TK_RANK[st2] >= TK_RANK[a.status]) a.status = st2;
-    if(["assessment","interview","info_request","offer"].includes(m.type)) a.actions.push(m);  // real things to do
+    if(["assessment","interview","info_request","offer"].includes(m.type)){
+      // each concrete task becomes its own to-do line (falls back to the email's single action)
+      const tasks = (m.tasks && m.tasks.length) ? m.tasks : [{what: m.action || m.summary, due: m.due || "", repeat: ""}];
+      for(const t of tasks) if(t.what && !a.actions.some(x => x.action === t.what))
+        a.actions.push({...m, action: t.what, due: t.due || "", repeat: t.repeat || ""});
+    }
   }
   // applications marked on this board with no email yet
   for(const r of L()){
@@ -1473,8 +1478,9 @@ function overviewHTML(apps){
   const split = order.map(k => `<i style="width:${100 * n(k) / apps.length}%;background:${AP_COLOR[k]}" title="${AP_LABEL[k]}: ${n(k)}"></i>`).join("");
   const keys = order.map(k => `<span><i style="background:${AP_COLOR[k]}"></i>${AP_LABEL[k]} <b>${n(k)}</b></span>`).join("");
   // one line per application: its most recent request (several emails about the same thing would repeat it)
-  const todo = [...apps.filter(a => a.actions.length).map(a => ({a, m: a.actions[a.actions.length - 1]})).sort((x,y) => (x.m.due||"9999").localeCompare(y.m.due||"9999")).slice(0, 8)
-      .map(({a, m}) => `<div><span>${MAILICON[m.type]||"❓"}</span><span><b>${esc(a.company)}</b>${a.role?` · ${esc(a.role)}`:""}<br><span class="muted">${esc(m.action || m.summary)}</span></span>${m.due?`<span class="bd warn">⏰ ${esc(m.due)}</span>`:"<span></span>"}</div>`),
+  const today = new Date().toISOString().slice(0, 10);
+  const todo = [...apps.flatMap(a => a.actions.filter(m => m.repeat || !m.due || m.due >= today).map(m => ({a, m}))).sort((x,y) => (x.m.due||"9999").localeCompare(y.m.due||"9999")).slice(0, 10)
+      .map(({a, m}) => `<div><span>${MAILICON[m.type]||"❓"}</span><span><b>${esc(a.company)}</b>${a.role?` · ${esc(a.role)}`:""}<br><span class="muted">${esc(m.action || m.summary)}</span></span>${m.repeat?`<span class="bd">🔁 ${esc(m.repeat.replace("weekly on ","every "))}</span>`:m.due?`<span class="bd warn">⏰ ${esc(fmtDate(m.due))}</span>`:"<span></span>"}</div>`),
     ...waits.filter(a => daysSince(a.first) >= 14).slice(0, 6).map(a => `<div><span>⏳</span><span><b>${esc(a.company)}</b>${a.role?` · ${esc(a.role)}`:""}<br><span class="muted">No reply for ${daysSince(a.first)} days: a short, polite follow-up email can help.</span></span><span></span></div>`)];
   const byCo = {};
   sent.forEach(a => { const c = a.events.length || 1; byCo[a.company] = (byCo[a.company] || 0) + c; });

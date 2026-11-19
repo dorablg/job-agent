@@ -53,7 +53,11 @@ Emails:
 Return ONLY JSON: {{"results": [ {{"i": <email number>, "type": one of {types}, "company": "<company name or ''>",
 "role": "<the job / programme she applied for, or ''>",
 "listing_id": "<id from the known list if it clearly matches, else ''>", "summary": "<1 sentence>",
-"action": "<what she should do next, or ''>", "due": "<YYYY-MM-DD if a date/deadline is given, else ''>"}} ]}}"""
+"action": "<what she should do next, or ''>", "due": "<YYYY-MM-DD if a date/deadline is given, else ''>",
+"tasks": [ {{"what": "<one concrete thing she must do, short>", "due": "<YYYY-MM-DD or ''>",
+"repeat": "<'weekly on sunday' style if it repeats, else ''>", "until": "<YYYY-MM-DD the repeating ends, or ''>"}} ]}} ]}}
+List EVERY task with a date in the email (submissions, tests, interviews, events, weekly reports); leave out steps she
+has clearly already done (e.g. if she replied "confirmed")."""
 
 
 def configured() -> bool:
@@ -212,6 +216,7 @@ def classify(mails: list[dict], listings: dict) -> list[dict]:
                 "key": m["key"], "date": m["date"], "from": m["from"], "subject": m["subject"], "type": t,
                 "company": r.get("company", ""), "role": str(r.get("role", ""))[:120], "listing_id": lid,
                 "summary": r.get("summary", ""),
+                "tasks": [t for t in (r.get("tasks") or []) if isinstance(t, dict) and t.get("what")][:8],
                 "action": r.get("action", ""), "due": r.get("due", ""),
                 "link": "https://mail.google.com/mail/u/0/#search/" + urllib.parse.quote(f"rfc822msgid:{m['msgid']}")
                 if m["msgid"] else "https://mail.google.com/mail/u/0/#inbox",

@@ -21,7 +21,7 @@ from pathlib import Path
 
 import yaml
 
-from . import dashboard, enrich, gmail, llm, screen, sources, tailor, telegram
+from . import dashboard, enrich, gmail, llm, reminders, screen, sources, tailor, telegram
 from .match import find_cv, load_cv, score_jobs, title_excluded, unpaid, written_in
 from .sources import Job, fetch_all
 
@@ -322,6 +322,8 @@ def run(dry: bool = False) -> int:
             dashboard.save(listings)
             notify = (lambda text, link: telegram.send_text(text, url=link, button="📧 Open in Gmail")) if send else None
             responses = gmail.check(listings, notify)
+            if send and reminders.send_morning_digest(responses, telegram.send_text, datetime.now(UTC)):
+                print("Reminders: morning digest sent")
             print(f"Dashboard: {len(listings)} listings -> {dashboard.build(listings, cv_text, cfg, responses)}")
     elif not dashboard.enabled():
         print("Dashboard skipped: set DASHBOARD_PASSWORD to build the website.")

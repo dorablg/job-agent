@@ -614,6 +614,21 @@ function setDb(s, msg){
 }
 function applyMailStatuses(){
   let changed = 0;
+  // An email that no longer points to a job (corrected data) takes back the status it set there.
+  const linked = {};
+  for(const m of D.responses || []) if(m.listing_id) (linked[m.listing_id] = linked[m.listing_id] || new Set()).add(m.key);
+  for(const [id, t] of Object.entries(track)){
+    if(!t.mails || !t.mails.length) continue;
+    const keep = t.mails.filter(k => linked[id] && linked[id].has(k));
+    if(keep.length === t.mails.length) continue;
+    t.mails = keep;
+    const hist = t.history || [];
+    if(!keep.length && hist.length && hist[hist.length - 1].by === "Gmail"){
+      while(hist.length && hist[hist.length - 1].by === "Gmail") hist.pop();
+      t.status = hist.length ? hist[hist.length - 1].s : "new";
+      touch(id); changed++;
+    }
+  }
   for(const m of D.responses || []){
     if(!m.listing_id || !MAIL2STATUS[m.type]) continue;
     const t = track[m.listing_id] = track[m.listing_id] || {};

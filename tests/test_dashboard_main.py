@@ -126,3 +126,9 @@ def test_agents_never_auto_submit_on_job_boards_that_forbid_bots():
     bg = (dashboard.ROOT / "extension" / "background.js").read_text(encoding="utf-8")
     assert "linkedin" in bg.split("NEVER_AUTO")[1].split("\n")[0] and "indeed" in bg.split("NEVER_AUTO")[1].split("\n")[0]
     assert "DAILY_LIMIT = 25" in bg and "hasCaptcha" in bg
+
+
+def test_renamed_categories_follow_the_config(cfg):
+    names = {c["name"] for c in cfg["categories"]}
+    for old, new in dashboard.RENAMED.items():
+        assert old not in names and new in names

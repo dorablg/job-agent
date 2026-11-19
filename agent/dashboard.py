@@ -27,10 +27,17 @@ def enabled() -> bool:
     return bool(os.getenv("DASHBOARD_PASSWORD"))
 
 
+# Categories that were renamed in config.yaml: stored listings move to the new name automatically.
+RENAMED = {"⚙️ Tech support, back office & ticketing": "⚙️ Technical support, ops & QA"}
+
+
 def load() -> dict[str, dict]:
     if not STORE.exists():
         return {}
-    return json.loads(secure.decrypt(json.loads(STORE.read_text(encoding="utf-8")), secure.password()))
+    rows = json.loads(secure.decrypt(json.loads(STORE.read_text(encoding="utf-8")), secure.password()))
+    for r in rows.values():
+        r["category"] = RENAMED.get(r.get("category", ""), r.get("category", ""))
+    return rows
 
 
 def save(listings: dict[str, dict]) -> None:

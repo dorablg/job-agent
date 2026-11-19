@@ -109,6 +109,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   #app .wrap{margin-left:232px;max-width:1240px;padding:26px 28px 70px}
   .drawer{z-index:41}
 }
+@media (max-width:640px){.atsline{flex-wrap:wrap}.atsline .bar{flex:1 1 100%;max-width:none}.badges{min-width:0}.badges .bd{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.c-main{min-width:0}}
 @media (max-width:640px){.phead h1{font-size:22px}.phead{margin-bottom:12px}.util{margin-left:auto}.seg.groups button{font-size:12.5px;padding:6px 9px}}
 /* ---------- email tracker ---------- */
 .tk-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
@@ -1456,7 +1457,8 @@ function overviewHTML(apps){
   const order = ["queued","saved","applied","assessment","interview","offer","rejected"].filter(k => n(k));
   const split = order.map(k => `<i style="width:${100 * n(k) / apps.length}%;background:${AP_COLOR[k]}" title="${AP_LABEL[k]}: ${n(k)}"></i>`).join("");
   const keys = order.map(k => `<span><i style="background:${AP_COLOR[k]}"></i>${AP_LABEL[k]} <b>${n(k)}</b></span>`).join("");
-  const todo = [...apps.flatMap(a => a.actions.map(m => ({a, m}))).sort((x,y) => (x.m.due||"9999").localeCompare(y.m.due||"9999")).slice(0, 8)
+  // one line per application: its most recent request (several emails about the same thing would repeat it)
+  const todo = [...apps.filter(a => a.actions.length).map(a => ({a, m: a.actions[a.actions.length - 1]})).sort((x,y) => (x.m.due||"9999").localeCompare(y.m.due||"9999")).slice(0, 8)
       .map(({a, m}) => `<div><span>${MAILICON[m.type]||"❓"}</span><span><b>${esc(a.company)}</b>${a.role?` · ${esc(a.role)}`:""}<br><span class="muted">${esc(m.action || m.summary)}</span></span>${m.due?`<span class="bd warn">⏰ ${esc(m.due)}</span>`:"<span></span>"}</div>`),
     ...waits.filter(a => daysSince(a.first) >= 14).slice(0, 6).map(a => `<div><span>⏳</span><span><b>${esc(a.company)}</b>${a.role?` · ${esc(a.role)}`:""}<br><span class="muted">No reply for ${daysSince(a.first)} days: a short, polite follow-up email can help.</span></span><span></span></div>`)];
   const byCo = {};

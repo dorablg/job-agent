@@ -113,3 +113,28 @@ def test_rss_downloads_with_a_timeout(monkeypatch):
     monkeypatch.setattr(sources, "http_get", fake)
     out = sources.rss(["https://feed.example/rss"])
     assert seen.get("timeout") and out[0].title == "AI Fellowship"
+
+
+def test_smartrecruiters_and_recruitee_boards(monkeypatch):
+    sources.set_focus(["London", "Germany"])
+    def fake(url, **kw):
+        if "smartrecruiters" in url:
+            return {"content": [
+                {"id": "1", "name": "Data Analyst", "releasedDate": "2026-11-01T00:00:00Z",
+                 "location": {"city": "Berlin", "country": "de", "remote": True, "fullyRemote": False},
+                 "company": {"name": "Acme"}, "typeOfEmployment": {"label": "Full-time"}},
+                {"id": "2", "name": "Technician", "location": {"city": "Bratislava", "country": "sk", "remote": True}}]}
+        return {"offers": [{"id": 9, "title": "ML Intern", "location": "London", "country": "United Kingdom",
+                            "careers_url": "https://x.recruitee.com/o/ml", "description": "<p>Python</p>"}]}
+    monkeypatch.setattr(sources, "_get", fake)
+    out = sources.company_boards(None, {"acme": "smartrecruiters", "x": "recruitee"})
+    assert [(j.id, j.location) for j in out] == [("smartrecruiters-acme-1", "Berlin, Germany"), ("recruitee-x-9", "London, United Kingdom")]
+    assert out[0].url == "https://jobs.smartrecruiters.com/acme/1" and "Python" in out[1].description
+
+
+def test_live_career_pages_ignore_the_age_limit(cfg):
+    from datetime import UTC, datetime, timedelta
+    from agent import match
+    old = datetime.now(UTC) - timedelta(days=200)
+    assert match.passes_filters(make_job(id="greenhouse-acme-1", posted=old), cfg)       # still listed = still open
+    assert not match.passes_filters(make_job(id="adzuna-1", posted=old), cfg)            # job-board ad: too old

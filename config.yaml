@@ -341,7 +341,8 @@ categories:
         python, machine learning, data scientist, data analyst, ai engineer, ml engineer, data engineer, sql]
       Very good: [software engineer, developer, qa tester, qa engineer, test engineer, fraud, kyc, aml, research assistant,
         technical writer, french, arabic, bilingual, tutor, coding instructor, translator, localization]
-      Good: [analyst, operations, reviewer, evaluator, specialist]
+      Good: [analyst, operations, reviewer, evaluator, specialist, expert, engineer, developer, researcher, scientist,
+        mathematician, writer, tutor]
     exclude_title: [sales, cold caller, telemarketing, appointment setter, recruiter, nurse, clinical, driver, model,
       onlyfans, adult, crypto trader, forex, mlm, commission only, unpaid, principal, staff, senior]
     boost_any: [contract, freelance, hourly, per hour, /hr, usd, eur, gbp, weekly pay, flexible, anywhere, worldwide,
@@ -442,6 +443,42 @@ jobs_ac_uk_queries: [research assistant machine learning, research assistant art
 
 # Company career pages (AI labs/startups, fintech). Only roles in your places (or remote) are kept.
 company_boards:
+  # added Nov 2026: verified to have 3+ open roles in your places (Europe, UK, Gulf, remote)
+  deliveroo: greenhouse
+  hellofresh: greenhouse
+  traderepublicbank: greenhouse
+  cleo: greenhouse
+  taboola: greenhouse
+  dataiku: greenhouse
+  algolia: greenhouse
+  mirakl: greenhouse
+  graphcore: greenhouse
+  mongodb: greenhouse
+  twilio: greenhouse
+  spotify: lever
+  palantir: lever
+  brevo: lever
+  photoroom: ashby
+  dust: ashby
+  perplexity: ashby
+  ramp: ashby
+  vanta: ashby
+  linear: ashby
+  posthog: ashby
+  supabase: ashby
+  attio: ashby
+  lovable: ashby
+  legora: ashby
+  BoschGroup: smartrecruiters
+  Ubisoft2: smartrecruiters
+  Deloitte6: smartrecruiters
+  ServiceNow: smartrecruiters
+  Accor: smartrecruiters
+  Experian: smartrecruiters
+  NielsenIQ: smartrecruiters
+  Canva: smartrecruiters
+  bunq: recruitee
+  holded: recruitee
   # AI labs & startups
   anthropic: greenhouse
   isomorphiclabs: greenhouse
@@ -524,14 +561,14 @@ extra_keywords: [ros, predictive maintenance, lstm, prompt engineering, webrtc, 
 
 filters:
   max_age_days: 30
-  max_experience_years: 2          # skip jobs asking for 3+ years (you have ~1 year)
+  max_experience_years: 3          # many junior roles say "2-3 years"; 4+ is skipped
   hide_not_open_to_tunisia: false  # on-site roles are judged by place; remote roles use tunisia_ok / remote_ok
   # Languages you don't speak: postings that require them (or are written in them) are skipped
   exclude_required_languages: [Italian, German, Spanish, Dutch, Portuguese, Polish, Swedish, Danish, Norwegian,
     Japanese, Greek, Bulgarian, Romanian, Czech, Turkish, Hebrew, Russian, Finnish, Hungarian, Korean, Chinese,
     Croatian, Serbian, Slovak, Slovenian, Ukrainian, Lithuanian, Latvian, Estonian, Flemish, Swiss German, Hindi, Thai,
     Vietnamese, Indonesian, Malay]
-  exclude_title_words: [senior, sr, staff, principal, lead, leader, director, head, manager, vp, phd, mba, expert, ii, iii,
+  exclude_title_words: [senior, sr, staff, principal, lead, leader, director, head, manager, vp, phd, mba, ii, iii,
     iv, mid-level, mid level, experienced, mts, member of technical staff, research associate, postdoc, postdoctoral,
     emirati, emiratis, saudi national, saudi nationals, qatari, kuwaiti, omani national, bahraini, nationals only,
     accounting, accountant, audit, us remote, us only, usa only, u.s. only, us-based, canada only,
@@ -560,7 +597,7 @@ screen_new_per_run: 200       # new matches the AI checks each run
 screen_backfill_per_run: 200  # older listings the AI checks each run
 notify_when_empty: false
 
-sources: [alignerr, curated, workable, company_boards, jobs_ac_uk, wp_search, adzuna, devpost, gdg_events, remotive, remoteok, jobicy,
+sources: [alignerr, curated, workable, company_boards, arbeitnow, jobs_ac_uk, wp_search, adzuna, devpost, gdg_events, remotive, remoteok, jobicy,
   himalayas]
 
 # Hand-picked programs from web research (Nov 2026). Dates marked "~" come from secondary sources: check the link.

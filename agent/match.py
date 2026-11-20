@@ -87,6 +87,9 @@ def ats_score(cv_text: str, job_text: str, vocab: list[str]) -> tuple[float, lis
     return round(100 * len(matched) / len(wanted), 1), matched, missing
 
 
+LIVE_BOARDS = {"greenhouse", "lever", "ashby", "workable", "smartrecruiters", "recruitee"}
+
+
 def passes_filters(job: Job, cfg: dict) -> bool:
     """Global filters; type and remote/hybrid are decided per category."""
     f = cfg.get("filters", {})
@@ -99,7 +102,10 @@ def passes_filters(job: Job, cfg: dict) -> bool:
     if job.kind == "internship" and not f.get("unpaid_internships", True) and unpaid(text):
         return False
     max_age = f.get("max_age_days", 14) * (4 if job.kind in ("fellowship", "event") else 1)  # scholarships stay open for months
-    if job.posted and job.posted < datetime.now(UTC) - timedelta(days=max_age):
+    # live career pages (Greenhouse, Lever, Ashby, Workable, SmartRecruiters, Recruitee) only list open roles:
+    # an old "posted" date there just means the job has been open a while
+    live = job.id.split("-", 1)[0] in LIVE_BOARDS
+    if job.posted and not live and job.posted < datetime.now(UTC) - timedelta(days=max_age):
         return False
     allowed = [a.lower() for a in f.get("allowed_locations", [])]
     loc = (job.location or "").lower()

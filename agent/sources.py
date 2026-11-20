@@ -163,9 +163,15 @@ def remoteok(_terms) -> list[Job]:
 
 def arbeitnow(_terms) -> list[Job]:
     out = []
-    for page in (1, 2, 3):
-        data = _get("https://www.arbeitnow.com/api/job-board-api", params={"page": page})
-        for j in data.get("data", []):
+
+    def page(n):
+        try:
+            return _get("https://www.arbeitnow.com/api/job-board-api", params={"page": n}).get("data", [])
+        except Exception:
+            return []
+
+    for rows in pmap(page, range(1, 6), workers=5):
+        for j in rows:
             desc = clean(j.get("description"))
             out.append(Job(
                 id=f"arbeitnow-{j['slug']}", title=j["title"], company=j.get("company_name", ""),
@@ -295,6 +301,11 @@ def workable(_terms, searches: list[dict] | None = None) -> list[Job]:
     return out
 
 
+COUNTRY_CODE = {"gb": "United Kingdom", "uk": "United Kingdom", "ie": "Ireland", "fr": "France", "de": "Germany",
+                "it": "Italy", "es": "Spain", "pt": "Portugal", "nl": "Netherlands", "be": "Belgium", "ch": "Switzerland",
+                "at": "Austria", "pl": "Poland", "se": "Sweden", "dk": "Denmark", "fi": "Finland", "no": "Norway",
+                "lu": "Luxembourg", "cz": "Czechia", "ro": "Romania", "gr": "Greece", "ae": "UAE", "sa": "Saudi Arabia",
+                "qa": "Qatar", "bh": "Bahrain", "kw": "Kuwait", "om": "Oman", "tn": "Tunisia", "ma": "Morocco", "eg": "Egypt"}
 BOARDS_OK: set[str] = set()   # "ashby-monzo" ... boards that answered this run
 LIVE_IDS: set[str] = set()    # every posting id those boards still list
 
@@ -316,6 +327,22 @@ def company_boards(_terms, boards: dict | None = None) -> list[Job]:
                          clean((j.get("descriptionPlain") or "") + "\n" + "\n".join(
                              f"{l.get('text', '')}\n{clean(l.get('content', ''))}" for l in j.get("lists") or [])),
                          j.get("createdAt", 0) / 1000 if j.get("createdAt") else None) for j in data]
+            elif ats == "smartrecruiters":  # list only (no descriptions): title + place are enough for the AI check
+                data = _get(f"https://api.smartrecruiters.com/v1/companies/{company}/postings", params={"limit": 100})
+                rows = [(j["id"], j["name"], f"https://jobs.smartrecruiters.com/{company}/{j['id']}",
+                         ", ".join(x for x in ((j.get("location") or {}).get("city"),
+                                               COUNTRY_CODE.get(str((j.get("location") or {}).get("country", "")).lower(),
+                                                                str((j.get("location") or {}).get("country", "")).upper()),
+                                               "Remote" if (j.get("location") or {}).get("fullyRemote") else "") if x),
+                         f"{j['name']} at {(j.get('company') or {}).get('name', company)}. "
+                         f"{(j.get('experienceLevel') or {}).get('label', '')} {(j.get('typeOfEmployment') or {}).get('label', '')}.",
+                         j.get("releasedDate")) for j in data.get("content", [])]
+            elif ats == "recruitee":
+                data = _get(f"https://{company}.recruitee.com/api/offers/")
+                rows = [(str(j["id"]), j["title"], j.get("careers_url", ""),
+                         ", ".join(x for x in (j.get("location"), j.get("country"), "Remote" if j.get("remote") else "") if x),
+                         clean((j.get("description") or "") + "\n" + (j.get("requirements") or "")), j.get("created_at"))
+                        for j in data.get("offers", [])]
             else:  # ashby
                 data = _get(f"https://api.ashbyhq.com/posting-api/job-board/{company}")
                 rows = [(j["id"], j["title"], j.get("jobUrl", ""),

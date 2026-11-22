@@ -132,3 +132,11 @@ def test_renamed_categories_follow_the_config(cfg):
     names = {c["name"] for c in cfg["categories"]}
     for old, new in dashboard.RENAMED.items():
         assert old not in names and new in names
+
+
+def test_a_telegram_outage_never_stops_the_run(monkeypatch):
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "1")
+    def down(*a, **k):
+        raise RuntimeError("502 Bad Gateway")
+    monkeypatch.setattr(telegram, "_call", down)
+    assert telegram.try_send_text("hello") is False

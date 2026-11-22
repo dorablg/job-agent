@@ -51,6 +51,16 @@ def send_text(text: str, url: str | None = None, button: str = "🚀 Apply now")
     _call("sendMessage", data)
 
 
+def try_send_text(text: str, url: str | None = None, button: str = "🚀 Apply now") -> bool:
+    """Like send_text, but a Telegram outage only skips this message instead of stopping the whole run."""
+    try:
+        send_text(text, url=url, button=button)
+        return True
+    except Exception as ex:
+        print(f"   telegram unavailable, message skipped: {ex}")
+        return False
+
+
 def send_file(path: Path, caption: str = "") -> None:
     with open(path, "rb") as fh:
         _call("sendDocument", {"chat_id": os.environ["TELEGRAM_CHAT_ID"], "caption": caption[:1024]},

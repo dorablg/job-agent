@@ -139,7 +139,7 @@ def send_alerts(top: list[Job], cv_text: str, cfg: dict, send: bool) -> tuple[di
     """Writes kits for the best ones and sends the cards. Returns (kits by id, ids delivered)."""
     if send and top:
         summary = "\n".join(f"{c}: {n}" for c, n in Counter(j.category for j in top).items())
-        telegram.send_text(f"🔔 <b>{len(top)} new matches</b> — {datetime.now():%d %b %H:%M}\n{telegram.esc(summary)}")
+        telegram.try_send_text(f"🔔 <b>{len(top)} new matches</b> — {datetime.now():%d %b %H:%M}\n{telegram.esc(summary)}")
     ai_limit = cfg.get("max_ai_tailoring_per_run", 5)
     tailored: dict = {}
     delivered: set[str] = set()
@@ -320,9 +320,9 @@ def run(dry: bool = False) -> int:
             print(f"Removed {prune(listings, cfg, today)} expired or closed listings, "
                   f"{thin(listings, cfg)} repeats (same role / too many from one company)")
             dashboard.save(listings)
-            notify = (lambda text, link: telegram.send_text(text, url=link, button="📧 Open in Gmail")) if send else None
+            notify = (lambda text, link: telegram.try_send_text(text, url=link, button="📧 Open in Gmail")) if send else None
             responses = gmail.check(listings, notify)
-            if send and reminders.send_morning_digest(responses, telegram.send_text, datetime.now(UTC)):
+            if send and reminders.send_morning_digest(responses, telegram.try_send_text, datetime.now(UTC)):
                 print("Reminders: morning digest sent")
             print(f"Dashboard: {len(listings)} listings -> {dashboard.build(listings, cv_text, cfg, responses)}")
     elif not dashboard.enabled():
@@ -339,7 +339,7 @@ def run(dry: bool = False) -> int:
         # read by the workflow's gate: the next scheduled run starts ~3 hours after this one
         (ROOT / "state" / "last_run.txt").write_text(now_iso(), encoding="utf-8")
     if send and not top and cfg.get("notify_when_empty", False):
-        telegram.send_text("😴 No new matching opportunities this round.")
+        telegram.try_send_text("😴 No new matching opportunities this round.")
     return 0
 
 

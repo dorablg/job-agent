@@ -138,3 +138,36 @@ def test_live_career_pages_ignore_the_age_limit(cfg):
     old = datetime.now(UTC) - timedelta(days=200)
     assert match.passes_filters(make_job(id="greenhouse-acme-1", posted=old), cfg)       # still listed = still open
     assert not match.passes_filters(make_job(id="adzuna-1", posted=old), cfg)            # job-board ad: too old
+
+
+class _Resp:
+    def __init__(self, data):
+        self._d, self.ok = data, True
+
+    def json(self):
+        return self._d
+
+
+def test_jooble_and_reed_parse_and_stay_off_without_keys(monkeypatch):
+    assert sources.jooble(None, {"locations": ["London"], "queries": ["data"]}) == []      # no key: silently off
+    assert sources.reed(None, {"locations": ["London"], "queries": ["data"]}) == []
+    monkeypatch.setenv("JOOBLE_API_KEY", "k1")
+    monkeypatch.setenv("REED_API_KEY", "k2")
+    monkeypatch.setattr(sources._SESSION, "post", lambda url, **kw: _Resp({"jobs": [
+        {"id": 7, "title": "Junior Data Analyst", "company": "Acme", "link": "https://j.example/7", "location": "London",
+         "snippet": "<b>SQL</b> and Python", "type": "Full-time", "updated": "2026-11-20T00:00:00", "source": "acme.com"},
+        {"id": 7, "title": "dupe", "link": "x"}]}))
+    monkeypatch.setattr(sources._SESSION, "get", lambda url, **kw: _Resp({"results": [
+        {"jobId": 99, "jobTitle": "Graduate Fraud Analyst", "employerName": "Bank", "locationName": "Manchester",
+         "minimumSalary": 28000, "maximumSalary": 32000, "date": "19/11/2026", "jobDescription": "KYC and AML",
+         "jobUrl": "https://www.reed.co.uk/jobs/99"}]}))
+    j = sources.jooble(None, {"locations": ["London"], "queries": ["data"]})
+    r = sources.reed(None, {"locations": ["Manchester"], "queries": ["fraud"]})
+    assert [(x.id, x.company, x.description.split("\n")[1]) for x in j] == [("jooble-7", "Acme", "SQL and Python")]
+    assert r[0].id == "reed-99" and r[0].salary == "£28,000–£32,000" and r[0].location == "Manchester, United Kingdom"
+    assert r[0].posted.date().isoformat() == "2026-11-19"
+
+
+def test_rotation_covers_everything_within_a_day():
+    pairs = list(range(240))
+    assert len(sources._rotate(pairs, 24)) == 24 and sources._rotate(pairs[:10], 24) == pairs[:10]

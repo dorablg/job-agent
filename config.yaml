@@ -597,7 +597,7 @@ screen_new_per_run: 200       # new matches the AI checks each run
 screen_backfill_per_run: 200  # older listings the AI checks each run
 notify_when_empty: false
 
-sources: [alignerr, curated, workable, company_boards, arbeitnow, jobs_ac_uk, wp_search, adzuna, devpost, gdg_events, remotive, remoteok, jobicy,
+sources: [alignerr, curated, workable, company_boards, arbeitnow, jooble, reed, jobs_ac_uk, wp_search, adzuna, devpost, gdg_events, remotive, remoteok, jobicy,
   himalayas]
 
 # Hand-picked programs from web research (Nov 2026). Dates marked "~" come from secondary sources: check the link.
@@ -1023,6 +1023,21 @@ alignerr:
   searches: [python, machine learning, data, ai evaluator, red team, code, sql, french, arabic, quality analyst,
     content reviewer, math, finance, research]
   max_jobs: 80
+
+# Jooble (free key, env JOOBLE_API_KEY) and Reed UK (free key, env REED_API_KEY): rotated so each run stays small
+jooble:
+  per_run: 24
+  locations: [London, Manchester, Milan, Rome, Paris, Berlin, Amsterdam, Dublin, Madrid, Barcelona, Lisbon, Dubai,
+    Abu Dhabi, Doha, Riyadh, Remote]
+  queries: [junior data analyst, machine learning intern, data science intern, ai engineer junior, graduate data analyst,
+    junior python developer, fraud analyst, kyc analyst, payments operations, technical support engineer,
+    application support analyst, ai trainer, data annotation, paid internship data, alternance data]
+reed:
+  per_run: 24
+  locations: [London, Manchester, Birmingham, Edinburgh, Bristol, Leeds, Cambridge, UK]
+  queries: [graduate data analyst, junior data analyst, machine learning, data science graduate, ai graduate,
+    junior python developer, fraud analyst, kyc analyst, aml analyst, payments operations, technical support engineer,
+    application support, graduate scheme technology, data internship, ai internship]
 
 # Deep search of opportunity sites: FULL posts (real deadlines, funding details), last 75 days.
 opportunity_search:

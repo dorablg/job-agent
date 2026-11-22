@@ -565,6 +565,90 @@ def alignerr(_terms, opts: dict | None = None) -> list[Job]:
     return out
 
 
+def _rotate(pairs: list, per_run: int) -> list:
+    """A different slice of (place, query) pairs every 3-hour run: everything covered over a day, within free limits."""
+    if len(pairs) <= per_run:
+        return pairs
+    start = (int(datetime.now(UTC).timestamp() // (3 * 3600)) * per_run) % len(pairs)
+    return [pairs[(start + i) % len(pairs)] for i in range(per_run)]
+
+
+def jooble(_terms, opts: dict | None = None) -> list[Job]:
+    """Jooble job search engine (free API key from jooble.org/api/about). Env: JOOBLE_API_KEY."""
+    import os as _os
+    key, opts = _os.getenv("JOOBLE_API_KEY", "").strip(), opts or {}
+    if not key:
+        return []
+    pairs = _rotate([(loc, q) for loc in opts.get("locations", []) for q in opts.get("queries", [])], opts.get("per_run", 24))
+
+    def one(pair):
+        loc, q = pair
+        try:
+            r = _SESSION.post(f"https://jooble.org/api/{key}", json={"keywords": q, "location": loc, "page": "1"},
+                              timeout=TIMEOUT)
+            return r.json().get("jobs", []) if r.ok else []
+        except Exception:
+            return []
+
+    out, seen = [], set()
+    for (loc, _q), rows in zip(pairs, pmap(one, pairs, workers=4), strict=True):
+        for j in rows:
+            jid, title = str(j.get("id") or j.get("link", "")), clean(j.get("title"))
+            if not jid or jid in seen or not title:
+                continue
+            seen.add(jid)
+            desc = clean(j.get("snippet"))
+            out.append(Job(
+                id=f"jooble-{jid}", title=title, company=clean(j.get("company")), url=j.get("link", ""),
+                description=f"Employment type: {j.get('type') or ''}\n{desc}", location=clean(j.get("location")) or loc,
+                source=f"Jooble ({j.get('source') or 'web'})", kind=detect_kind(title, desc[:300]),
+                work_mode=detect_mode(f"{title} {j.get('location', '')} {desc[:800]}"), posted=_dt(j.get("updated")),
+                salary=clean(j.get("salary")),
+            ))
+    return out
+
+
+def reed(_terms, opts: dict | None = None) -> list[Job]:
+    """Reed.co.uk (UK's biggest job board), free API key from reed.co.uk/developers/jobseeker. Env: REED_API_KEY."""
+    import os as _os
+    key, opts = _os.getenv("REED_API_KEY", "").strip(), opts or {}
+    if not key:
+        return []
+    pairs = _rotate([(loc, q) for loc in opts.get("locations", ["London"]) for q in opts.get("queries", [])],
+                    opts.get("per_run", 24))
+
+    def one(pair):
+        loc, q = pair
+        params = {"keywords": q, "resultsToTake": 100}
+        if loc.lower() not in ("", "uk", "united kingdom"):
+            params["locationName"] = loc
+        try:
+            r = _SESSION.get("https://www.reed.co.uk/api/1.0/search", params=params, auth=(key, ""), timeout=TIMEOUT)
+            return r.json().get("results", []) if r.ok else []
+        except Exception:
+            return []
+
+    out, seen = [], set()
+    for rows in pmap(one, pairs, workers=4):
+        for j in rows:
+            jid = j.get("jobId")
+            if not jid or jid in seen:
+                continue
+            seen.add(jid)
+            lo, hi = j.get("minimumSalary"), j.get("maximumSalary")
+            salary = f"£{int(lo):,}" + (f"–£{int(hi):,}" if hi and hi != lo else "") if lo else ""
+            d = str(j.get("date") or "")  # dd/mm/yyyy
+            posted = _dt(f"{d[6:10]}-{d[3:5]}-{d[0:2]}") if len(d) == 10 else None
+            title, desc = clean(j.get("jobTitle")), clean(j.get("jobDescription"))
+            out.append(Job(
+                id=f"reed-{jid}", title=title, company=clean(j.get("employerName")), url=j.get("jobUrl", ""),
+                description=desc, location=f"{j.get('locationName') or ''}, United Kingdom".strip(", "),
+                source="Reed", kind=detect_kind(title, desc[:300]),
+                work_mode=detect_mode(f"{title} {j.get('locationName', '')} {desc[:800]}"), posted=posted, salary=salary,
+            ))
+    return out
+
+
 def curated(_terms, items: list | None = None) -> list[Job]:
     """Hand-picked programs found by web research (volunteer calls, ambassador programs, AI schools...).
     They stay listed until their deadline passes; 'rolling' ones stay until removed from config.yaml."""
@@ -726,6 +810,8 @@ def rss(feeds: list[str]) -> list[Job]:
 
 SOURCES = {
     "alignerr": alignerr,
+    "jooble": jooble,
+    "reed": reed,
     "workable": workable,
     "company_boards": company_boards,
     "jobs_ac_uk": jobs_ac_uk,
@@ -771,7 +857,8 @@ def fetch_all(cfg: dict, log=print) -> list[Job]:
     extra = {"workable": cfg.get("workable_searches"), "company_boards": cfg.get("company_boards"),
              "jobs_ac_uk": cfg.get("jobs_ac_uk_queries"), "wp_search": cfg.get("opportunity_search"),
              "adzuna": cfg.get("adzuna"), "devpost": cfg.get("devpost"), "curated": cfg.get("curated"),
-             "gdg_events": cfg.get("gdg_events"), "alignerr": cfg.get("alignerr")}
+             "gdg_events": cfg.get("gdg_events"), "alignerr": cfg.get("alignerr"), "jooble": cfg.get("jooble"),
+             "reed": cfg.get("reed")}
     names = [n for n in cfg.get("sources", list(SOURCES)) if n in SOURCES]
     feeds = list(cfg.get("rss_feeds", []))
 

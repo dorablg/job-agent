@@ -281,7 +281,10 @@ def apply(r: dict) -> dict:
     r["tunisia"] = tunisia(r.get("location", ""), text)
     r["currency"] = currency(r.get("salary", ""), desc)
     r["visa"] = visa(text) if r.get("tunisia") != "yes" else ""
-    if re.search(r"tunisia \(remote\)", r.get("location", ""), re.I) or (
+    if r.get("mode") != "remote" and re.search(r"tunisi|\btunis\b|sousse|sfax|monastir|ariana|ben arous|nabeul|bizerte|"
+                                               r"manouba|technopole|novation city|el ghazala", r.get("location", ""), re.I):
+        r["focus"] = "Tunisia"
+    elif re.search(r"tunisia \(remote\)", r.get("location", ""), re.I) or (
             r.get("mode") == "remote" and r.get("location", "").count(",") >= 3):
         r["focus"] = "Remote (Tunisia)" if r.get("tunisia") == "yes" else "Remote"
     elif re.search(r"london|united kingdom|\buk\b|england|scotland|wales|cardiff|manchester|leeds|redhill", f"{r.get('location', '')} {r.get('title', '')}", re.I):

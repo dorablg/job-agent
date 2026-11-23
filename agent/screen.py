@@ -27,6 +27,11 @@ TARGETS = """PRIORITY RIGHT NOW: she needs to start earning money soon. Prefer P
 paid internships, junior roles (remote or on-site), part-time jobs and contract / freelance work (AI training and
 evaluation, data annotation, Python / data / ML contracts, QA). Unpaid internships are rejected.
 
+TUNISIA: she lives in Sousse and studies engineering, so jobs and internships IN TUNISIA are wanted: on-site (Sousse,
+Monastir, Tunis), hybrid or remote. Keep junior roles in data, AI, software, QA, technical support, fintech, business
+analysis, and stages / PFE (end-of-studies internships) and SIVP contracts. French-language postings are fine. Reject
+Tunisian roles in sales, call centres, accounting, industrial maintenance and manufacturing.
+
 WHAT SHE WANTS (keep these):
 - Machine learning / deep learning / AI / data science / data analyst roles at junior, graduate or intern level,
   including AI research assistant roles and AI startups, and AI applied to finance/fintech.

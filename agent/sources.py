@@ -240,7 +240,8 @@ FOCUS_LOC = re.compile(r"london|united kingdom|\buk\b|england|italy|italia|milan
 def set_focus(places: list[str]) -> None:
     """Places you want on-site roles in (from config.yaml) + remote markers, for company boards and Workable."""
     global FOCUS_LOC
-    words = [re.escape(str(p).lower()) for p in places if p] + ["remote", "anywhere", "worldwide", "global", "emea", "europe"]
+    words = [re.escape(str(p).lower()) for p in places if p] + ["remote", "anywhere", "worldwide", "global", "emea", "europe",
+                                                                  "tunisia", "tunisie", "tunis", "sousse", "sfax", "monastir", "ariana"]
     FOCUS_LOC = re.compile(r"(?<![a-z])(" + "|".join(sorted(set(words), key=len, reverse=True)) + r")(?![a-z])", re.I)
 
 
@@ -278,9 +279,10 @@ def workable(_terms, searches: list[dict] | None = None) -> list[Job]:
                 loc = j.get("location") or {}
                 country, city = (loc.get("countryName") or ""), (loc.get("city") or "")
                 if where.lower() == "tunisia":
-                    if country.lower() != "tunisia" or j.get("workplace") != "remote":
+                    if country.lower() != "tunisia":
                         continue
-                    location = "Tunisia (remote)"
+                    remote = j.get("workplace") == "remote"
+                    location = "Tunisia (remote)" if remote else ", ".join(x for x in (city, "Tunisia") if x)
                 elif not where:  # remote anywhere: keep, Tunisia eligibility is judged later
                     if j.get("workplace") != "remote":
                         continue
@@ -649,6 +651,66 @@ def reed(_terms, opts: dict | None = None) -> list[Job]:
     return out
 
 
+# Titles worth opening on Tunisian boards (the rest of a board is mostly industry, sales and maintenance)
+_TN_TECH = re.compile(r"data|donn[ée]es|\bia\b|\bai\b|intelligence artificielle|machine learning|deep learning|python|"
+                      r"d[ée]velopp|developer|logiciel|software|full ?stack|back-?end|front-?end|devops|cloud|web|mobile|"
+                      r"informatique|\bit\b|syst[èe]mes? d.information|digital|num[ée]rique|qa\b|test|qualit[ée] logiciel|"
+                      r"support (technique|informatique|applicatif)|help ?desk|analyste|analyst|business analyst|bi\b|"
+                      r"power bi|consultant|fintech|mon[ée]tique|paiement|payment|fraude?|kyc|aml|conformit[ée]|"
+                      r"stage|stagiaire|pfe|fin d.[ée]tudes|sivp|alternance|ing[ée]nieur|engineer|product owner|scrum", re.I)
+_KJ_LINE = re.compile(r"^- \[(?P<title>[^\]]+)\]\((?P<url>https://www\.keejob\.com/offres-emploi/(?P<id>\d+)/[^)]+\.md)\):\s*"
+                      r"(?P<rest>.+)$")
+
+
+def keejob(_terms, opts: dict | None = None) -> list[Job]:
+    """Keejob.com, a major Tunisian job board. It publishes every active offer for tools at /llms-full.txt (one line
+    each: title, company, place, contract, work mode, date), with a Markdown page per offer. We open only tech-related
+    titles. Work mode (on-site / hybrid / remote) and the expiry date come from the offer itself."""
+    opts = opts or {}
+    try:
+        text = http_get("https://www.keejob.com/llms-full.txt").text
+    except Exception:
+        return []
+    rows, seen = [], set()
+    for line in text.splitlines():
+        m = _KJ_LINE.match(line.strip())
+        if not m or m["id"] in seen or not _TN_TECH.search(m["title"]):
+            continue
+        seen.add(m["id"])
+        rows.append(m)
+    rows = rows[:opts.get("max_details", 150)]
+
+    def details(m):
+        try:
+            return http_get(m["url"]).text
+        except Exception:
+            return ""
+        finally:
+            time.sleep(0.3)  # polite: 4 workers -> ~10 pages a second at most
+
+    out = []
+    for m, md in zip(rows, pmap(details, rows, workers=4), strict=True):
+        parts = [p.strip() for p in m["rest"].split("·")]
+        company = parts[0] if parts else ""
+        field = lambda name, md=md: (re.search(rf"\*\*{name}\*\*\s*:\s*(.+)", md) or [None, ""])[1].strip()
+        place = field("Lieu") or (parts[1] if len(parts) > 1 else "Tunisie")
+        mode = (field("Mode de travail") or (parts[3] if len(parts) > 3 else "")).lower()
+        contract = field("Type de contrat") or (parts[2] if len(parts) > 2 else "")
+        expires, published = field("Date d'expiration"), field("Date de publication")
+        body = md.split("## Description", 1)[-1] if md else ""
+        title = m["title"].strip()
+        desc = clean(f"Contrat: {contract}. Mode: {mode}. Expérience: {field('Expérience')}. Études: {field('Niveau d.études')}.\n"
+                     f"{body[:7000]}" + (f"\nApplication deadline: {expires[:10]}" if expires else ""))
+        kind = "internship" if re.search(r"\bstage|stagiaire|\bpfe\b|fin d.[ée]tudes|intern", f"{title} {contract}", re.I) else "job"
+        out.append(Job(
+            id=f"keejob-{m['id']}", title=title, company=company, url=m["url"][:-3] + "/",
+            description=desc, location=place, source="Keejob (Tunisia)", kind=kind,
+            work_mode="remote" if "télétravail" in mode or "teletravail" in mode else "hybrid" if "hybride" in mode else "onsite",
+            posted=_dt(published[:10]) if published else None,
+        ))
+    return out
+
+
 def curated(_terms, items: list | None = None) -> list[Job]:
     """Hand-picked programs found by web research (volunteer calls, ambassador programs, AI schools...).
     They stay listed until their deadline passes; 'rolling' ones stay until removed from config.yaml."""
@@ -811,6 +873,7 @@ def rss(feeds: list[str]) -> list[Job]:
 SOURCES = {
     "alignerr": alignerr,
     "jooble": jooble,
+    "keejob": keejob,
     "reed": reed,
     "workable": workable,
     "company_boards": company_boards,
@@ -858,7 +921,7 @@ def fetch_all(cfg: dict, log=print) -> list[Job]:
              "jobs_ac_uk": cfg.get("jobs_ac_uk_queries"), "wp_search": cfg.get("opportunity_search"),
              "adzuna": cfg.get("adzuna"), "devpost": cfg.get("devpost"), "curated": cfg.get("curated"),
              "gdg_events": cfg.get("gdg_events"), "alignerr": cfg.get("alignerr"), "jooble": cfg.get("jooble"),
-             "reed": cfg.get("reed")}
+             "reed": cfg.get("reed"), "keejob": cfg.get("keejob")}
     names = [n for n in cfg.get("sources", list(SOURCES)) if n in SOURCES]
     feeds = list(cfg.get("rss_feeds", []))
 

@@ -79,6 +79,37 @@ categories:
     must_any: [__curated_only__]
     student: true
 
+  # Tunisia: jobs and internships you can combine with your engineering studies (on-site in Sousse, hybrid or remote).
+  # Internships / PFE / stage are written as a student; jobs follow the job rule.
+  - name: "🇹🇳 Tunisia (hybrid, remote, on-site, PFE)"
+    kinds: [job, internship]
+    work_modes: [onsite, hybrid, remote, unknown]
+    locations_any: [tunisia, tunisie, tunis, sousse, sfax, monastir, ariana, ben arous, nabeul, hammamet, bizerte, manouba,
+      lac, charguia, technopole, novation city, kairouan, mahdia, la marsa, el ghazala, ghazela]
+    student: false
+    bonus: 35
+    match_in: title
+    tiers:
+      Excellent: [*ai, *data, data analyst, data scientist, data engineer, ingénieur data, ingénieur ia, ingénieur machine learning,
+        stage pfe, pfe, projet de fin d'études, projet de fin d'etudes, stagiaire data, stagiaire ia, stage data, stage ia,
+        développeur python, developpeur python, python, fintech, monétique, monetique, paiement, fraude, fraud, kyc, aml]
+      Very good: [*ops, *fin, développeur, developpeur, developer, ingénieur logiciel, ingénieur développement, ingénieur informatique,
+        software engineer, full stack, fullstack, backend, back-end, frontend, front-end, devops, cloud, qa, testeur, test engineer,
+        support technique, support informatique, support applicatif, helpdesk, business analyst, analyste, consultant junior,
+        consultant fonctionnel, sivp, stagiaire, stage, alternance]
+      Good: [informatique, product owner, scrum master, power bi, bi, système d'information, systeme d'information, erp]
+    exclude_title: [commercial, commerciale, vente, vendeur, comptable, comptabilité, maintenance, électrique, electrique,
+      électricien, mécanique, mecanique, chantier, génie civil, genie civil, btp, chauffeur, magasinier, ouvrier, infirmier,
+      médecin, pharmacien, juriste, ressources humaines, rh, marketing, call center, centre d'appel, téléconseiller,
+      teleconseiller, téléopérateur, teleoperateur, conseiller client, agent, technicien, production, qualité, qualite,
+      logistique, achat, acheteur, industrialisation, process, méthodes, methodes, hse, sécurité, securite,
+      hydraulique, travaux, mqes, automatisme, industrielle, cnd, contenu, créateur, createur, génie, genie, structure,
+      électronique, electronique, mécatronique, mecatronique, électromécanique, inspection, iqc, chimie, agronome,
+      confirmé, confirmée, confirme, expérimenté, experimente, chef de projet senior, pharmacist, pharmacien, dentiste,
+      graphisme, graphiste, designer, motion, mkt, business developer, assistante, assistant de direction, secrétaire]
+    boost_any: [data, ia, ai, python, machine learning, fintech, banque, bank, paiement, payment, hybride, hybrid, télétravail,
+      remote, sousse, stage, pfe, junior, débutant, debutant, english, anglais]
+
   # Alternance / apprenticeship / work-study: work part of the week while studying (France mainly; English
   # "working student" roles in Germany / Netherlands). You are presented as a student.
   - name: "🎓💼 Alternance & work-study"
@@ -425,8 +456,7 @@ workable_searches:
   - {location: Qatar, queries: *wq}
   - {location: Saudi Arabia, queries: *wq}
   - location: Tunisia
-    workplace: remote
-    queries: [technical support, customer support, saas support, payment operations, payments, billing support,
+    queries: [stage, stagiaire, pfe, data, développeur, developer, python, ia, ingénieur, junior, technical support, customer support, saas support, payment operations, payments, billing support,
       product support, customer success, fraud, quality assurance, implementation, data analyst, ai operations,
       operations, back office, bilingual, french, machine learning, ai, data scientist, ai trainer]
   - location: ""
@@ -443,6 +473,8 @@ jobs_ac_uk_queries: [research assistant machine learning, research assistant art
 
 # Company career pages (AI labs/startups, fintech). Only roles in your places (or remote) are kept.
 company_boards:
+  # Tunisia (verified: open roles in Tunis)
+  value1: smartrecruiters
   # added Nov 2026: verified to have 3+ open roles in your places (Europe, UK, Gulf, remote)
   deliveroo: greenhouse
   hellofresh: greenhouse
@@ -597,7 +629,7 @@ screen_new_per_run: 200       # new matches the AI checks each run
 screen_backfill_per_run: 200  # older listings the AI checks each run
 notify_when_empty: false
 
-sources: [alignerr, curated, workable, company_boards, arbeitnow, jooble, reed, jobs_ac_uk, wp_search, adzuna, devpost, gdg_events, remotive, remoteok, jobicy,
+sources: [alignerr, curated, workable, company_boards, arbeitnow, jooble, reed, keejob, jobs_ac_uk, wp_search, adzuna, devpost, gdg_events, remotive, remoteok, jobicy,
   himalayas]
 
 # Hand-picked programs from web research (Nov 2026). Dates marked "~" come from secondary sources: check the link.
@@ -1024,10 +1056,14 @@ alignerr:
     content reviewer, math, finance, research]
   max_jobs: 80
 
+# Keejob (Tunisia): every active offer is listed; only tech-related titles are opened
+keejob:
+  max_details: 150
+
 # Jooble (free key, env JOOBLE_API_KEY) and Reed UK (free key, env REED_API_KEY): rotated so each run stays small
 jooble:
   per_run: 24
-  locations: [London, Manchester, Milan, Rome, Paris, Berlin, Amsterdam, Dublin, Madrid, Barcelona, Lisbon, Dubai,
+  locations: [Tunis, Sousse, London, Manchester, Milan, Rome, Paris, Berlin, Amsterdam, Dublin, Madrid, Barcelona, Lisbon, Dubai,
     Abu Dhabi, Doha, Riyadh, Remote]
   queries: [junior data analyst, machine learning intern, data science intern, ai engineer junior, graduate data analyst,
     junior python developer, fraud analyst, kyc analyst, payments operations, technical support engineer,

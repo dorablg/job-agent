@@ -114,3 +114,32 @@ def test_thin_caps_repeats_but_keeps_best_and_distinct_roles():
     assert kept_alt == ["a5", "d1"] or sorted(kept_alt) == ["a5", "d1"]   # best copy of the role + next best role, cap 2
     assert all(f"r{i}" in listings for i in range(3)) and "c1" in listings
     assert removed == 6
+
+
+def test_tunisia_category_takes_tech_jobs_and_pfe_but_not_industry(cfg):
+    def job(title, kind="job", mode="onsite", loc="Sousse, Tunisie"):
+        return make_job(id=title, title=title, kind=kind, work_mode=mode, location=loc,
+                        description="Contrat: CDI. Mode: hybride. Python, SQL, données.")
+    keep = [job("Ingénieur IA", mode="hybrid", loc="Tunis, Tunisie"), job("Stage ingénieur IA", "internship"),
+            job("Développeur applications mobiles (H/F) Sousse"), job("Campagne de recrutement des stagiaires PFE", "internship")]
+    drop = [job("Ingénieur Hydraulique"), job("Technicien Maintenance"), job("Commercial terrain"), job("QA Pharmacist")]
+    out = {j.title: j for j in match.score_jobs(keep + drop, CV, cfg)}
+    assert all(t.title in out and out[t.title].category.startswith("🇹🇳") for t in keep)
+    assert not any(t.title in out for t in drop)
+
+
+def test_keejob_parses_the_offer_list_and_details(monkeypatch):
+    lst = ("# Keejob\n- [Ingénieur IA](https://www.keejob.com/offres-emploi/1/ingenieur-ia.md): ECG · Tunis, Tunisie · CDI · Hybride · publiée le 2026-11-20\n"
+           "- [Technicien Maintenance](https://www.keejob.com/offres-emploi/2/tech.md): X · Sousse · CDI · Sur site · publiée le 2026-11-20\n")
+    md = ("# Ingénieur IA\n- **Lieu** : Tunis, Tunisie\n- **Type de contrat** : CDI\n- **Mode de travail** : Hybride\n"
+          "- **Date de publication** : 2026-11-20\n- **Date d'expiration** : 2026-12-20\n## Description\nPython et LLM.")
+    class R:
+        def __init__(self, t):
+            self.text = t
+    monkeypatch.setattr(sources.time, "sleep", lambda s: None)
+    monkeypatch.setattr(sources, "http_get", lambda url, **kw: R(lst if url.endswith("llms-full.txt") else md))
+    out = sources.keejob(None, {})
+    assert [j.title for j in out] == ["Ingénieur IA"]                      # maintenance title never opened
+    j = out[0]
+    assert j.work_mode == "hybrid" and j.company == "ECG" and j.url.endswith("/1/ingenieur-ia/")
+    assert "Application deadline: 2026-12-20" in j.description

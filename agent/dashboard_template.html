@@ -780,6 +780,7 @@ function renderFilters(){
 }
 /* Categories are grouped so Discover stays readable: pick a group, then (optionally) one category inside it. */
 const CAT_GROUPS = [
+  ["tunisia", "🇹🇳 Tunisia", /tunisia/i],
   ["jobs", "💼 Jobs & internships", /job|intern|research|finance|technical|also fits|alternance/i],
   ["earn", "💵 Earn fast", /contract|freelance|part-time/i],
   ["programs", "🎓 Programs & scholarships", /study|scholarship|fellowship|exchange/i],
@@ -1214,7 +1215,7 @@ function swipeQueue(){
     .sort((a,b) => swipeRank(b) - swipeRank(a) || (b.score - a.score));
 }
 // jobs, internships, alternance first; free community events last
-function swipeRank(r){ const c = (r.check||{}).chance||0; return c + (r.kind === "event" ? -25 : 0) + (/(course|certificate|certification|webinar)/i.test(r.title) ? -30 : 0) + (/Alternance/.test(r.category) ? 10 : 0)
+function swipeRank(r){ const c = (r.check||{}).chance||0; return c + (r.kind === "event" ? -25 : 0) + (/\b(course|certificate|certification|webinar)\b/i.test(r.title) ? -30 : 0) + (/Alternance/.test(r.category) ? 10 : 0)
   + (/Contract & freelance|Part-time/.test(r.category) ? 15 : 0) + (r.kind === "internship" && r.paid === "paid" ? 8 : 0); }
 function swipeCardHTML(r, back){
   const c = r.check || {}, ai = r.ai || {};

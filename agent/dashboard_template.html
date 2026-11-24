@@ -1285,6 +1285,8 @@ document.addEventListener("keydown", e => {
 
 /* ---------- agents (run by the ⚡ Flous extension on your laptop) ---------- */
 let agentRun = null;   // {total, done, log: [{cls, text}]}
+let extHealth = null, agentProblem = "";   // answer to our ping: {ok, version, ready, busy} / last start error
+setTimeout(() => { if(document.documentElement.dataset.flousExt) window.postMessage({ flous: "ping" }, location.origin); }, 800);
 const agentsAvailable = () => document.documentElement.dataset.flousExt === "2";
 function agentQueue(){ return L().filter(r => st(r.id) === "queued" && safeUrl(r.url)); }
 function agentBarHTML(){
@@ -1296,13 +1298,17 @@ function agentBarHTML(){
     : ext ? `<span class="muted" style="font-size:12.5px">Reload the ⚡ Flous extension (v2) to use agents</span>`
     : `<span class="muted" style="font-size:12.5px">Open Flous on your laptop (with the extension) to run the agents</span>`;
   const head = agentRun ? `🤖 <b>Agents working… ${agentRun.done}/${agentRun.total}</b>` : `🤖 <b>${q.length}</b>&nbsp;job${q.length>1?"s":""} in the agent queue`;
-  return `<div class="agentbar">${head}${btn}${log}</div>`;
+  const warn = agentProblem ? `<div class="agentlog"><div class="wait">⚠️ ${esc(agentProblem)}</div></div>`
+    : extHealth && extHealth.ok && !extHealth.ready ? `<div class="agentlog"><div class="wait">⚠️ The extension needs your password once: right-click the Flous icon → Options → enter it → Save &amp; test.</div></div>` : "";
+  return `<div class="agentbar">${head}${btn}${warn}${log}</div>`;
 }
 function wireAgentBar(root){
   const go = root.querySelector("[data-agent-go]"); if(go) go.onclick = startAgents;
   const stop = root.querySelector("[data-agent-stop]"); if(stop) stop.onclick = () => { window.postMessage({ flous: "stopBatch" }, location.origin); toast("Agents will stop after the current job"); };
 }
 function startAgents(){
+  agentProblem = "";
+  if(extHealth && extHealth.ok && !extHealth.ready) return toast("⚠️ Open the Flous extension's Options and enter your password once");
   const q = agentQueue().slice(0, 30);
   if(!q.length) return toast("Swipe right on jobs to fill the agent queue first");
   const ok = confirm(`🤖 Let the agents apply to ${q.length} job${q.length>1?"s":""}?\n\n` +
@@ -1319,7 +1325,8 @@ function startAgents(){
 window.addEventListener("message", e => {
   if(e.source !== window || e.origin !== location.origin || !e.data || !D) return;
   const m = e.data;
-  if(m.flous === "batchStarted" && !m.ok){ agentRun = null; toast("⚠️ " + (m.error || "Agents could not start")); renderAll(); }
+  if(m.flous === "batchStarted" && !m.ok){ agentRun = null; agentProblem = m.error || "Agents could not start"; toast("⚠️ " + agentProblem); renderAll(); }
+  if(m.flous === "pong"){ extHealth = m; renderAll(); }
   if(m.flous !== "batchResult" || !agentRun) return;
   if(m.done){
     agentRun.log.push({ cls: "ok", text: `Done: ${m.submitted} submitted, ${m.ready} filled and waiting for you, ${m.open} opened.` });
@@ -1557,8 +1564,10 @@ function renderProfile(){
   $("#profile").querySelectorAll("[data-copy]").forEach(b => b.onclick = () => copy(b.dataset.copy));
   $("#profile").insertAdjacentHTML("beforeend", `<h3 style="margin-top:18px">🚫 Hidden companies</h3>${muted.length ? muted.map(c => `<span class="bd" style="margin:0 6px 6px 0">${esc(c)} <a href="#" data-unmute="${esc(c)}">✕</a></span>`).join("") : `<span class="muted">None</span>`}`);
   $("#profile").querySelectorAll("[data-unmute]").forEach(a => a.onclick = e => { e.preventDefault(); muted = muted.filter(x => x !== a.dataset.unmute); store("muted", muted); renderProfile(); renderAll(); });
-  const ext = document.documentElement.dataset.flousExt;
-  $("#extStatus").innerHTML = ext === "2" ? "✅ Installed and connected: swipe right on jobs, then press <b>🤖 Let agents apply</b> in Applications."
+  const ext = document.documentElement.dataset.flousExt, ver = document.documentElement.dataset.flousVersion || "";
+  $("#extStatus").innerHTML = ext === "2" && extHealth && !extHealth.ok ? `⚠️ Installed (v${esc(ver)}) but not responding: ${esc(extHealth.error || "")}`
+    : ext === "2" && extHealth && !extHealth.ready ? `⚠️ Installed (v${esc(extHealth.version)}) but your password isn't set: right-click the Flous icon → Options → enter it → Save &amp; test.`
+    : ext === "2" ? `✅ Installed and connected${ver ? " (v" + esc(ver) + ")" : ""}: swipe right on jobs, then press <b>🤖 Let agents apply</b> in Applications.`
     : ext ? "⚠️ An older version is installed: open <b>opera://extensions</b> and click ↻ on Flous to update it."
     : "Not detected in this browser. On your laptop, install the Flous extension so the agents can open, fill and submit applications for you.";
   $("#export").onclick = () => download("job-tracking.json", JSON.stringify({track, aiCache: store("aiCache2")||{}}), "application/json");

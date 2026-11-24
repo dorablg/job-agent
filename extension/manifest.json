@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Flous Apply Assistant",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Flous agents: open each job you queued, write tailored answers, fill the form, attach your tailored CV and submit safe standard forms. Everything else is left filled for you to submit.",
   "permissions": [
     "activeTab",

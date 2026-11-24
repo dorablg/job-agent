@@ -217,6 +217,13 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     chrome.tabs.create({ url: msg.url, active: true }).then(tab => { AUTO[tab.id] = { steps: 0, title: String(msg.title || ""), busy: false }; reply({ ok: true }); }).catch(fail);
     return true;
   }
+  // health check from the dashboard: version, and whether your password key is set up
+  if (msg.type === "ping") {
+    if (!fromDashboard(sender)) return reply({ ok: false, error: "not allowed" });
+    KEYS.get().then(k => reply({ ok: true, version: chrome.runtime.getManifest().version, ready: !!k, busy: !!BATCH }))
+      .catch(() => reply({ ok: true, version: chrome.runtime.getManifest().version, ready: false, busy: !!BATCH }));
+    return true;
+  }
   if (msg.type === "applyBatch") {
     if (!fromDashboard(sender)) return reply({ ok: false, error: "not allowed" });
     if (BATCH) return reply({ ok: false, error: "Agents are already working on a batch." });

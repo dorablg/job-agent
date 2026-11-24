@@ -79,6 +79,33 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .shake{animation:shake .35s}
 @keyframes shake{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
 @media (max-width:760px){.lk{grid-template-columns:1fr;max-width:420px}.lk-hero{display:none}#lockform .lk-mlogo{display:inline-grid;margin-bottom:16px}#lockform{padding:32px 24px}}
+/* ---------- horizontal filter bar ---------- */
+.layout{grid-template-columns:1fr!important}
+.layout>div{min-width:0}   /* a long row of filter pills must scroll, not widen the page */
+.fbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.fdrop{position:relative}
+.fdrop>summary,.fpill{list-style:none;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel);
+  border-radius:999px;padding:7px 13px;font-size:13.5px;font-weight:550;cursor:pointer;white-space:nowrap;user-select:none}
+.fdrop>summary::-webkit-details-marker{display:none}
+.fdrop.on>summary,.fpill.on{border-color:var(--accent);background:var(--accent-bg);color:var(--accent)}
+.fdrop[open]>summary{border-color:var(--accent)}
+.fdrop .caret{font-size:11px;opacity:.6}
+.fcount{background:var(--accent);color:var(--accent-ink);border-radius:999px;padding:0 6px;font-size:11px;line-height:17px}
+.fpill input{accent-color:var(--accent);margin:0}
+.fpanel{position:absolute;top:calc(100% + 6px);left:0;z-index:30;width:300px;max-height:60vh;overflow:auto;background:var(--panel);
+  border:1px solid var(--line);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow-lg)}
+.fpanel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:13.5px}
+.fpanel select{width:100%}
+.fpanel label.ck{display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:13.5px}
+.fpanel label.ck input{accent-color:var(--accent)}
+.fpanel label.ck .n{margin-left:auto;color:var(--faint);font-size:12px}
+.fpanel .scroll{max-height:240px;overflow:auto}
+@media (max-width:640px){
+  .fbar{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+  .fbar::-webkit-scrollbar{display:none}
+  .fpanel{position:fixed;left:0;right:0;bottom:0;top:auto;width:auto;max-height:70vh;border-radius:18px 18px 0 0;
+    padding-bottom:calc(16px + env(safe-area-inset-bottom));z-index:60}
+}
 /* ---------- layout system: page headers, sidebar, spacing ---------- */
 .phead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:4px 0 18px}
 .phead h1{margin:0;font-size:26px;letter-spacing:-.02em;line-height:1.15}
@@ -396,10 +423,10 @@ aside.filters{position:sticky;top:70px;background:var(--panel);border:1px solid 
     <!-- DISCOVER -->
     <section id="v-discover">
       <header class="phead"><div><h1>Discover</h1><p id="discoverSub">Opportunities matched to your profile, checked by AI.</p></div>
-        <div class="pact"><button class="btn filterbtn" id="openFilters">Filters</button></div></header>
+        </header>
       <div class="layout">
-        <aside class="filters" id="filters"></aside>
         <div>
+          <div class="fbar" id="filters"></div>
           <div class="cats" id="cats"></div>
           <div class="results-head">
             <input type="search" id="q" placeholder="Search title, company, skill, country…">
@@ -659,7 +686,6 @@ function init(){
   if(moved) setTimeout(() => toast(`📬 Gmail updated ${moved} application${moved>1?"s":""}`), 600);
   document.querySelectorAll("#nav button").forEach(b => b.onclick = () => go(b.dataset.view));
   $("#q").oninput = renderCards; $("#sort").value = "fit"; $("#sort").onchange = renderCards;
-  $("#openFilters").onclick = () => $("#filters").classList.add("open");
 
   $("#scrim").onclick = closeDrawer;
   document.addEventListener("keydown", e => { if(e.key === "Escape") closeDrawer(); });
@@ -742,42 +768,52 @@ function renderFilters(){
   const mc = Object.entries(counts("modes", r => r.mode)).sort((a,b) => b[1]-a[1]);
   const ec = Object.entries(counts("emp", r => r.employment || "unspecified")).sort((a,b) => b[1]-a[1]);
   const allLangs = [...new Set(["English","French","Arabic", ...L().flatMap(r => r.languages||[])])];
+  const open = document.querySelector("#filters details[open]");
+  const openKey = open ? open.dataset.k : "";
+  // one dropdown pill per filter; the number shows how many choices are active
+  const grp = (k, title, active, inner) => `<details class="fdrop ${active ? "on" : ""}" data-k="${k}" ${openKey === k ? "open" : ""}>
+    <summary>${title}${active ? ` <b class="fcount">${active === true ? "•" : active}</b>` : ""}<span class="caret">▾</span></summary>
+    <div class="fpanel"><div class="fpanel-head"><b>${title}</b><button class="btn small ghost" data-close>✕</button></div>${inner}</div></details>`;
+  const STATUS_LABEL = {review: "To review", active: "Active", all: "Everything"};
   $("#filters").innerHTML = `
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-    <b>Filters</b><span><button class="btn small ghost" id="resetF">Reset</button><button class="btn small ghost filterbtn" id="closeF">✕</button></span></div>
-  <div class="fgroup"><h4>Status</h4><select data-s="status">
-    ${[["review","To review (new + saved)"],["active","All active (incl. applied)"],["all","Everything"],...Object.entries(STATUSES)].map(([v,t]) => `<option value="${v}" ${F.status===v?"selected":""}>${t}</option>`).join("")}</select></div>
-  <div class="fgroup"><label class="toggle">🤖 Only AI-checked for you<input type="checkbox" data-b="checked" ${F.checked?"checked":""}></label></div>
-  <div class="fgroup"><h4>📍 Where</h4>${ckList("focus", Object.entries(counts("focus", r => r.focus || "Other")).sort((a,b) => b[1]-a[1]), v => ({"London / UK":"🇬🇧 London / UK","Italy":"🇮🇹 Italy","Europe":"🇪🇺 Rest of Europe","Gulf":"🕌 Gulf / Middle East","Remote (Tunisia)":"🏠 Remote, open to Tunisia","Remote":"🏠 Remote (❔ check eligibility)","Other":"🌐 Other"})[v] || esc(v))}</div>
-  <div class="fgroup"><h4>🇹🇳 Remote jobs: open to Tunisia</h4><select data-s="tn">${[["open","Open or not stated (hide closed)"],["yes","Confirmed open to Tunisia only"],["any","Show everything"]].map(([v,t]) => `<option value="${v}" ${F.tn===v?"selected":""}>${t}</option>`).join("")}</select></div>
-  <div class="fgroup"><h4>🎯 Fit for your profile</h4>${ckList("fits", Object.entries(counts("fits", r => r.fit || "—")).sort((a,b) => (FITRANK[b[0]]||0)-(FITRANK[a[0]]||0)), v => v==="—" ? "Programs, events & scholarships" : `${v==="Excellent"?"🟢":v==="Very good"?"🔵":"🟡"} ${esc(v)}`)}</div>
-  <div class="fgroup"><h4>💰 Pay</h4><label class="toggle">Paid only (salary, stipend or funded)<input type="checkbox" data-b="paidOnly" ${F.paidOnly?"checked":""}></label></div>
-  <div class="fgroup"><h4>🌍 Country / region</h4><div class="scroll">${ckList("places", pc, v => `${FLAGS[v]||"📍"} ${esc(v)}`)}</div></div>
-  <div class="fgroup"><h4>🏠 Work mode</h4>${ckList("modes", mc)}</div>
-  <div class="fgroup"><h4>⏱ Contract</h4>${ckList("emp", ec)}</div>
-  <div class="fgroup"><h4>🎓 Requirements</h4>
+  ${grp("status", `📋 ${STATUS_LABEL[F.status] || STATUSES[F.status] || "Status"}`, F.status !== DEFAULT_F.status, `<select data-s="status">
+    ${[["review","To review (new + saved)"],["active","All active (incl. applied)"],["all","Everything"],...Object.entries(STATUSES)].map(([v,t]) => `<option value="${v}" ${F.status===v?"selected":""}>${t}</option>`).join("")}</select>`)}
+  ${grp("focus", "📍 Where", F.focus.length, ckList("focus", Object.entries(counts("focus", r => r.focus || "Other")).sort((a,b) => b[1]-a[1]), v => ({"Tunisia":"🇹🇳 Tunisia (on-site / hybrid)","London / UK":"🇬🇧 London / UK","Italy":"🇮🇹 Italy","Europe":"🇪🇺 Rest of Europe","Gulf":"🕌 Gulf / Middle East","Remote (Tunisia)":"🏠 Remote, open to Tunisia","Remote":"🏠 Remote (❔ check eligibility)","Other":"🌐 Other"})[v] || esc(v)) +
+    `<label class="muted" style="font-size:12.5px;display:block;margin-top:10px">Remote jobs: open to Tunisia</label><select data-s="tn">${[["open","Open or not stated (hide closed)"],["yes","Confirmed open to Tunisia only"],["any","Show everything"]].map(([v,t]) => `<option value="${v}" ${F.tn===v?"selected":""}>${t}</option>`).join("")}</select>`)}
+  ${grp("fits", "🎯 Fit", F.fits.length, ckList("fits", Object.entries(counts("fits", r => r.fit || "—")).sort((a,b) => (FITRANK[b[0]]||0)-(FITRANK[a[0]]||0)), v => v==="—" ? "Programs, events & scholarships" : `${v==="Excellent"?"🟢":v==="Very good"?"🔵":"🟡"} ${esc(v)}`))}
+  ${grp("modes", "🏠 Work mode", F.modes.length, ckList("modes", mc))}
+  ${grp("emp", "⏱ Contract", F.emp.length, ckList("emp", ec))}
+  ${grp("places", "🌍 Country", F.places.length, `<div class="scroll">${ckList("places", pc, v => `${FLAGS[v]||"📍"} ${esc(v)}`)}</div>`)}
+  ${grp("req", "🎓 Requirements", (F.exp !== "any") + (F.degree !== "any") + (F.langStrict ? 1 : 0), `
     <label class="muted" style="font-size:12.5px">Experience required, at most</label>
     <select data-s="exp">${[["any","Any"],["0","None / entry level"],["1","1 year"],["2","2 years"],["3","3 years"],["5","5 years"]].map(([v,t]) => `<option value="${v}" ${F.exp===v?"selected":""}>${t}</option>`).join("")}</select>
     <label class="muted" style="font-size:12.5px;display:block;margin-top:8px">Degree</label>
     <select data-s="degree">${[["any","Any"],["nomaster","Bachelor's or less (hide Master's/PhD)"],["none","No degree mentioned"]].map(([v,t]) => `<option value="${v}" ${F.degree===v?"selected":""}>${t}</option>`).join("")}</select>
     <label class="muted" style="font-size:12.5px;display:block;margin-top:8px">Languages I speak</label>
     ${allLangs.map(l => `<label class="ck"><input type="checkbox" data-f="langs" value="${esc(l)}" ${F.langs.includes(l)?"checked":""}> ${esc(l)}</label>`).join("")}
-    <label class="toggle" style="margin-top:4px">Hide jobs needing other languages<input type="checkbox" data-b="langStrict" ${F.langStrict?"checked":""}></label>
-  </div>
-  <div class="fgroup"><h4>⏰ Dates</h4>
+    <label class="toggle" style="margin-top:4px">Hide jobs needing other languages<input type="checkbox" data-b="langStrict" ${F.langStrict?"checked":""}></label>`)}
+  ${grp("dates", "⏰ Dates", (F.deadline !== DEFAULT_F.deadline) + (F.posted !== "any"), `
     <select data-s="deadline">${[["any","Any deadline"],["open","Deadline not passed"],["soon","Closes within 14 days"],["has","Has a deadline"]].map(([v,t]) => `<option value="${v}" ${F.deadline===v?"selected":""}>${t}</option>`).join("")}</select>
-    <select data-s="posted" style="margin-top:8px">${[["any","Posted any time"],["3","Last 3 days"],["7","Last 7 days"],["14","Last 14 days"]].map(([v,t]) => `<option value="${v}" ${F.posted===v?"selected":""}>${t}</option>`).join("")}</select></div>
-  <div class="fgroup"><h4>🎯 Scores</h4>
+    <select data-s="posted" style="margin-top:8px">${[["any","Posted any time"],["3","Last 3 days"],["7","Last 7 days"],["14","Last 14 days"]].map(([v,t]) => `<option value="${v}" ${F.posted===v?"selected":""}>${t}</option>`).join("")}</select>`)}
+  ${grp("scores", "📊 Scores", (F.minScore > 0) + (F.minAts > 0), `
     <label style="font-size:13px">Min match <span class="rangeval">${F.minScore}</span></label><input type="range" min="0" max="90" step="5" data-r="minScore" value="${F.minScore}">
-    <label style="font-size:13px">Min ATS <span class="rangeval">${F.minAts}%</span></label><input type="range" min="0" max="90" step="5" data-r="minAts" value="${F.minAts}"></div>`;
+    <label style="font-size:13px">Min ATS <span class="rangeval">${F.minAts}%</span></label><input type="range" min="0" max="90" step="5" data-r="minAts" value="${F.minAts}">`)}
+  <label class="fpill ${F.paidOnly ? "on" : ""}"><input type="checkbox" data-b="paidOnly" ${F.paidOnly?"checked":""}> 💰 Paid only</label>
+  <label class="fpill ${F.checked ? "on" : ""}"><input type="checkbox" data-b="checked" ${F.checked?"checked":""}> 🤖 AI-checked</label>
+  <button class="btn small ghost" id="resetF">Reset</button>`;
   const save = () => { store("filters", F); renderFilters(); renderCats(); renderCards(); };
   $("#filters").querySelectorAll("[data-f]").forEach(i => i.onchange = () => { const k = i.dataset.f; F[k] = i.checked ? [...new Set([...F[k], i.value])] : F[k].filter(x => x !== i.value); save(); });
   $("#filters").querySelectorAll("[data-s]").forEach(i => i.onchange = () => { F[i.dataset.s] = i.value; save(); });
   $("#filters").querySelectorAll("[data-b]").forEach(i => i.onchange = () => { F[i.dataset.b] = i.checked; save(); });
   $("#filters").querySelectorAll("[data-r]").forEach(i => { i.oninput = () => { i.previousElementSibling.querySelector(".rangeval").textContent = i.value + (i.dataset.r==="minAts"?"%":""); }; i.onchange = () => { F[i.dataset.r] = +i.value; save(); }; });
   $("#resetF").onclick = () => { F = {...DEFAULT_F}; $("#q").value = ""; save(); };
-  $("#closeF").onclick = () => $("#filters").classList.remove("open");
+  // one dropdown open at a time; ✕, Escape or a click elsewhere closes it
+  $("#filters").querySelectorAll("details").forEach(d => d.addEventListener("toggle", () => {
+    if(d.open) $("#filters").querySelectorAll("details[open]").forEach(o => { if(o !== d) o.open = false; }); }));
+  $("#filters").querySelectorAll("[data-close]").forEach(b => b.onclick = e => { e.preventDefault(); b.closest("details").open = false; });
 }
+document.addEventListener("click", e => { if(!e.target.closest("#filters")) document.querySelectorAll("#filters details[open]").forEach(d => d.open = false); });
+document.addEventListener("keydown", e => { if(e.key === "Escape") document.querySelectorAll("#filters details[open]").forEach(d => d.open = false); });
 /* Categories are grouped so Discover stays readable: pick a group, then (optionally) one category inside it. */
 const CAT_GROUPS = [
   ["tunisia", "🇹🇳 Tunisia", /tunisia/i],
